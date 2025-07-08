@@ -1662,10 +1662,14 @@ const ChartManager = (function () {
         const modalEl = document.getElementById('agingDetailModal');
         if (modalEl) new bootstrap.Modal(modalEl).show();
     }
+    function getAllAgingData() {
+        return Object.values(agingDetails).flat();
+    }
     return {
         init,
         getCurrentLocationData: () => currentLocationData,
-        getCurrentAgingData: () => currentAgingData
+        getCurrentAgingData: () => currentAgingData,
+        getAllAgingData
     };
 })();
 
@@ -1777,6 +1781,39 @@ $(document).ready(function () {
             const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
             XLSX.utils.book_append_sheet(workbook, worksheet, 'AgingSN');
             XLSX.writeFile(workbook, 'agingSN.xlsx');
+            hideSpinner();
+        });
+    }
+
+    const exportAllLocationBtn = document.getElementById('exportAllLocationExcelBtn');
+    if (exportAllLocationBtn) {
+        exportAllLocationBtn.addEventListener('click', async () => {
+            showSpinner();
+            let data = ChartManager.getAllAgingData();
+            if (!data.length) {
+                const result = await ApiService.getAgingCounts();
+                if (result && result.details) {
+                    data = Object.values(result.details).flat();
+                }
+            }
+            if (!data.length) {
+                showError('No data!');
+                hideSpinner();
+                return;
+            }
+            const headers = ['SerialNumber', 'TestCode', 'TestGroup', 'MO Number', 'ModelName', 'Aging'];
+            const rows = data.map(d => [
+                d.serialNumber || d.SerialNumber || '',
+                d.testCode || d.TestCode || '',
+                d.testGroup || d.TestGroup || '',
+                d.moNumber || d.MONumber || '',
+                d.modelName || d.ModelName || '',
+                d.aging ?? d.Aging ?? ''
+            ]);
+            const workbook = XLSX.utils.book_new();
+            const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'AllLocationSN');
+            XLSX.writeFile(workbook, 'allLocationSN.xlsx');
             hideSpinner();
         });
     }
