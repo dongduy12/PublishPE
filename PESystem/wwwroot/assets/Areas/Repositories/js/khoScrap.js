@@ -78,6 +78,10 @@ const KhoScrapManager = (function () {
             document.getElementById("search-results").style.display = "none";
             document.getElementById("export-sn-excel-btn").style.display = "none";
             document.getElementById("export-sn-btn").style.display = "none";
+            const borrowBtn = document.getElementById("borrow-btn");
+            if (borrowBtn) borrowBtn.style.display = "none";
+            const buttonAction = document.getElementById("button-action");
+            if (buttonAction) buttonAction.classList.add("hidden");
         }
     };
 
@@ -114,6 +118,8 @@ const KhoScrapManager = (function () {
                         exportExcelBtn.classList.remove("hidden");
                     }
                     document.getElementById("export-sn-btn").style.display = "block";
+                    const buttonAction = document.getElementById("button-action");
+                    if (buttonAction) buttonAction.classList.remove("hidden");
                     Utils.showSuccess(`Tìm thấy ${data.totalFound || 0}/${(data.totalFound || 0) + (data.totalNotFound || 0)} SN`);
                 } else {
                     Utils.showError(data.message || "Không tìm thấy kết quả!");
@@ -256,6 +262,61 @@ const KhoScrapManager = (function () {
                 Utils.hideSpinner();
                 exportButton.disabled = false;
                 exportButton.textContent = "xuất all...";
+            }
+        }
+    };
+
+    // Nhóm hàm cho mượn
+    const Borrow = {
+        selectedSNs: [],
+
+        updateSelected: () => {
+            Borrow.selectedSNs = Array.from(document.querySelectorAll('.sn-checkbox:checked'))
+                .map(cb => cb.getAttribute('data-serial-number'));
+            const borrowBtn = document.getElementById('borrow-btn');
+            if (borrowBtn) {
+                borrowBtn.style.display = Borrow.selectedSNs.length > 0 ? 'inline-block' : 'none';
+            }
+        },
+
+        borrowSelected: async () => {
+            if (Borrow.selectedSNs.length === 0) return;
+
+            const { value: borrower } = await Swal.fire({
+                title: 'Tên người mượn',
+                input: 'text',
+                inputPlaceholder: 'Nhập tên người mượn',
+                showCancelButton: true,
+                confirmButtonText: 'Xác nhận',
+                cancelButtonText: 'Hủy'
+            });
+
+            if (!borrower) return;
+
+            try {
+                Utils.showSpinner();
+                const response = await fetch(`${API_BASE_URL}/BorrowKhoScrap`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ serialNumbers: Borrow.selectedSNs, borrower })
+                });
+
+                if (!response.ok) throw new Error('Không thể cho mượn kho phế!');
+
+                const data = await response.json();
+                if (data.success) {
+                    Utils.showSuccess(`Đã cho mượn ${data.totalBorrowed} SN`);
+                    searchResultsSN = searchResultsSN.filter(sn => !Borrow.selectedSNs.includes(sn.serialNumber));
+                    Render.renderTable(searchResultsSN, 'results-body');
+                    Borrow.updateSelected();
+                    Utils.displayTotalResults(searchResultsSN.length);
+                } else {
+                    Utils.showError(data.message || 'Lỗi khi cho mượn!');
+                }
+            } catch (error) {
+                Utils.showError('Lỗi khi cho mượn: ' + error.message);
+            } finally {
+                Utils.hideSpinner();
             }
         }
     };
@@ -474,6 +535,7 @@ const KhoScrapManager = (function () {
                     </tr>`;
                 resultsBody.innerHTML += row;
             });
+            Borrow.updateSelected();
         }
     };
 
@@ -566,6 +628,22 @@ const KhoScrapManager = (function () {
             const exportButtons = document.querySelectorAll("#export-scrap-btn");
             exportButtons.forEach(button => {
                 button.addEventListener("click", Export.exportAllToExcel);
+            });
+
+            // Cho mượn
+            const borrowBtn = document.getElementById("borrow-btn");
+            if (borrowBtn) {
+                borrowBtn.addEventListener("click", Borrow.borrowSelected);
+            }
+
+            document.addEventListener("change", (e) => {
+                if (e.target.id === "select-all-checkbox") {
+                    const checked = e.target.checked;
+                    document.querySelectorAll('.sn-checkbox').forEach(cb => cb.checked = checked);
+                }
+                if (e.target.classList.contains('sn-checkbox') || e.target.id === "select-all-checkbox") {
+                    Borrow.updateSelected();
+                }
             });
 
             // Nhập kho
