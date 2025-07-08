@@ -49,24 +49,24 @@ namespace API_WEB.Controllers.Repositories
 
             try
             {
-                int maxSlots = 20;
+                int maxSlots = 160;
                 request.SerialNumbers = request.SerialNumbers.Distinct().ToList();
 
-                //Kiem tra SerialNumber trong ScrapList
-                var validSerials = await _sqlContext.ScrapLists
-                    .Where(sl => request.SerialNumbers.Contains(sl.SN))
-                    .Select(sl => sl.SN)
-                    .ToListAsync();
-                var invalidSerials = request.SerialNumbers.Except(validSerials).ToList();
-                if (invalidSerials.Any())
-                {
-                    return BadRequest(new
-                    {
-                        success = false,
-                        message = "Một số Serial Number không tồn tại trong ScrapList",
-                        invalidSerials
-                    });
-                }
+                ////Kiem tra SerialNumber trong ScrapList
+                //var validSerials = await _sqlContext.ScrapLists
+                //    .Where(sl => request.SerialNumbers.Contains(sl.SN))
+                //    .Select(sl => sl.SN)
+                //    .ToListAsync();
+                //var invalidSerials = request.SerialNumbers.Except(validSerials).ToList();
+                //if (invalidSerials.Any())
+                //{
+                //    return BadRequest(new
+                //    {
+                //        success = false,
+                //        message = "Một số Serial Number không tồn tại trong ScrapList",
+                //        invalidSerials
+                //    });
+                //}
                 var occupiedPositions = await _sqlContext.KhoScraps
                     .Where(p => p.ShelfCode == request.Shelf &&
                     p.ColumnNumber == request.Column &&
@@ -173,8 +173,8 @@ namespace API_WEB.Controllers.Repositories
                 p.TrayNumber == tray).OrderBy(p => p.Position).ToListAsync();
 
                 //3. So luong vi tri toi da trong khay
-                int maxSlots = shelf.Contains("XE") ? 20 : 8;
-                //int maxSlots = 8;
+                //int maxSlots = shelf.Contains("XE") ? 20 : 8;
+                int maxSlots = 160;
                 ////4. Tao danh sach serialnumber da su dung
                 //var occupiedSerialNumbers = productsInTray.Select(p => p.SerialNumber).ToList();
                 // 4. Tạo danh sách serials với vị trí
