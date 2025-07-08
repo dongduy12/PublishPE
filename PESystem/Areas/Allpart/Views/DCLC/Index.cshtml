@@ -269,8 +269,35 @@
         }
 
         function downloadExcel() {
-            const table = document.getElementById('dcLcTable');
-            const wb = XLSX.utils.table_to_book(table, { sheet: "Sheet1" });
+            // Lấy tất cả dữ liệu từ DataTable (bao gồm tất cả các trang)
+            const allData = dcLcTable.rows().data().toArray();
+
+            // Tạo mảng để chứa dữ liệu cho Excel
+            const excelData = [
+                // Tiêu đề cột
+                ['P_SN', 'MODEL_NAME', 'MÃ_LIỆU', 'VENDOR_CODE', 'VENDOR_NAME', 'REF_DES', 'DATE_CODE', 'LOT_CODE', 'PROCESS_FLAG', 'STATION', 'GROUP_NAME', 'WORK_TIME', 'WO']
+            ];
+
+            // Thêm dữ liệu từ DataTable
+            allData.forEach(row => {
+                // Lấy nội dung thực tế từ các ô có tooltip
+                const rowData = Array.from(row).map(cell => {
+                    // Nếu ô là HTML (có class tooltip-trigger), lấy nội dung text
+                    const div = document.createElement('div');
+                    div.innerHTML = cell;
+                    return div.textContent || '';
+                });
+                excelData.push(rowData);
+            });
+
+            // Tạo worksheet từ dữ liệu
+            const ws = XLSX.utils.aoa_to_sheet(excelData);
+
+            // Tạo workbook và thêm worksheet
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+
+            // Xuất file Excel
             const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
             const blob = new Blob([wbout], { type: 'application/octet-stream' });
 
