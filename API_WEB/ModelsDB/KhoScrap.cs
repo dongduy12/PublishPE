@@ -18,5 +18,10 @@ namespace API_WEB.ModelsDB
         public DateTime? entryDate { get; set; }
         public string? entryPerson { get; set; }
         public string? Note { get; set; }
+
+        [Column(TypeName = "datetime")]
+        public DateTime? borrowDate { get; set; }
+        public string? borrowPerson { get; set; }
+        public string? borrowStatus { get; set; }
     }
 }

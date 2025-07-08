@@ -287,7 +287,6 @@ namespace API_WEB.Controllers.Repositories
             return Ok(response);
         }
 
-
         [HttpGet("ClassifyScrap")]
         public async Task<IActionResult> ClassifyScrap(string category)
         {
@@ -406,7 +405,6 @@ namespace API_WEB.Controllers.Repositories
             }
         }
 
-
         private async Task LogAction(string action, string serialNumber, string user, string note = null)
         {
             _sqlContext.Logs.Add(new LogKhoScrap
@@ -418,7 +416,80 @@ namespace API_WEB.Controllers.Repositories
                 Timestamp = DateTime.UtcNow
             });
             await _sqlContext.SaveChangesAsync();
-        }  
+        }
+
+        [HttpPost("BorrowKhoScrap")]
+        public async Task<IActionResult> BorrowKhoScrapSN([FromBody] BorrowSNListRequest request)
+        {
+            try
+            {
+                if (request == null || request.SerialNumbers == null || !request.SerialNumbers.Any() || string.IsNullOrEmpty(request.Borrower))
+                {
+                    return BadRequest(new { success = false, message = "Danh sách Serial Numbers và Borrower là bắt buộc." });
+                }
+
+                var borrowedResults = new List<object>();
+                var notFoundSerials = new List<string>();
+                var failedSerials = new List<string>();
+                var borrowHistories = new List<BorrowHistory>();
+                foreach (var serialNumber in request.SerialNumbers)
+                {
+                    try
+                    {
+                        // Tìm sản phẩm theo SerialNumber
+                        var product = await _sqlContext.KhoScraps.FirstOrDefaultAsync(p => p.SERIAL_NUMBER == serialNumber);
+                        if (product == null)
+                        {
+                            notFoundSerials.Add(serialNumber);
+                            continue;
+                        }
+                        // Cập nhật thông tin mượn
+                        product.borrowStatus = "Borrowed";
+                        product.borrowDate = DateTime.Now;
+                        product.borrowPerson = request.Borrower;
+                        // Xóa thông tin vị trí
+                        product.ShelfCode = null;
+                        product.TrayNumber = null;
+                        product.LevelNumber = null;
+                        product.Position = null;
+                        product.ColumnNumber = null;
+
+                        borrowedResults.Add(new
+                        {
+                            SerialNumber = product.SERIAL_NUMBER,
+                            BorrowStatus = product.borrowStatus,
+                            BorrowDate = product.borrowDate,
+                            BorrowPerson = product.borrowPerson
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        // Ghi nhận lỗi khi xử lý từng serial number
+                        failedSerials.Add(serialNumber);
+                    }
+                }
+
+                // Lưu tất cả thay đổi vào cơ sở dữ liệu
+                _sqlContext.BorrowHistories.AddRange(borrowHistories);
+                await _sqlContext.SaveChangesAsync();
+
+                // Trả về kết quả
+                return Ok(new
+                {
+                    success = true,
+                    totalBorrowed = borrowedResults.Count,
+                    totalNotFound = notFoundSerials.Count,
+                    totalFailed = failedSerials.Count,
+                    borrowedResults,
+                    notFoundSerials,
+                    failedSerials
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = $"Lỗi hệ thống: {ex.Message}" });
+            }
+        }
         public class InforSNRequest
         {
             public string? Shelf { get; set; }
