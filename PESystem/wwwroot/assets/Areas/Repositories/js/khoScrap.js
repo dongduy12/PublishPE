@@ -218,6 +218,9 @@ const KhoScrapManager = (function () {
                 "POSITION": result.position || "",
                 "ENTRY_DATE": result.entryDate || "",
                 "ENTRY_PERSON": result.entryPerson || "",
+                "BORROW_STATUS": result.borrowStatus || "",
+                "BORROW_DATE": result.borrowDate || "",
+                "BORROW_PERSON": result.borrowPerson || "",
                 "NOTE": result.note || ""
             }));
 
@@ -326,7 +329,7 @@ const KhoScrapManager = (function () {
         handleTrayInput: () => {
             const trayInput = document.querySelector('input[name="location"]');
             let trayData = [];
-            let maxSlots = 180;
+            let maxSlots = 160;
 
             trayInput.addEventListener("input", function () {
                 let location = trayInput.value.trim().toUpperCase();
@@ -490,8 +493,8 @@ const KhoScrapManager = (function () {
 
                 document.getElementById("duplicate-warning").style.display = hasDuplicates ? "block" : "none";
                 const totalSerials = trayData.length + serialNumbers.length;
-                document.getElementById("serial-limit-warning").style.display = totalSerials > 20 ? "block" : "none";
-                document.getElementById("serial-count").textContent = `Tổng số serial đã nhập: ${totalSerials}/20`;
+                document.getElementById("serial-limit-warning").style.display = totalSerials > 160 ? "block" : "none";
+                document.getElementById("serial-count").textContent = `Tổng số serial đã nhập: ${totalSerials}/160`;
                 await Import.updateSerialDetails(serialNumbers);
             });
         }
@@ -531,6 +534,9 @@ const KhoScrapManager = (function () {
                         <td>${result.positionInTray || ""}</td>
                         <td>${result.entryDate || ""}</td>
                         <td title="${result.entryPerson || ""}">${result.entryPerson || ""}</td>
+                        <td title="${result.borrowStatus || ""}">${result.borrowStatus || ""}</td>
+                        <td title="${result.borrowDate || ""}">${result.borrowDate || ""}</td>
+                        <td title="${result.borrowPerson || ""}">${result.borrowPerson || ""}</td>
                         <td title="${result.note || ""}">${result.note || ""}</td>
                     </tr>`;
                 resultsBody.innerHTML += row;

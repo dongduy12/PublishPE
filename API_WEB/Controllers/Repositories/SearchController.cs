@@ -330,7 +330,10 @@ namespace API_WEB.Controllers.Repositories
                         ReasonCode = oracleInfo?.ReasonCode ?? "",
                         WipGroup = oracleInfo?.WipGroup ?? "",
                         WorkFlag = oracleInfo?.WorkFlag ?? "",
-                        BlockReason = oracleInfo?.BlockReason ?? "",
+                        BorrowStatus = product?.borrowStatus ?? "",
+                        BorrowDate = product?.borrowDate,
+                        BorrowPerson = product?.borrowPerson ?? "",
+                        BlockReason = oracleInfo?.BlockReason ?? ""
                     });
                 }
 
@@ -377,6 +380,9 @@ namespace API_WEB.Controllers.Repositories
                             ks.KhoScrap.Position,
                             ks.KhoScrap.entryDate,
                             ks.KhoScrap.entryPerson,
+                            ks.KhoScrap.borrowStatus,
+                            ks.KhoScrap.borrowDate,
+                            ks.KhoScrap.borrowPerson,
                             ks.KhoScrap.Note,
                             TaskNumber = sl != null ? sl.TaskNumber : null
                         })
@@ -433,6 +439,9 @@ namespace API_WEB.Controllers.Repositories
                         PositionInTray = product?.Position,
                         EntryDate = product?.entryDate,
                         EntryPerson = product?.entryPerson ?? "",
+                        BorrowStatus = product?.borrowStatus ?? "",
+                        BorrowDate = product?.borrowDate,
+                        BorrowPerson = product?.borrowPerson ?? "",
                         Note = product?.Note ?? "",
                         ProductLine = oracleInfo?.ProductLine ?? "",
                         BlockReason = oracleInfo?.BlockReason ?? "",
@@ -473,8 +482,11 @@ namespace API_WEB.Controllers.Repositories
                     worksheet.Cell(currentRow, 16).Value = "REASON_CODE";
                     worksheet.Cell(currentRow, 17).Value = "NGÀY_NHẬP";
                     worksheet.Cell(currentRow, 18).Value = "NGƯỜI_NHẬP";
-                    worksheet.Cell(currentRow, 19).Value = "NOTE";
-                    worksheet.Cell(currentRow, 20).Value = "TYPE";
+                    worksheet.Cell(currentRow, 19).Value = "BORROW_STATUS";
+                    worksheet.Cell(currentRow, 20).Value = "BORROW_DATE";
+                    worksheet.Cell(currentRow, 21).Value = "BORROW_PERSON";
+                    worksheet.Cell(currentRow, 22).Value = "NOTE";
+                    worksheet.Cell(currentRow, 23).Value = "TYPE";
                     // Điền dữ liệu
                     foreach (var data in excelData) 
                     {
@@ -497,8 +509,11 @@ namespace API_WEB.Controllers.Repositories
                         worksheet.Cell(currentRow, 16).Value = data.ReasonCode;
                         worksheet.Cell(currentRow, 17).Value = data.EntryDate;
                         worksheet.Cell(currentRow, 18).Value = data.EntryPerson;
-                        worksheet.Cell(currentRow, 19).Value = data.Note;
-                        worksheet.Cell(currentRow, 20).Value = data.Type;
+                        worksheet.Cell(currentRow, 19).Value = data.BorrowStatus;
+                        worksheet.Cell(currentRow, 20).Value = data.BorrowDate;
+                        worksheet.Cell(currentRow, 21).Value = data.BorrowPerson;
+                        worksheet.Cell(currentRow, 22).Value = data.Note;
+                        worksheet.Cell(currentRow, 23).Value = data.Type;
                     }
 
                     // Trả file Excel về client
