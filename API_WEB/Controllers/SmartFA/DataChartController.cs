@@ -91,6 +91,7 @@ namespace API_WEB.Controllers.SmartFA
                     task.TEST_CODE,
                     task.MO_NUMBER,
                     task.TEST_GROUP,
+                    task.DATA18,
                     ErrorDesc = err != null ? err.ERROR_DESC : string.Empty,
                     AgingDays = (now - task.DATE3.Value).TotalDays
                 }
@@ -118,7 +119,8 @@ namespace API_WEB.Controllers.SmartFA
                         ErrorDesc = x.ErrorDesc,
                         MONumber = x.MO_NUMBER,
                         ModelName = x.MODEL_NAME,
-                        Aging = Math.Round(x.AgingDays, 2)
+                        Aging = Math.Round(x.AgingDays, 2),
+                        Location = x.DATA18
                     }).ToList(),
                     OneToThreeDays = oneToThree.Select(x => new
                     {
@@ -127,7 +129,8 @@ namespace API_WEB.Controllers.SmartFA
                         ErrorDesc = x.ErrorDesc,
                         MONumber = x.MO_NUMBER,
                         ModelName = x.MODEL_NAME,
-                        Aging = Math.Round(x.AgingDays, 2)
+                        Aging = Math.Round(x.AgingDays, 2),
+                        Location = x.DATA18
                     }).ToList(),
                     MoreThanThreeDays = moreThanThree.Select(x => new
                     {
@@ -136,7 +139,8 @@ namespace API_WEB.Controllers.SmartFA
                         ErrorDesc = x.ErrorDesc,
                         MONumber = x.MO_NUMBER,
                         ModelName = x.MODEL_NAME,
-                        Aging = Math.Round(x.AgingDays, 2)
+                        Aging = Math.Round(x.AgingDays, 2),
+                        Location = x.DATA18
                     }).ToList()
                 }
             });

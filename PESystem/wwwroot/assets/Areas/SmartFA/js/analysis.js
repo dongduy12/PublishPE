@@ -1801,14 +1801,15 @@ $(document).ready(function () {
                 hideSpinner();
                 return;
             }
-            const headers = ['SerialNumber', 'TestCode', 'TestGroup', 'MO Number', 'ModelName', 'Aging'];
+            const headers = ['SerialNumber', 'TestCode', 'ErrorDesc', 'MO Number', 'ModelName', 'Aging', 'Location'];
             const rows = data.map(d => [
                 d.serialNumber || d.SerialNumber || '',
                 d.testCode || d.TestCode || '',
-                d.testGroup || d.TestGroup || '',
+                d.errorDesc || d.ErrorDesc || '',
                 d.moNumber || d.MONumber || '',
                 d.modelName || d.ModelName || '',
-                d.aging ?? d.Aging ?? ''
+                d.aging ?? d.Aging ?? '',
+                d.location || d.Location || d.data18 || d.DATA18 || ''
             ]);
             const workbook = XLSX.utils.book_new();
             const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
