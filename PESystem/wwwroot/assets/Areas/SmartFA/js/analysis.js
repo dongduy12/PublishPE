@@ -1801,16 +1801,16 @@ $(document).ready(function () {
                 hideSpinner();
                 return;
             }
-            const headers = ['SerialNumber', 'TestCode', 'TestGroup', 'ErrorDesc', 'MO Number', 'ModelName', 'Aging', 'Location'];
+            const headers = ['SERIAL_NUMBER', 'MODEL_NAME', 'MO_NUMBER', 'TEST_GROUP', 'TEST_CODE', 'ERROR_DESC', 'LOCATION', 'AGING'];
             const rows = data.map(d => [
                 d.serialNumber || d.SerialNumber || '',
-                d.testCode || d.TestCode || '',
-                d.testGroup || d.TestGroup || '',
-                d.errorDesc || d.ErrorDesc || '',
-                d.moNumber || d.MONumber || '',
                 d.modelName || d.ModelName || '',
-                d.aging ?? d.Aging ?? '',
-                d.location || d.Location || d.data18 || d.DATA18 || ''
+                d.moNumber || d.MONumber || '',
+                d.testGroup || d.TestGroup || '',
+                d.testCode || d.TestCode || '',
+                d.errorDesc || d.ErrorDesc || '',
+                d.location || d.data18 || d.DATA18 || '',
+                d.aging ?? d.Aging ?? ''
             ]);
             const workbook = XLSX.utils.book_new();
             const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
