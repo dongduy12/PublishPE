@@ -1801,10 +1801,11 @@ $(document).ready(function () {
                 hideSpinner();
                 return;
             }
-            const headers = ['SerialNumber', 'TestCode', 'ErrorDesc', 'MO Number', 'ModelName', 'Aging', 'Location'];
+            const headers = ['SerialNumber', 'TestCode', 'TestGroup', 'ErrorDesc', 'MO Number', 'ModelName', 'Aging', 'Location'];
             const rows = data.map(d => [
                 d.serialNumber || d.SerialNumber || '',
                 d.testCode || d.TestCode || '',
+                d.testGroup || d.TestGroup || '',
                 d.errorDesc || d.ErrorDesc || '',
                 d.moNumber || d.MONumber || '',
                 d.modelName || d.ModelName || '',

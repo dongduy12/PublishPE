@@ -116,6 +116,7 @@ namespace API_WEB.Controllers.SmartFA
                     {
                         SerialNumber = x.SERIAL_NUMBER,
                         TestCode = x.TEST_CODE,
+                        TestGroup = x.TEST_GROUP,
                         ErrorDesc = x.ErrorDesc,
                         MONumber = x.MO_NUMBER,
                         ModelName = x.MODEL_NAME,
@@ -126,6 +127,7 @@ namespace API_WEB.Controllers.SmartFA
                     {
                         SerialNumber = x.SERIAL_NUMBER,
                         TestCode = x.TEST_CODE,
+                        TestGroup = x.TEST_GROUP,
                         ErrorDesc = x.ErrorDesc,
                         MONumber = x.MO_NUMBER,
                         ModelName = x.MODEL_NAME,
@@ -136,6 +138,7 @@ namespace API_WEB.Controllers.SmartFA
                     {
                         SerialNumber = x.SERIAL_NUMBER,
                         TestCode = x.TEST_CODE,
+                        TestGroup = x.TEST_GROUP,
                         ErrorDesc = x.ErrorDesc,
                         MONumber = x.MO_NUMBER,
                         ModelName = x.MODEL_NAME,
