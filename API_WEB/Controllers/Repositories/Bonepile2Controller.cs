@@ -772,46 +772,14 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
         {
             try
             {
-                var data = await ExecuteBonepileAfterKanbanQuery();
+                var scrapDict = await _sqlContext.ScrapLists
+                    .AsNoTracking()
+                    .ToDictionaryAsync(s => s.SN, s => (s.ApplyTaskStatus, s.TaskNumber));
+
+                var data = await ExecuteBonepileAfterKanbanQuery(scrapDict);
                 if (!data.Any())
                 {
                     return NotFound(new { message = "Khong tim thay du lieu!!", count = 0 });
-                }
-
-                var sfgList = data.Select(d => d.SFG).Where(s => !string.IsNullOrEmpty(s)).ToList();
-
-                var scrapInfo = await _sqlContext.ScrapLists
-                    .Where(s => sfgList.Contains(s.SN))
-                    .Select(s => new { s.SN, s.ApplyTaskStatus, s.TaskNumber })
-                    .ToListAsync();
-
-                var scrapDict = scrapInfo.ToDictionary(s => s.SN, s => (s.ApplyTaskStatus, s.TaskNumber));
-
-                foreach (var item in data)
-                {
-                    if (scrapDict.TryGetValue(item.SFG, out var info))
-                    {
-                        if ((info.ApplyTaskStatus == 0 || info.ApplyTaskStatus == 1))
-                        {
-                            item.STATUS = string.IsNullOrEmpty(info.TaskNumber) ? "ScrapLackTask" : "ScrapHasTask";
-                        }
-                        else if (info.ApplyTaskStatus == 2)
-                        {
-                            item.STATUS = "WatitingScrap";
-                        }
-                        else if (info.ApplyTaskStatus == 3)
-                        {
-                            item.STATUS = "ApproveBGA";
-                        }
-                        else
-                        {
-                            item.STATUS = "RepairInRE";
-                        }
-                    }
-                    else
-                    {
-                        item.STATUS = "RepairInRE";
-                    }
                 }
 
                 return Ok(new { count = data.Count, data });
@@ -822,7 +790,8 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
             }
         }
 
-        private async Task<List<BonepileAfterKanbanResult>> ExecuteBonepileAfterKanbanQuery()
+        private async Task<List<BonepileAfterKanbanResult>> ExecuteBonepileAfterKanbanQuery(
+            Dictionary<string, (int ApplyTaskStatus, string TaskNumber)> scrapDict)
         {
             var result = new List<BonepileAfterKanbanResult>();
 
@@ -890,7 +859,7 @@ WHERE a.WIP_GROUP LIKE '%B36R'
                 {
                     while (await reader.ReadAsync())
                     {
-                        result.Add(new BonepileAfterKanbanResult
+                        var item = new BonepileAfterKanbanResult
                         {
                             SFG = reader["SFG"].ToString(),
                             FG = reader["FG"].ToString(),
@@ -904,7 +873,33 @@ WHERE a.WIP_GROUP LIKE '%B36R'
                             TEST_GROUP = reader["TEST_GROUP"].ToString(),
                             TEST_TIME = reader["TEST_TIME"] != DBNull.Value ? Convert.ToDateTime(reader["TEST_TIME"]) : (DateTime?)null,
                             ERROR_CODE = reader["ERROR_CODE"].ToString()
-                        });
+                        };
+
+                        if (scrapDict.TryGetValue(item.SFG, out var info))
+                        {
+                            if (info.ApplyTaskStatus == 0 || info.ApplyTaskStatus == 1)
+                            {
+                                item.STATUS = string.IsNullOrEmpty(info.TaskNumber) ? "ScrapLackTask" : "ScrapHasTask";
+                            }
+                            else if (info.ApplyTaskStatus == 2)
+                            {
+                                item.STATUS = "WatitingScrap";
+                            }
+                            else if (info.ApplyTaskStatus == 3)
+                            {
+                                item.STATUS = "ApproveBGA";
+                            }
+                            else
+                            {
+                                item.STATUS = "RepairInRE";
+                            }
+                        }
+                        else
+                        {
+                            item.STATUS = "RepairInRE";
+                        }
+
+                        result.Add(item);
                     }
                 }
             }
