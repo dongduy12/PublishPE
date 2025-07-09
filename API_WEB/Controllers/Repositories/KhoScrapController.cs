@@ -92,12 +92,38 @@ namespace API_WEB.Controllers.Repositories
                     var existingProduct = await _sqlContext.KhoScraps.FirstOrDefaultAsync(p => p.SERIAL_NUMBER == serialNumber);
                     if (existingProduct != null)
                     {
-                        results.Add(new 
-                        { 
-                            serialNumber,
-                            success = false,
-                            message = $"SerialNumber{serialNumber} da ton tai trong he thong" 
-                        });
+                        if (existingProduct.borrowStatus == "Borrowed")
+                        {
+                            Console.WriteLine($"Updating product {serialNumber} with new location.");
+
+                            existingProduct.ShelfCode = request.Shelf;
+                            existingProduct.ColumnNumber = request.Column;
+                            existingProduct.LevelNumber = request.Level;
+                            existingProduct.TrayNumber = request.Tray;
+
+                            // Tìm vị trí trống đầu tiên
+                            int positionInTray = Enumerable.Range(1, maxSlots).Except(occupiedPositions).FirstOrDefault();
+                            if (positionInTray == 0)
+                            {
+                                results.Add(new { serialNumber, success = false, message = "Không tìm được vị trí trống!" });
+                                continue;
+                            }
+
+                            existingProduct.Position = positionInTray;
+                            existingProduct.borrowStatus = "Available"; // Cập nhật trạng thái
+                            existingProduct.entryPerson = request.EntryPerson;
+                            existingProduct.entryDate = DateTime.Now;
+                            existingProduct.borrowDate = null;
+                            existingProduct.borrowPerson = "";
+                            occupiedPositions.Add(positionInTray);
+
+                            // Lưu cập nhật vào database
+                            _sqlContext.KhoScraps.Update(existingProduct);
+                            await _sqlContext.SaveChangesAsync();
+
+                            results.Add(new { serialNumber, success = true, message = "Sản phẩm đã được cập nhật vị trí." });
+                        }
+                        else { results.Add(new { serialNumber, success = false, message = $"SerialNumber{serialNumber} da ton tai trong he thong" }); }
                         continue;
                     }
 

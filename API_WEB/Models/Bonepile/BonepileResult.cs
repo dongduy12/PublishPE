@@ -63,7 +63,7 @@
         public string STATUS { get; set; }
     }
 
-    // Result model for bonepile after kanban query
+
     public class BonepileAfterKanbanResult
     {
         public string SFG { get; set; }

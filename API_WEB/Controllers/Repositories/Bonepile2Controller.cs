@@ -756,7 +756,7 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                             TEST_GROUP = reader["TEST_GROUP"] != DBNull.Value ? reader["TEST_GROUP"].ToString() : null,
                             TEST_TIME = reader["TEST_TIME"].ToString(),
                             TEST_CODE = reader["TEST_CODE"].ToString(),
-                            ERROR_DESC = reader["DATA1"].ToString(),  
+                            ERROR_DESC = reader["DATA1"].ToString(),
                             DATA12 = reader["DATA12"] != DBNull.Value ? reader["DATA12"].ToString() : null,
                             DATA19 = reader["DATA19"] != DBNull.Value ? reader["DATA19"].ToString() : null,
                         });
@@ -767,22 +767,105 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
             return result;
         }
 
-        [HttpGet("bonepile-after-kanban")]
-        public async Task<IActionResult> BonepileAfterKanban()
+
+        [HttpPost("bonepile-after-kanban")]
+        public async Task<IActionResult> BonepileAfterKanban([FromBody] StatusRequestBonepile request)
         {
             try
             {
-                var scrapDict = await _sqlContext.ScrapLists
-                    .AsNoTracking()
-                    .ToDictionaryAsync(s => s.SN, s => (s.ApplyTaskStatus, s.TaskNumber));
-
-                var data = await ExecuteBonepileAfterKanbanQuery(scrapDict);
-                if (!data.Any())
+                if (request == null)
                 {
-                    return NotFound(new { message = "Khong tim thay du lieu!!", count = 0 });
+                    return BadRequest(new { message = "Yêu cầu không hợp lệ!" });
+                }
+                bool filterByStatus = request.Statuses?.Any() == true;
+                var statuses = filterByStatus ? request.Statuses.Where(s => !string.IsNullOrEmpty(s)).ToList() : null;
+                var allData = await ExecuteBonepileAfterKanbanQuery();
+
+
+                var sfgList = allData.Select(d => d.SFG).Where(s => !string.IsNullOrEmpty(s)).ToList();
+
+                var scrapCategories = await _sqlContext.ScrapLists
+                .Where(s => sfgList.Contains(s.SN.Trim().ToUpper()))
+                .Select(s => new { SN = s.SN, ApplyTaskStatus = s.ApplyTaskStatus, TaskNumber = s.TaskNumber })
+                .ToListAsync();
+
+                var scrapDict = scrapCategories.ToDictionary(
+                    c => c.SN?.Trim().ToUpper() ?? "",
+                    c => (ApplyTaskStatus: c.ApplyTaskStatus, TaskNumber: c.TaskNumber),
+                    StringComparer.OrdinalIgnoreCase
+                );
+
+                var validStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "ScrapLackTask",
+                    "ScrapHasTask",
+                    "WatitingScrap",
+                    "ApproveBGA",
+                    "RepairInRE"
+                };
+                // Phân loại status theo yêu cầu
+                var result = allData
+                    .Select(b =>
+                    {
+                        var sn = b.SFG?.Trim().ToUpper() ?? "";
+                        string status;
+
+                        // Kiểm tra thông tin trong scrapDict
+                        if (scrapDict.TryGetValue(sn, out var scrapInfo))
+                        {
+                            var applyTaskStatus = scrapInfo.ApplyTaskStatus;
+                            var taskNumber = scrapInfo.TaskNumber;
+
+                            if (applyTaskStatus == 0 || applyTaskStatus == 1)
+                            {
+                                status = string.IsNullOrEmpty(taskNumber) ? "ScrapLackTask" : "ScrapHasTask";
+                            }
+                            else
+                            {
+                                status = applyTaskStatus switch
+                                {
+                                    2 => "WatitingScrap",
+                                    3 => "ApproveBGA",
+                                    _ => "RepairInRE"
+                                };
+                            }
+                        }
+                        else
+                        {
+                            status = "RepairInRE";
+                        }
+                        return new
+                        {
+                            SN = b.SFG,
+                            FG = b.FG,
+                            ModelName = b.MODEL_NAME,
+                            MoNumber = b.MO_NUMBER,
+                            ProductLine = b.PRODUCT_LINE,
+                            WipGroupSFC = b.WIP_GROUP_SFC,
+                            WipGroupKANBAN = b.WIP_GROUP_KANBAN,
+                            Status = status,
+                            testTime = b.TEST_TIME,
+                            testCode = b.TEST_CODE,
+                            testGroup = b.TEST_GROUP,
+                            errorDesc = b.ERROR_CODE,
+                        };
+                    })
+                    .Where(r => validStatuses.Contains(r.Status, StringComparer.OrdinalIgnoreCase) &&
+                                (!filterByStatus || statuses.Contains(r.Status, StringComparer.OrdinalIgnoreCase)))
+                    .ToList();
+                // Log result count
+                Console.WriteLine($"Result Count: {result?.Count}");
+
+                if (!result.Any())
+                {
+                    return NotFound(new { message = "Không tìm thấy dữ liệu!", count = 0 });
                 }
 
-                return Ok(new { count = data.Count, data });
+                return Ok(new
+                {
+                    count = result?.Count,
+                    data = result
+                });
             }
             catch (Exception ex)
             {
@@ -790,8 +873,71 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
             }
         }
 
-        private async Task<List<BonepileAfterKanbanResult>> ExecuteBonepileAfterKanbanQuery(
-            Dictionary<string, (int ApplyTaskStatus, string TaskNumber)> scrapDict)
+        [HttpGet("bonepile-after-kanban-count")]
+        public async Task<IActionResult> BonepileAfterKanbanCount()
+        {
+            try
+            {
+                var repairTaskData = await ExecuteBonepileAfterKanbanQuery();
+                var scrapCategories = await _sqlContext.ScrapLists
+                    .Select(s => new { SN = s.SN, ApplyTaskStatus = s.ApplyTaskStatus, TaskNumber = s.TaskNumber })
+                    .ToListAsync();
+                var scrapDict = scrapCategories.ToDictionary(
+                    c => c.SN?.Trim().ToUpper() ?? "",
+                    c => (ApplyTaskStatus: c.ApplyTaskStatus, TaskNumber: c.TaskNumber),
+                    StringComparer.OrdinalIgnoreCase
+                );
+                var result = repairTaskData.Select(b =>
+                {
+                    var sn = b.SFG?.Trim().ToUpper() ?? "";
+                    string status;
+                    // Kiểm tra thông tin trong scrapDict
+                    if (scrapDict.TryGetValue(sn, out var scrapInfo))
+                    {
+                        var applyTaskStatus = scrapInfo.ApplyTaskStatus;
+                        var taskNumber = scrapInfo.TaskNumber;
+
+                        if (applyTaskStatus == 0 || applyTaskStatus == 1)
+                        {
+                            status = string.IsNullOrEmpty(taskNumber) ? "ScrapLackTask" : "ScrapHasTask";
+                        }
+                        else
+                        {
+                            status = applyTaskStatus switch
+                            {
+                                2 => "WatitingScrap",
+                                3 => "ApproveBGA",
+                                _ => "RepairInRE"
+                            };
+                        }
+                    }
+                    else
+                    {
+                        status = "RepairInRE";
+                    }
+                    return status;
+                }).ToList();
+                var statusCounts = result
+                    .GroupBy(status => status)
+                    .Select(g => new
+                    {
+                        Status = g.Key,
+                        Count = g.Count()
+                    })
+                    .ToList();
+                return Ok(new
+                {
+                    totalCount = result.Count,
+                    statusCounts = statusCounts
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
+            }
+        }
+
+        private async Task<List<BonepileAfterKanbanResult>> ExecuteBonepileAfterKanbanQuery()
         {
             var result = new List<BonepileAfterKanbanResult>();
 
@@ -804,7 +950,7 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
     a.MO_NUMBER,
     a.MODEL_NAME,
     b.PRODUCT_LINE,
-    a.WIP_GROUP AS WIP_GROUP_KANBAN,
+    a.WIP_GROUP AS WIP_GROUP_KANAN,
     r107.WIP_GROUP AS WIP_GROUP_SFC,
     c.WORK_TIME,
     CASE 
@@ -859,47 +1005,21 @@ WHERE a.WIP_GROUP LIKE '%B36R'
                 {
                     while (await reader.ReadAsync())
                     {
-                        var item = new BonepileAfterKanbanResult
+                        result.Add(new BonepileAfterKanbanResult
                         {
                             SFG = reader["SFG"].ToString(),
                             FG = reader["FG"].ToString(),
                             MO_NUMBER = reader["MO_NUMBER"].ToString(),
                             MODEL_NAME = reader["MODEL_NAME"].ToString(),
                             PRODUCT_LINE = reader["PRODUCT_LINE"].ToString(),
-                            WIP_GROUP_KANBAN = reader["WIP_GROUP_KANBAN"].ToString(),
+                            WIP_GROUP_KANBAN = reader["WIP_GROUP_KANAN"].ToString(),
                             WIP_GROUP_SFC = reader["WIP_GROUP_SFC"].ToString(),
                             WORK_TIME = reader["WORK_TIME"] != DBNull.Value ? Convert.ToDateTime(reader["WORK_TIME"]) : (DateTime?)null,
                             TEST_CODE = reader["TEST_CODE"].ToString(),
                             TEST_GROUP = reader["TEST_GROUP"].ToString(),
                             TEST_TIME = reader["TEST_TIME"] != DBNull.Value ? Convert.ToDateTime(reader["TEST_TIME"]) : (DateTime?)null,
                             ERROR_CODE = reader["ERROR_CODE"].ToString()
-                        };
-
-                        if (scrapDict.TryGetValue(item.SFG, out var info))
-                        {
-                            if (info.ApplyTaskStatus == 0 || info.ApplyTaskStatus == 1)
-                            {
-                                item.STATUS = string.IsNullOrEmpty(info.TaskNumber) ? "ScrapLackTask" : "ScrapHasTask";
-                            }
-                            else if (info.ApplyTaskStatus == 2)
-                            {
-                                item.STATUS = "WaitingScrap";
-                            }
-                            else if (info.ApplyTaskStatus == 3)
-                            {
-                                item.STATUS = "ApproveBGA";
-                            }
-                            else
-                            {
-                                item.STATUS = "RepairInRE";
-                            }
-                        }
-                        else
-                        {
-                            item.STATUS = "RepairInRE";
-                        }
-
-                        result.Add(item);
+                        });
                     }
                 }
             }

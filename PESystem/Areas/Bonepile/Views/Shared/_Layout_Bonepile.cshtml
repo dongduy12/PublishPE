@@ -66,15 +66,16 @@
         <!-- Logo and Dashboard with fixed checkbox -->
         <div class="dashboard-container">
             <a href="@Url.Action("Home", "Home", new { area = "" })">
-                <img src="~/assets/img/check_list.png" style="width:48px; height:48px;" class="logo" />
+                <img src="~/assets/img/bonepile.png" style="width:48px; height:48px;" class="logo" />
             </a>
-            <span class="spanTitle" style="font-size: 1.0rem; font-weight: bold;">Check List</span>
+            <span class="spanTitle" style="font-size: 1.0rem; font-weight: bold;">Bonepile</span>
             <span><input type="checkbox" id="toggleSidebarFixed" title="Giữ cố định" /></span>
         </div>
         <nav class="nav flex-column">
             <!-- Menu Items -->
             <a href="@Url.Action("Home", "Home", new { area = "" })" class="nav-link"><i class="fas fa-home"></i> <span>Trang chủ</span></a>
-            <a href="@Url.Action("Index", "Bonepile", new { area = "Bonepile" })" class="nav-link @ViewContext.IsActive("Bonepile", "Index")"><i class=" fas fa-dashboard"></i> <span>Bonepile</span></a>
+            <a href="@Url.Action("Index", "Bonepile", new { area = "Bonepile" })" class="nav-link @ViewContext.IsActive("Bonepile", "Index")"><i class=" fas fa-dashboard"></i> <span>BonepileBefore</span></a>
+            <a href="@Url.Action("Index", "BonepileAfter", new { area = "Bonepile" })" class="nav-link @ViewContext.IsActive("BonepileAfter", "Index")"><i class=" fas fa-dashboard"></i> <span>BonepileAfter</span></a>
             <a href="@Url.Action("Index", "Bonepile2", new { area = "Bonepile" })" class="nav-link @ViewContext.IsActive("Bonepile2", "Index")"><i class="fas fa-list"></i> <span>Bonepile 2.0</span></a>
 
         </nav>
