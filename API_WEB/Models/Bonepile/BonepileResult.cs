@@ -62,4 +62,22 @@
         public string DATA19 { get; set; }//NOTE
         public string STATUS { get; set; }
     }
+
+    // Result model for bonepile after kanban query
+    public class BonepileAfterKanbanResult
+    {
+        public string SFG { get; set; }
+        public string FG { get; set; }
+        public string MO_NUMBER { get; set; }
+        public string MODEL_NAME { get; set; }
+        public string PRODUCT_LINE { get; set; }
+        public string WIP_GROUP_KANBAN { get; set; }
+        public string WIP_GROUP_SFC { get; set; }
+        public DateTime? WORK_TIME { get; set; }
+        public string TEST_CODE { get; set; }
+        public string TEST_GROUP { get; set; }
+        public DateTime? TEST_TIME { get; set; }
+        public string ERROR_CODE { get; set; }
+        public string STATUS { get; set; }
+    }
 }
