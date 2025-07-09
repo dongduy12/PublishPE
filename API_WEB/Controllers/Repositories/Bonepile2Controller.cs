@@ -2,13 +2,11 @@
 using API_WEB.Models.Repositories;
 using API_WEB.ModelsDB;
 using API_WEB.ModelsOracle;
-using DocumentFormat.OpenXml.InkML;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Oracle.ManagedDataAccess.Client;
 using System.Linq;
-using System.Runtime.Intrinsics.X86;
 
 namespace API_WEB.Controllers.Repositories
 {
@@ -855,6 +853,7 @@ WHERE a.WIP_GROUP LIKE '%B36R'
 
             using (var command = new OracleCommand(query, connection))
             {
+                command.CommandTimeout = 300;
                 using (var reader = await command.ExecuteReaderAsync())
                 {
                     while (await reader.ReadAsync())
