@@ -804,7 +804,7 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
     a.MO_NUMBER,
     a.MODEL_NAME,
     b.PRODUCT_LINE,
-    a.WIP_GROUP AS WIP_GROUP_KANAN,
+    a.WIP_GROUP AS WIP_GROUP_KANBAN,
     r107.WIP_GROUP AS WIP_GROUP_SFC,
     c.WORK_TIME,
     CASE 
@@ -866,7 +866,7 @@ WHERE a.WIP_GROUP LIKE '%B36R'
                             MO_NUMBER = reader["MO_NUMBER"].ToString(),
                             MODEL_NAME = reader["MODEL_NAME"].ToString(),
                             PRODUCT_LINE = reader["PRODUCT_LINE"].ToString(),
-                            WIP_GROUP_KANBAN = reader["WIP_GROUP_KANAN"].ToString(),
+                            WIP_GROUP_KANBAN = reader["WIP_GROUP_KANBAN"].ToString(),
                             WIP_GROUP_SFC = reader["WIP_GROUP_SFC"].ToString(),
                             WORK_TIME = reader["WORK_TIME"] != DBNull.Value ? Convert.ToDateTime(reader["WORK_TIME"]) : (DateTime?)null,
                             TEST_CODE = reader["TEST_CODE"].ToString(),
@@ -883,7 +883,7 @@ WHERE a.WIP_GROUP LIKE '%B36R'
                             }
                             else if (info.ApplyTaskStatus == 2)
                             {
-                                item.STATUS = "WatitingScrap";
+                                item.STATUS = "WaitingScrap";
                             }
                             else if (info.ApplyTaskStatus == 3)
                             {
