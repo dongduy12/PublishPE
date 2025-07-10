@@ -136,6 +136,91 @@ function renderOwnerChart(containerId, data, title, ownerFullNames) {
     });
 }
 
+function determineShift(dateStr) {
+    const date = new Date(dateStr);
+    const mins = date.getHours() * 60 + date.getMinutes();
+    const dayStart = 7 * 60 + 30;
+    const dayEnd = 19 * 60 + 30;
+    return (mins >= dayStart && mins < dayEnd) ? 'Day' : 'Night';
+}
+
+function renderOwnerShiftChart(containerId, data, title, ownerFullNames) {
+    const counts = {};
+    data.forEach(item => {
+        if (!item.wiP_GROUP || !item.wiP_GROUP.toUpperCase().includes('RE')) return;
+        const owner = ownerFullNames[item.owner] || item.owner;
+        const shift = determineShift(item.repaiR_TIME);
+        if (!counts[owner]) counts[owner] = { Day: 0, Night: 0 };
+        counts[owner][shift]++;
+    });
+
+    const sorted = Object.entries(counts).sort((a, b) => (b[1].Day + b[1].Night) - (a[1].Day + a[1].Night));
+    const categories = sorted.map(item => item[0]);
+    const dayData = sorted.map(item => item[1].Day);
+    const nightData = sorted.map(item => item[1].Night);
+
+    Highcharts.chart(containerId, {
+        chart: {
+            type: 'column',
+            height: 500,
+            backgroundColor: '#ffffff',
+            scrollablePlotArea: {
+                minWidth: categories.length * 50,
+                scrollPositionX: 0
+            },
+            zoomType: 'x'
+        },
+        title: {
+            text: title,
+            align: 'center',
+            style: { color: '#2c3e50', fontSize: '20px', fontWeight: 'bold' }
+        },
+        xAxis: {
+            categories: categories,
+            labels: {
+                rotation: -45,
+                style: { color: '#333', fontSize: '12px', fontWeight: '500' },
+                formatter: function () {
+                    return this.value.length > 15 ? this.value.substring(0, 15) + '...' : this.value;
+                }
+            }
+        },
+        yAxis: {
+            title: { text: 'Số lượng', style: { color: '#333', fontSize: '14px' } },
+            labels: { style: { color: '#333' } },
+            tickInterval: 50
+        },
+        tooltip: {
+            shared: true,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            style: { color: '#fff', fontSize: '12px' }
+        },
+        plotOptions: {
+            column: {
+                borderRadius: 8,
+                pointWidth: 40,
+                dataLabels: {
+                    enabled: true,
+                    style: { color: '#2c3e50', fontWeight: 'bold', textOutline: 'none' },
+                    rotation: 0,
+                    y: -30
+                },
+                pointPadding: 0.05,
+                groupPadding: 0.1
+            }
+        },
+        series: [{
+            name: 'Ca ngày',
+            data: dayData,
+            color: { linearGradient: { x1: 0, x2: 0, y1: 0, y2: 1 }, stops: [[0, '#2196F3'], [1, '#1976D2']] }
+        }, {
+            name: 'Ca đêm',
+            data: nightData,
+            color: { linearGradient: { x1: 0, x2: 0, y1: 0, y2: 1 }, stops: [[0, '#FF5722'], [1, '#E64A19']] }
+        }]
+    });
+}
+
 
 //GỌI API LẤY FULL_NAME
 async function fetchOwnerFullNamesBatch(ownerCodes) {
@@ -215,6 +300,7 @@ async function loadData(startDate, endDate) {
         if (repair.success) {
             renderTable("xoaR", repair.data, TABLE_CONFIG.xoaR, ownerFullNames);
             renderOwnerChart("repairChart", repair.data, "Sản lượng xóa R theo Owner", ownerFullNames);
+            renderOwnerShiftChart("repairShiftChart", repair.data, "Sản lượng xóa R theo Owner từng ca", ownerFullNames);
         }
         if (confirm.success) {
             renderTable("XacNhanPhanTich", confirm.data, TABLE_CONFIG.XacNhanPhanTich, ownerFullNames);
