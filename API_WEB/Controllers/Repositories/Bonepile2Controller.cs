@@ -35,7 +35,8 @@ namespace API_WEB.Controllers.Repositories
                 {
                     return BadRequest(new { message = "Yeu cau khong hop le!" });
                 }
-                var statuses = request.Statuses?.Any() == true ? request.Statuses : new List<string> { "Repair", "CheckOut", "CheckIn", "WaitingLink", "Online", "WaitingApproveScrap", "Scrap" };
+                //var statuses = request.Statuses?.Any() == true ? request.Statuses : new List<string> { "Repair", "CheckOut", "CheckIn", "WaitingLink", "Online", "WaitingApproveScrap", "Scrap" };
+                var statuses = request.Statuses?.Any() == true ? request.Statuses : new List<string> { "Repair", "CheckOut", "CheckIn", "WaitingLink", "Online", "WaitingKanBanIn", "WaitingApproveScrap", "Scrap" };
                 //Kiem tra dinh dang ngay
                 if (string.IsNullOrEmpty(request.StartDate) || string.IsNullOrEmpty(request.EndDate))
                 {
@@ -61,7 +62,8 @@ namespace API_WEB.Controllers.Repositories
                     .Select(s => new ScrapListCategory { SN = s.SN, Category = s.Category })
                     .ToListAsync();
 
-                var validStatuses = new HashSet<string> { "Repair", "CheckOut", "CheckIn", "WaitingLink", "Online", "WaitingApproveScrap", "Scrap" };
+                //var validStatuses = new HashSet<string> { "Repair", "CheckOut", "CheckIn", "WaitingLink", "Online", "WaitingApproveScrap", "Scrap" };
+                var validStatuses = new HashSet<string> { "Repair", "CheckOut", "CheckIn", "WaitingLink", "Online", "WaitingKanBanIn", "WaitingApproveScrap", "Scrap" };
                 var result = bonepileData.Select(b =>
                 {
                     var scrapCategory = scrapCategories.FirstOrDefault(c => c.SN == b.SN);
@@ -79,7 +81,8 @@ namespace API_WEB.Controllers.Repositories
                             "8" => "CheckOut",
                             "1" => "CheckIn",
                             "2" => "WaitingLink",
-                            "0" => "Online",
+                            "0" => b.WIP_GROUP == "KANBAN_IN" ? "WaitingKanBanIn" : "Online",
+                            //"0" => "Online",
                             _ => "Unknown" // Xử lý các giá trị ERROR_FLAG không xác định
                         };
                     }
@@ -138,7 +141,8 @@ namespace API_WEB.Controllers.Repositories
                 }
 
                 // Nếu không có Statuses, sử dụng tất cả trạng thái hợp lệ
-                var statuses = request.Statuses?.Any() == true ? request.Statuses : new List<string> { "Repair", "CheckOut", "CheckIn", "WaitingLink", "Online", "WaitingApproveScrap", "Scrap" };
+                //var statuses = request.Statuses?.Any() == true ? request.Statuses : new List<string> { "Repair", "CheckOut", "CheckIn", "WaitingLink", "Online", "WaitingApproveScrap", "Scrap" };
+                var statuses = request.Statuses?.Any() == true ? request.Statuses : new List<string> { "Repair", "CheckOut", "CheckIn", "WaitingLink", "Online", "WaitingKanBanIn", "WaitingApproveScrap", "Scrap" };
 
                 if (string.IsNullOrEmpty(request.StartDate) || string.IsNullOrEmpty(request.EndDate))
                 {
@@ -165,7 +169,8 @@ namespace API_WEB.Controllers.Repositories
                     .ToListAsync();
 
                 // Xác định trạng thái và đếm số lượng
-                var validStatuses = new HashSet<string> { "Repair", "CheckOut", "CheckIn", "WaitingLink", "Online", "WaitingApproveScrap", "Scrap" };
+                //var validStatuses = new HashSet<string> { "Repair", "CheckOut", "CheckIn", "WaitingLink", "Online", "WaitingApproveScrap", "Scrap" };
+                var validStatuses = new HashSet<string> { "Repair", "CheckOut", "CheckIn", "WaitingLink", "Online", "WaitingKanBanIn", "WaitingApproveScrap", "Scrap" };
                 var statusCounts = new Dictionary<string, int>
                 {
                     { "Repair", 0 },
@@ -173,6 +178,7 @@ namespace API_WEB.Controllers.Repositories
                     { "CheckIn", 0 },
                     { "WaitingLink", 0 },
                     { "Online", 0 },
+                    { "WaitingKanBanIn", 0 },
                     { "WaitingApproveScrap", 0 },
                     { "Scrap", 0 }
                 };
@@ -193,7 +199,8 @@ namespace API_WEB.Controllers.Repositories
                             "8" => "CheckOut",
                             "1" => "CheckIn",
                             "2" => "WaitingLink",
-                            "0" => "Online",
+                            "0" => b.WIP_GROUP == "KANBAN_IN" ? "WaitingKanBanIn" : "Online",
+                            //"0" => "Online",
                             _ => "Unknown"
                         };
                     }
@@ -769,6 +776,13 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
 
 
         [HttpGet("bonepile-after-kanban")]
+
+
+
+
+
+
+
         public async Task<IActionResult> BonepileAfterKanban()
         {
             try

@@ -8,8 +8,8 @@
     endDateInput.value = formattedDate;
 
     // Danh sách trạng thái cố định
-    const statuses = ["Scrap", "WaitingLink", "CheckIn", "Repair", "Online", "WaitingApproveScrap", "CheckOut"];
-
+    //const statuses = ["Scrap", "WaitingLink", "CheckIn", "Repair", "Online", "WaitingApproveScrap", "CheckOut"];
+    const statuses = ["Scrap", "WaitingLink", "CheckIn", "Repair", "Online", "WaitingKanBanIn", "WaitingApproveScrap", "CheckOut"];
     // Khởi tạo các biến
     let statusDonutChart, sumMaterialsTable;
 
@@ -113,7 +113,8 @@
                 labels: statusLabels,
                 datasets: [{
                     data: statusData,
-                    backgroundColor: ['#dc3545', '#ffc107', '#28a745', '#17a2b8', '#6610f2', '#fd7e14', '#6c757d']
+                    //backgroundColor: ['#dc3545', '#ffc107', '#28a745', '#17a2b8', '#6610f2', '#fd7e14', '#6c757d']
+                    backgroundColor: ['#dc3545', '#ffc107', '#28a745', '#17a2b8', '#6610f2', '#20c997', '#fd7e14', '#6c757d']
                 }]
             },
             options: {
