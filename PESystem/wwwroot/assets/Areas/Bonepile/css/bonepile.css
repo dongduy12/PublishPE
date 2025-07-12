@@ -153,3 +153,43 @@ header h1 {
             width: 100%;
         }
 }
+.bg-total {
+    background-color: #007bff;
+    color: #212529;
+}
+.bg-waitingScrap {
+    background-color: #dc3545;
+    color: #212529;
+}
+.bg-Scrap {
+    background-color: #fa0f0f;
+    color: #212529;
+}
+.bg-success {
+    background-color: #28a745;
+    color: #212529;
+}
+.bg-repair {
+    background-color: #ff8307;
+    color: #212529;
+}
+.bg-online {
+    background-color: #17a2b8;
+    color: #212529;
+}
+.bg-checkOut {
+    background-color: #05b529;
+    color: #212529;
+}
+.bg-checkIn {
+    background-color: #ffc107;
+    color: #212529;
+}
+.bg-kanban {
+    background-color: #17b86d;
+    color: #212529;
+}
+.bg-link {
+    background-color: #75b507;
+    color: #212529;
+}

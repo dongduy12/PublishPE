@@ -437,13 +437,13 @@ namespace API_WEB.Controllers.Repositories
                 // Định nghĩa validStatuses
                 var validStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
-                    "No task Scrap",
-                    "Done Scrap",
+                    "Scrap Lacks Task",
+                    "Scrap Has Scrap",
                     "SPE approve to BGA",
                     "Waiting SPE approve scrap",
                     "Rework FG",
-                    "under repair in RE",
-                    "under repair in PD"
+                    "Under repair in RE",
+                    "Under repair in PD"
                 };
 
                 // Phân loại status theo yêu cầu
@@ -564,7 +564,7 @@ namespace API_WEB.Controllers.Repositories
 
                             if (applyTaskStatus == 0 || applyTaskStatus == 1)
                             {
-                                status = string.IsNullOrEmpty(taskNumber) ? "No task Scrap" : "Done Scrap";
+                                status = string.IsNullOrEmpty(taskNumber) ? "Scrap Lacks Task" : "Scrap Has Scrap";
                             }
                             else
                             {
@@ -572,7 +572,7 @@ namespace API_WEB.Controllers.Repositories
                                 {
                                     2 => "Waiting SPE approve scrap",
                                     3 => "SPE approve to BGA",
-                                    _ => "under repair in PD"
+                                    _ => "Under repair in PD"
                                 };
                             }
                         }
@@ -586,9 +586,9 @@ namespace API_WEB.Controllers.Repositories
                         {
                             status = b.ERROR_FLAG switch
                             {
-                                "7" or "8" => "under repair in RE",
-                                "0" => "under repair in PD",
-                                _ => "under repair in PD"
+                                "7" or "8" => "Under repair in RE",
+                                "0" => "Under repair in PD",
+                                _ => "Under repair in PD"
                             };
                         }
 

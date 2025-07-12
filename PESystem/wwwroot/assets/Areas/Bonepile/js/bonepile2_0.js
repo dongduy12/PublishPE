@@ -100,9 +100,13 @@
     // Hàm cập nhật số lượng trạng thái
     function updateStatusCounts(count, statusCounts) {
         document.getElementById('totalCount').textContent = count || 'N/A';
-        document.getElementById('scrapCount').textContent = statusCounts.Scrap || 0;
         document.getElementById('waitingScrapCount').textContent = statusCounts.WaitingApproveScrap || 0;
         document.getElementById('repairCount').textContent = statusCounts.Repair || 0;
+        document.getElementById('onlinePd').textContent = statusCounts.Online || 0;
+        document.getElementById('kanbanIn').textContent = statusCounts.WaitingKanBanIn || 0;
+        document.getElementById('waitingLink').textContent = statusCounts.WaitingLink || 0;
+        document.getElementById('waitingOut').textContent = statusCounts.CheckOut || 0;
+        document.getElementById('waitingIn').textContent = statusCounts.CheckIn || 0;
 
         const statusLabels = Object.keys(statusCounts);
         const statusData = Object.values(statusCounts);
@@ -114,7 +118,7 @@
                 datasets: [{
                     data: statusData,
                     //backgroundColor: ['#dc3545', '#ffc107', '#28a745', '#17a2b8', '#6610f2', '#fd7e14', '#6c757d']
-                    backgroundColor: ['#dc3545', '#ffc107', '#28a745', '#17a2b8', '#6610f2', '#20c997', '#fd7e14', '#6c757d']
+                    backgroundColor: ['#ff8307', '#05b529', '#ffc107', '#75b507', '#17a2b8', '#17b86d', '#dc3545', '#fa0f0f']
                 }]
             },
             options: {

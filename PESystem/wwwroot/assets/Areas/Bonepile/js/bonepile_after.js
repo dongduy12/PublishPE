@@ -13,11 +13,11 @@
     ];
 
     const statusColorMap = {
-        "ScrapHasTask": "#33cae8",
-        "ScrapLackTask": "#dc3545",
-        "WatitingScrap": "#d6e833",
-        "RepairInRE": "#f28546",
-        "ApproveBGA": "#81f542",
+        "ScrapHasTask": "#05b529",
+        "ScrapLackTask": "#ffc107",
+        "WatitingScrap": "#dc3545",
+        "RepairInRE": "#ff8307",
+        "ApproveBGA": "#17b86d",
     };
 
     let dataTable;

@@ -4,52 +4,86 @@
 }
 
 <!-- Header -->
-<header class="my-4">
-    <h1>Dashboard Bonepile 2.0</h1>
-    <div class="filters">
-        <div class="form-group">
+<header>
+    <h1>Bonepile 2.0</h1>
+    <div class="row">
+        <div class="col-md-3">
             <label for="startDate">Từ ngày:</label>
-            <input type="datetime-local" id="startDate" class="form-control" value="2025-03-16T11:00">
+            <input type="datetime-local" id="startDate" value="2025-03-16T11:00">
         </div>
-        <div class="form-group">
+        <div class="col-md-3">
             <label for="endDate">Đến ngày:</label>
-            <input type="datetime-local" id="endDate" class="form-control" />
+            <input type="datetime-local" id="endDate" />
         </div>
-        <button id="applyFilters" class="btn btn-primary">Áp dụng</button>
+        <div class="col-md-3">
+            <button id="applyFilters" class="btn btn-primary">Áp dụng</button>
+        </div>
     </div>
 </header>
 
 <!-- KPI Cards -->
-<div class="kpi-cards row my-4">
-    <div class="col-md-3">
-        <div class="card text-white bg-primary">
+<div class="kpi-cards row my-6">
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-total smaller-card">
             <div class="card-body">
                 <h5 class="card-title">Bonepile 2.0</h5>
                 <p class="card-text" id="totalCount">N/A</p>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-danger">
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-waitingScrap smaller-card">
             <div class="card-body">
-                <h5 class="card-title">Scrap</h5>
-                <p class="card-text" id="scrapCount">N/A</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-info">
-            <div class="card-body">
-                <h5 class="card-title">Waiting Scrap</h5>
+                <h5 class="card-title">WaitingScrap</h5>
                 <p class="card-text" id="waitingScrapCount">N/A</p>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-warning">
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-repair smaller-card">
             <div class="card-body">
-                <h5 class="card-title">Repair</h5>
+                <h5 class="card-title">UnderRepair</h5>
                 <p class="card-text" id="repairCount">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-online smaller-card">
+            <div class="card-body">
+                <h5 class="card-title">Online</h5>
+                <p class="card-text" id="onlinePd">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-kanban smaller-card">
+            <div class="card-body smaller-text">
+                <h5 class="card-title">KANBAN_IN</h5>
+                <p class="card-text" id="kanbanIn">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-link smaller-card">
+            <div class="card-body smaller-text">
+                <h5 class="card-title">Chờ Link</h5>
+                <p class="card-text" id="waitingLink">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-checkOut smaller-card">
+            <div class="card-body smaller-text">
+                <h5 class="card-title">Chờ CheckOut</h5>
+                <p class="card-text" id="waitingOut">N/A</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-checkIn smaller-card">
+            <div class="card-body smaller-text">
+                <h5 class="card-title">Chờ CheckIn</h5>
+                <p class="card-text" id="waitingIn">N/A</p>
             </div>
         </div>
     </div>
@@ -125,4 +159,34 @@
 
 @section Scripts {
     <script src="~/assets/areas/bonepile/js/bonepile2_0.js?v=@DateTime.Now.Ticks"></script>
+    <style>
+
+        .smaller-card {
+            transform: scale(0.75); /* Reduce card size by 25% */
+            margin: 0 -5px; /* Minimize spacing between cards */
+        }
+
+        .smaller-text .card-title {
+            font-size: 1.2rem; /* Smaller title font size */
+        }
+
+        .smaller-text .card-text {
+            font-size: 1.3rem; /* Smaller text font size */
+        }
+
+        .kpi-cards {
+            display: flex;
+            flex-wrap: nowrap; /* Keep cards in a single row */
+        }
+
+            .kpi-cards .col-md-2,
+            .kpi-cards .col-lg-1,
+            .kpi-cards .col-sm-3,
+            .kpi-cards .col-3 {
+                flex: 0 0 12.5%; /* Divide equally for 7 cards (100% / 7) */
+                max-width: 12.5%; /* Ensure equal width */
+                padding: 0; /* Reduce padding for tighter fit */
+            }
+
+    </style>
 }

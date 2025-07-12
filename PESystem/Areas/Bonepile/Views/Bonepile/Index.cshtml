@@ -5,40 +5,40 @@
     Layout = "~/Areas/Bonepile/Views/Shared/_Layout_Bonepile.cshtml";
 }
 <!-- Header -->
-<header class="my-3">
-    <h1>Dashboard Bonepile</h1>
+<header>
+    <h1>Bonepile Before</h1>
 </header>
 
 <!-- KPI Cards -->
-<div class="kpi-cards row my-5">
+<div class="kpi-cards row">
     <div class="col-md-2 col-lg-1 col-sm-3 col-3">
         <div class="card text-white bg-primary smaller-card">
             <div class="card-body smaller-text">
-                <h5 class="card-title">Bonepile Total</h5>
+                <h5 class="card-title">BonepileTotal</h5>
                 <p class="card-text" id="totalCount">N/A</p>
             </div>
         </div>
     </div>
     <div class="col-md-2 col-lg-1 col-sm-3 col-3">
-        <div class="card text-white bg-danger smaller-card">
+        <div class="card text-white bg-checkOut smaller-card">
             <div class="card-body smaller-text">
-                <h5 class="card-title">Scrap Has Task</h5>
+                <h5 class="card-title">ScrapHasTask</h5>
                 <p class="card-text" id="scrapCount">N/A</p>
             </div>
         </div>
     </div>
     <div class="col-md-2 col-lg-1 col-sm-3 col-3">
-        <div class="card text-white bg-danger smaller-card">
+        <div class="card text-white bg-checkIn smaller-card">
             <div class="card-body smaller-text">
-                <h5 class="card-title">Scrap Lacks Task</h5>
+                <h5 class="card-title">ScrapLacksTask</h5>
                 <p class="card-text" id="noTaskscrapCount">N/A</p>
             </div>
         </div>
     </div>
     <div class="col-md-2 col-lg-1 col-sm-3 col-3">
-        <div class="card text-white bg-warning smaller-card">
+        <div class="card text-white bg-waitingScrap smaller-card">
             <div class="card-body smaller-text">
-                <h5 class="card-title">Waiting Approve Scrap</h5>
+                <h5 class="card-title">WaitingApproveScrap</h5>
                 <p class="card-text" id="waitingScrapCount">N/A</p>
             </div>
         </div>
@@ -46,23 +46,23 @@
     <div class="col-md-2 col-lg-1 col-sm-3 col-3">
         <div class="card text-white bg-secondary smaller-card">
             <div class="card-body smaller-text">
-                <h5 class="card-title">Rework FG</h5>
+                <h5 class="card-title">ReworkFG</h5>
                 <p class="card-text" id="reworkFG">N/A</p>
             </div>
         </div>
     </div>
     <div class="col-md-2 col-lg-1 col-sm-3 col-3">
-        <div class="card text-white bg-warning smaller-card">
+        <div class="card text-white bg-repair smaller-card">
             <div class="card-body smaller-text">
-                <h5 class="card-title">Under Repair in RE</h5>
+                <h5 class="card-title">UnderRepairInRE</h5>
                 <p class="card-text" id="underRepairRE">N/A</p>
             </div>
         </div>
     </div>
     <div class="col-md-2 col-lg-1 col-sm-3 col-3">
-        <div class="card text-white bg-primary smaller-card">
+        <div class="card text-white bg-online smaller-card">
             <div class="card-body smaller-text">
-                <h5 class="card-title">Under Repair in PD</h5>
+                <h5 class="card-title">UnderRepairInPD</h5>
                 <p class="card-text" id="underRepairPD">N/A</p>
             </div>
         </div>
@@ -112,9 +112,8 @@
 
 @section Scripts {
     <script src="~/assets/areas/bonepile/js/bonepile.js?v=@DateTime.Now.Ticks"></script>
-}
-
     <style>
+
         .smaller-card {
             transform: scale(0.75); /* Reduce card size by 25% */
             margin: 0 -5px; /* Minimize spacing between cards */
@@ -142,3 +141,4 @@
                 padding: 0; /* Reduce padding for tighter fit */
             }
     </style>
+}

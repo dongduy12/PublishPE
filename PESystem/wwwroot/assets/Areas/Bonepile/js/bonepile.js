@@ -5,23 +5,23 @@
 
     // Định nghĩa tất cả trạng thái hợp lệ
     const validStatuses = [
-        "No task Scrap",
-        "Done Scrap",
+        "Scrap Lacks Task",
+        "Scrap Has Scrap",
         "SPE approve to BGA",
         "Waiting SPE approve scrap",
         "Rework FG",
-        "under repair in RE",
-        "under repair in PD"
+        "Under repair in RE",
+        "Under repair in PD"
     ];
 
     const statusColorMap = {
-        "No task Scrap": "#dc3545",
-        "Done Scrap": "#dc3545",
-        "SPE approve to BGA": "#212529",
-        "Waiting SPE approve scrap": "#ffc107",
+        "Scrap Lacks Task": "#ffc107",
+        "Scrap Has Scrap": "#05b529",
+        "SPE approve to BGA": "#17b86d",
+        "Waiting SPE approve scrap": "#dc3545",
         "Rework FG": "#6c757d",
-        "under repair in RE": "#ffc107",
-        "under repair in PD": "#f8f9fa"
+        "Under repair in RE": "#ff8307",
+        "Under repair in PD": "#17a2b8"
     };
 
     let dataTable;
@@ -34,12 +34,12 @@
 
             // Gán KPI
             document.getElementById("totalCount").innerText = totalCount || 0;
-            document.getElementById("noTaskscrapCount").innerText = statusCounts.find(s => s.status === "No task Scrap")?.count || 0;
-            document.getElementById("scrapCount").innerText = statusCounts.find(s => s.status === "Done Scrap")?.count || 0;
+            document.getElementById("noTaskscrapCount").innerText = statusCounts.find(s => s.status === "Scrap Lacks Task")?.count || 0;
+            document.getElementById("scrapCount").innerText = statusCounts.find(s => s.status === "Scrap Has Scrap")?.count || 0;
             document.getElementById("waitingScrapCount").innerText = statusCounts.find(s => s.status === "Waiting SPE approve scrap")?.count || 0;
             document.getElementById("reworkFG").innerText = statusCounts.find(s => s.status === "Rework FG")?.count || 0;
-            document.getElementById("underRepairRE").innerText = statusCounts.find(s => s.status === "under repair in RE")?.count || 0;
-            document.getElementById("underRepairPD").innerText = statusCounts.find(s => s.status === "under repair in PD")?.count || 0;
+            document.getElementById("underRepairRE").innerText = statusCounts.find(s => s.status === "Under repair in RE")?.count || 0;
+            document.getElementById("underRepairPD").innerText = statusCounts.find(s => s.status === "Under repair in PD")?.count || 0;
 
             // Tính phần trăm cho biểu đồ
             const total = statusCounts.reduce((sum, s) => sum + s.count, 0);
@@ -61,6 +61,8 @@
                     plugins: {
                         legend: {
                             position: "bottom",
+
+
                             labels: {
                                 boxWidth: 20,
                                 boxHeight: 20,
@@ -187,13 +189,13 @@
                                                                     <div class="form-group mb-0" style="min-width: 200px;">
                                                                         <select id="statusFilterDt" class="form-control">
                                                                             <option value="">Tất cả trạng thái</option>
-                                                                            <option value="Done Scrap">Scrap Has Task</option>
-                                                                            <option value="No task Scrap">Scrap Lacks Task</option>
+                                                                            <option value="Scrap Has Task">Scrap Has Task</option>
+                                                                            <option value="Scrap Lacks Task">Scrap Lacks Task</option>
                                                                             <option value="SPE approve to BGA">SPE Approve to BGA</option>
                                                                             <option value="Waiting SPE approve scrap">Waiting SPE Approve Scrap</option>
                                                                             <option value="Rework FG">Rework FG</option>
-                                                                            <option value="under repair in RE">Under repair in RE</option>
-                                                                            <option value="under repair in PD">Under repair in PD</option>
+                                                                            <option value="Under repair in RE">Under repair in RE</option>
+                                                                            <option value="Under repair in PD">Under repair in PD</option>
                                                                         </select>
                                                                     </div>
                                                                 `;
