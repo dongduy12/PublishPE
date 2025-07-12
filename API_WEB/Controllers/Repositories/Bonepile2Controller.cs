@@ -26,7 +26,11 @@ namespace API_WEB.Controllers.Repositories
             _oracleContext = oracleContext;
         }
 
-
+        /// <summary>
+        /// Bonepile 2.0
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
         [HttpPost("data")]
         public async Task<IActionResult> DetailStatus([FromBody] StatusRequest request)
         {
@@ -399,6 +403,11 @@ namespace API_WEB.Controllers.Repositories
         }
 
 
+        /// <summary>
+        /// Bonpile Before
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
         [HttpPost("adapter-repair-records")]
         public async Task<IActionResult> AdapterRepairRecords([FromBody] StatusRequestBonepile request)
         {
@@ -461,7 +470,7 @@ namespace API_WEB.Controllers.Repositories
 
                             if (applyTaskStatus == 0 || applyTaskStatus == 1)
                             {
-                                status = string.IsNullOrEmpty(taskNumber) ? "No task Scrap" : "Done Scrap";
+                                status = string.IsNullOrEmpty(taskNumber) ? "Scrap Lacks Task" : "Scrap Has Scrap";
                             }
                             else
                             {
@@ -469,7 +478,7 @@ namespace API_WEB.Controllers.Repositories
                                 {
                                     2 => "Waiting SPE approve scrap",
                                     3 => "SPE approve to BGA",
-                                    _ => "under repair in PD"
+                                    _ => "Under repair in PD"
                                 };
                             }
                         }
@@ -483,9 +492,9 @@ namespace API_WEB.Controllers.Repositories
                         {
                             status = b.ERROR_FLAG switch
                             {
-                                "7" or "8" => "under repair in RE",
-                                "0" => "under repair in PD",
-                                _ => "under repair in PD"
+                                "7" or "8" => "Under repair in RE",
+                                "0" => "Under repair in PD",
+                                _ => "Under repair in PD"
                             };
                         }
                         return new
@@ -497,13 +506,15 @@ namespace API_WEB.Controllers.Repositories
                             ErrorFlag = b.ERROR_FLAG,
                             WorkFlag = b.WORK_FLAG,
                             WipGroup = b.WIP_GROUP,
-                            Data12 = b.DATA12,
+                            Data11 = b.DATA11,
                             Status = status,
                             testTime = b.TEST_TIME,
                             testCode = b.TEST_CODE,
                             testGroup = b.TEST_GROUP,
                             errorDesc = b.ERROR_DESC,
                             note = b.DATA19,
+                            agingDay = b.AGING_DAY,
+                            checkInDate = b.CHECKIN_DATE
                         };
                     })
                     .Where(r => validStatuses.Contains(r.Status, StringComparer.OrdinalIgnoreCase) &&
@@ -616,7 +627,6 @@ namespace API_WEB.Controllers.Repositories
                 return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
             }
         }
-
         private async Task<List<RepairTaskResult>> ExecuteAdapterRepairQuery()
         {
             var result = new List<RepairTaskResult>();
@@ -624,8 +634,7 @@ namespace API_WEB.Controllers.Repositories
             await using var connection = new OracleConnection(_oracleContext.Database.GetDbConnection().ConnectionString);
             await connection.OpenAsync();
 
-            string query = @"
-SELECT 
+            string query = @"SELECT 
     a.SERIAL_NUMBER,
     a.MODEL_NAME,
     c.PRODUCT_LINE,
@@ -637,9 +646,23 @@ SELECT
     r107.ERROR_FLAG,
     r107.WORK_FLAG,
     a.DATA1,
-    a.DATA12,
+    a.DATA11,
     a.DATA19,
-    'REPAIR_TASK' AS SOURCE
+    'REPAIR_TASK' AS SOURCE,
+    (
+        SELECT MIN(d.DATE3)
+        FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
+        WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
+          AND d.DATA12 = 'CHECK_IN'
+    ) AS CHECKIN_DATE,
+    (
+        SYSDATE - (
+            SELECT MIN(d.DATE3)
+            FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
+            WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
+              AND d.DATA12 = 'CHECK_IN'
+        )
+    ) AS AGING_DAY
 FROM SFISM4.R_REPAIR_TASK_T a
 INNER JOIN SFIS1.C_MODEL_DESC_T c ON a.MODEL_NAME = c.MODEL_NAME
 LEFT JOIN SFISM4.R107 r107 ON a.SERIAL_NUMBER = r107.SERIAL_NUMBER
@@ -681,9 +704,23 @@ SELECT
     b.ERROR_FLAG,
     b.WORK_FLAG,
     a.DATA1,
-    NULL AS DATA12,
+    NULL AS DATA11,
     NULL AS DATA19,
-    'R109_ERROR_FLAG1' AS SOURCE
+    'R109_ERROR_FLAG1' AS SOURCE,
+    (
+        SELECT MIN(d.DATE3)
+        FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
+        WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
+          AND d.DATA12 = 'CHECK_IN'
+    ) AS CHECKIN_DATE,
+    (
+        SYSDATE - (
+            SELECT MIN(d.DATE3)
+            FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
+            WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
+              AND d.DATA12 = 'CHECK_IN'
+        )
+    ) AS AGING_DAY
 FROM SFISM4.R109 a
 INNER JOIN SFISM4.R107 b ON a.SERIAL_NUMBER = b.SERIAL_NUMBER
 INNER JOIN SFIS1.C_MODEL_DESC_T c ON a.MODEL_NAME = c.MODEL_NAME
@@ -726,9 +763,23 @@ SELECT
     b.ERROR_FLAG,
     b.WORK_FLAG,
     a.DATA1,
-    NULL AS DATA12,
+    NULL AS DATA11,
     NULL AS DATA19,
-    'R109_REASON_B001' AS SOURCE
+    'R109_REASON_B001' AS SOURCE,
+    (
+        SELECT MIN(d.DATE3)
+        FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
+        WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
+          AND d.DATA12 = 'CHECK_IN'
+    ) AS CHECKIN_DATE,
+    (
+        SYSDATE - (
+            SELECT MIN(d.DATE3)
+            FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
+            WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
+              AND d.DATA12 = 'CHECK_IN'
+        )
+    ) AS AGING_DAY
 FROM SFISM4.R109 a
 INNER JOIN SFISM4.R107 b ON a.SERIAL_NUMBER = b.SERIAL_NUMBER
 INNER JOIN SFIS1.C_MODEL_DESC_T c ON a.MODEL_NAME = c.MODEL_NAME
@@ -766,8 +817,10 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                             TEST_TIME = reader["TEST_TIME"].ToString(),
                             TEST_CODE = reader["TEST_CODE"].ToString(),
                             ERROR_DESC = reader["DATA1"].ToString(),
-                            DATA12 = reader["DATA12"] != DBNull.Value ? reader["DATA12"].ToString() : null,
+                            DATA11 = reader["DATA11"] != DBNull.Value ? reader["DATA11"].ToString() : null,
                             DATA19 = reader["DATA19"] != DBNull.Value ? reader["DATA19"].ToString() : null,
+                            AGING_DAY = reader["AGING_DAY"] != DBNull.Value ? Convert.ToDouble(reader["AGING_DAY"]) : (double?)null,
+                            CHECKIN_DATE = reader["CHECKIN_DATE"] != DBNull.Value ? Convert.ToDateTime(reader["CHECKIN_DATE"]) : (DateTime?)null,
                         });
                     }
                 }
@@ -775,8 +828,14 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
 
             return result;
         }
+        //===============END BONEPILE BEFORE==================
 
 
+        /// <summary>
+        /// Bonepile After
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
         [HttpPost("bonepile-after-kanban")]
         public async Task<IActionResult> BonepileAfterKanban([FromBody] StatusRequestBonepile request)
         {

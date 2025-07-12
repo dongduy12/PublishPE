@@ -58,9 +58,11 @@
         public string VERSION_CODE { get; set; }
         public string WORK_FLAG { get; set; }
         public string ERROR_FLAG { get; set; }
-        public string DATA12 { get; set; }
+        public string DATA11 { get; set; }
         public string DATA19 { get; set; }//NOTE
         public string STATUS { get; set; }
+        public double? AGING_DAY { get; set; }
+        public DateTime? CHECKIN_DATE { get; set; }
     }
 
     // Result model for bonepile after kanban query
