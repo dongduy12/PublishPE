@@ -11,6 +11,7 @@
         "Waiting SPE approve scrap",
         "Rework FG",
         "Under repair in RE",
+        "Waiting Check Out",
         "Under repair in PD"
     ];
 
@@ -21,6 +22,7 @@
         "Waiting SPE approve scrap": "#dc3545",
         "Rework FG": "#6c757d",
         "Under repair in RE": "#ff8307",
+        "Waiting Check Out": "#fe8307",
         "Under repair in PD": "#17a2b8"
     };
 
@@ -39,6 +41,7 @@
             document.getElementById("waitingScrapCount").innerText = statusCounts.find(s => s.status === "Waiting SPE approve scrap")?.count || 0;
             document.getElementById("reworkFG").innerText = statusCounts.find(s => s.status === "Rework FG")?.count || 0;
             document.getElementById("underRepairRE").innerText = statusCounts.find(s => s.status === "Under repair in RE")?.count || 0;
+            document.getElementById("waitingCheckOut").innerText = statusCounts.find(s => s.status === "Waiting Check Out")?.count || 0;
             document.getElementById("underRepairPD").innerText = statusCounts.find(s => s.status === "Under repair in PD")?.count || 0;
 
             // Tính phần trăm cho biểu đồ
@@ -145,6 +148,7 @@
                         { data: "errorDesc" },
                         { data: "workFlag" },
                         { data: "errorFlag" },
+                        { data: "checkInDate" },
                         { data: "status" },
                         { data: "note" }
                     ],
@@ -195,6 +199,7 @@
                                                                             <option value="Waiting SPE approve scrap">Waiting SPE Approve Scrap</option>
                                                                             <option value="Rework FG">Rework FG</option>
                                                                             <option value="Under repair in RE">Under repair in RE</option>
+                                                                            <option value="Under repair in RE">Waiting Check Out</option>
                                                                             <option value="Under repair in PD">Under repair in PD</option>
                                                                         </select>
                                                                     </div>

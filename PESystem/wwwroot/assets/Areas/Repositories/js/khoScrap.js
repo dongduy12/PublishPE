@@ -77,7 +77,7 @@ const KhoScrapManager = (function () {
             Utils.displayTotalResults(0);
             document.getElementById("search-results").style.display = "none";
             document.getElementById("export-sn-excel-btn").style.display = "none";
-            document.getElementById("export-sn-btn").style.display = "none";
+            //document.getElementById("export-sn-btn").style.display = "none";
             const borrowBtn = document.getElementById("borrow-btn");
             if (borrowBtn) borrowBtn.style.display = "none";
             const buttonAction = document.getElementById("button-action");
@@ -182,7 +182,7 @@ const KhoScrapManager = (function () {
                     if (searchResultsSN.length === 0) {
                         document.getElementById("search-results").style.display = "none";
                         document.getElementById("export-sn-excel-btn").style.display = "none";
-                        document.getElementById("export-sn-btn").style.display = "none";
+                        //document.getElementById("export-sn-btn").style.display = "none";
                     }
                     Utils.resetUI();
                     await Total.updateTotalScrapAndCategories();

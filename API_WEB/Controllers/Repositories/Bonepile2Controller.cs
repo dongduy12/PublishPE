@@ -452,6 +452,7 @@ namespace API_WEB.Controllers.Repositories
                     "Waiting SPE approve scrap",
                     "Rework FG",
                     "Under repair in RE",
+                    "Waiting Check Out",
                     "Under repair in PD"
                 };
 
@@ -492,7 +493,8 @@ namespace API_WEB.Controllers.Repositories
                         {
                             status = b.ERROR_FLAG switch
                             {
-                                "7" or "8" => "Under repair in RE",
+                                "7" => "Under repair in RE",
+                                "8" => "Waiting Check Out",
                                 "0" => "Under repair in PD",
                                 _ => "Under repair in PD"
                             };
@@ -597,7 +599,8 @@ namespace API_WEB.Controllers.Repositories
                         {
                             status = b.ERROR_FLAG switch
                             {
-                                "7" or "8" => "Under repair in RE",
+                                "7" => "Under repair in RE",
+                                "8" => "Waiting Check Out",
                                 "0" => "Under repair in PD",
                                 _ => "Under repair in PD"
                             };
@@ -819,7 +822,6 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                             ERROR_DESC = reader["DATA1"].ToString(),
                             DATA11 = reader["DATA11"] != DBNull.Value ? reader["DATA11"].ToString() : null,
                             DATA19 = reader["DATA19"] != DBNull.Value ? reader["DATA19"].ToString() : null,
-                            AGING_DAY = reader["AGING_DAY"] != DBNull.Value ? Convert.ToDouble(reader["AGING_DAY"]) : (double?)null,
                             CHECKIN_DATE = reader["CHECKIN_DATE"] != DBNull.Value ? Convert.ToDateTime(reader["CHECKIN_DATE"]) : (DateTime?)null,
                         });
                     }

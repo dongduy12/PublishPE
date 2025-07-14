@@ -67,6 +67,14 @@
             </div>
         </div>
     </div>
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-total smaller-card">
+            <div class="card-body smaller-text">
+                <h5 class="card-title">WaitingCheckOut</h5>
+                <p class="card-text" id="waitingCheckOut">N/A</p>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Donut Chart and Table -->
@@ -99,6 +107,7 @@
                             <th>ERROR_DESC</th>
                             <th>WORK_FLAG</th>
                             <th>ERROR_FLAG</th>
+                            <th>CHECKIN_TIME</th>
                             <th>STATUS</th>
                             <th>NOTE</th>
                         </tr>
@@ -136,8 +145,8 @@
             .kpi-cards .col-lg-1,
             .kpi-cards .col-sm-3,
             .kpi-cards .col-3 {
-                flex: 0 0 14.2857%; /* Divide equally for 7 cards (100% / 7) */
-                max-width: 14.2857%; /* Ensure equal width */
+                flex: 0 0 12.5%; /* Divide equally for 7 cards (100% / 7) */
+                max-width: 12.5%; /* Ensure equal width */
                 padding: 0; /* Reduce padding for tighter fit */
             }
     </style>
