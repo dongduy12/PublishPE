@@ -142,6 +142,22 @@ namespace API_WEB.Controllers
                     return BadRequest(new { success = false, message = "Ma ke khong hop le!!!" });
                 }
 
+                //Kiem tra SerialNumber trong ScrapList
+                var validSerials = await _sqlContext.ScrapLists
+                    .Where(sl => request.SerialNumbers.Contains(sl.SN) && sl.ApplyTaskStatus != 3)
+                    .Select(sl => sl.SN)
+                    .ToListAsync();
+                var invalidSerials = request.SerialNumbers.Except(validSerials).ToList();
+                if (!invalidSerials.Any())
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Có SN đã báo phế!",
+                        invalidSerials
+                    });
+                }
+
                 //Lay danh sach cac vi tri da su dung
                 //int maxSlots = 8;
                 int maxSlots = shelfData.ShelfCode.Contains("XE") ? 20 : 8;
@@ -286,8 +302,6 @@ namespace API_WEB.Controllers
                 return StatusCode(500, new { sucess = false, message = $"Loi He Thong: {ex.Message}" });
             }
         }
-
-
         public class SaveProductRequest
         {
             public string? Shelf { get; set; }
@@ -519,7 +533,6 @@ namespace API_WEB.Controllers
                 return StatusCode(500, new { success = false, message = $"Lỗi hệ thống: {ex.Message}" });
             }
         }
-
 
         public class UpdateProductRequest
         {

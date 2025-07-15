@@ -273,7 +273,254 @@ namespace API_WEB.Controllers.Repositories
             }
         }
 
-        //==================================END SEARCH SN=====================
+        //=======================END SEARCH SN=====================
+
+        [HttpPost("SearchSnOK")]
+        public async Task<IActionResult> SearchSnOk([FromBody] List<string> serialNumbers)
+        {
+            try
+            {
+                if (serialNumbers == null || !serialNumbers.Any())
+                {
+                    return BadRequest(new { success = false, message = "Danh sách serialNumbers rỗng." });
+                }
+
+                var results = new List<InforProduct>();
+                var notFoundSerialNumbers = new List<string>();
+
+                // 1. Tìm tất cả serialNumbers trong SQL Server
+                var productsFromSql = await _sqlContext.KhoOks
+                    .Where(p => serialNumbers.Contains(p.SERIAL_NUMBER))
+                    .ToListAsync();
+
+                var foundSerialNumbersInSql = productsFromSql.Select(p => p.SERIAL_NUMBER).ToList();
+
+                // Xác định các serialNumbers chưa tìm thấy trong SQL Server
+                var remainingSerialNumbers = serialNumbers.Except(foundSerialNumbersInSql).ToList();
+
+                // 2. Kết nối Oracle
+                await using var connection = new OracleConnection(_oracleContext.Database.GetDbConnection().ConnectionString);
+                await connection.OpenAsync();
+
+                // 3. Lấy dữ liệu từ Oracle cho tất cả serialNumbers
+                var oracleData = await GetOracleDataAsync(connection, serialNumbers);
+
+                // 4. Kết hợp dữ liệu từ SQL Server và Oracle
+                foreach (var product in productsFromSql)
+                {
+                    var oracleInfo = oracleData.GetValueOrDefault(product.SERIAL_NUMBER);
+
+                    results.Add(new InforProduct
+                    {
+                        SerialNumber = product.SERIAL_NUMBER,
+                        LevelNumber = product?.LevelNumber,
+                        ShelfCode = product?.ShelfCode ?? "",
+                        ColumnNumber = product?.ColumnNumber,
+                        EntryDate = product?.entryDate,
+                        EntryPerson = product?.entryPerson ?? "",
+                        Note = product?.Note ?? "",
+                        ProductLine = oracleInfo?.ProductLine ?? "",
+                        MoNumber = oracleInfo?.MoNumber ?? "",
+                        Data1 = oracleInfo?.Data1 ?? "",
+                        ModelName = oracleInfo?.ModelName ?? "",
+                        TestGroup = oracleInfo?.TestGroup ?? "",
+                        TestCode = oracleInfo?.TestCode ?? "",
+                        ReasonCode = oracleInfo?.ReasonCode ?? "",
+                        WipGroup = oracleInfo?.WipGroup ?? "",
+                        WorkFlag = oracleInfo?.WorkFlag ?? "",
+                        BorrowStatus = product?.borrowStatus ?? "",
+                        BorrowDate = product?.borrowDate,
+                        BorrowPerson = product?.borrowPerson ?? "",
+                        BlockReason = oracleInfo?.BlockReason ?? ""
+                    });
+                }
+
+                // 5. Thêm các serialNumbers không tìm thấy vào danh sách notFoundSerialNumbers
+                notFoundSerialNumbers = serialNumbers.Except(results.Select(r => r.SerialNumber)).ToList();
+
+                // 6. Trả về kết quả
+                return Ok(new
+                {
+                    success = true,
+                    totalFound = results.Count,
+                    totalNotFound = notFoundSerialNumbers.Count,
+                    results,
+                    notFoundSerialNumbers
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"System Error: {ex.Message}");
+                return StatusCode(500, new { success = false, message = $"Lỗi hệ thống: {ex.Message}" });
+            }
+        }
+        //=====================XUẤT EXCEL KHO OKs==================
+        [HttpGet("ExportExcelKhoOk")]
+        public async Task<IActionResult> ExportExcelKhoOk()
+        {
+            try
+            {
+                var allProducts = await _sqlContext.KhoOks
+                    .GroupJoin(_sqlContext.ScrapLists,
+                        ks => ks.SERIAL_NUMBER,
+                        sl => sl.SN,
+                        (ks, slGroup) => new { KhoOk = ks, ScrapList = slGroup })
+                    .SelectMany(
+                        x => x.ScrapList.DefaultIfEmpty(),
+                        (ks, sl) => new
+                        {
+                            ks.KhoOk.SERIAL_NUMBER,
+                            ks.KhoOk.ShelfCode,
+                            ks.KhoOk.ColumnNumber,
+                            ks.KhoOk.LevelNumber,
+                            ks.KhoOk.entryDate,
+                            ks.KhoOk.entryPerson,
+                            ks.KhoOk.borrowStatus,
+                            ks.KhoOk.borrowDate,
+                            ks.KhoOk.borrowPerson,
+                            ks.KhoOk.Note,
+                            TaskNumber = sl != null ? sl.TaskNumber : null
+                        })
+                    .ToListAsync();
+
+                if (!allProducts.Any())
+                {
+                    return BadRequest(new { success = false, message = "Không có dữ liệu để xuất." });
+                }
+
+                // 2. Chuẩn bị danh sách serialNumbers
+                var serialNumbers = allProducts.Select(p => p.SERIAL_NUMBER).ToList();
+
+                // 3. Kết nối Oracle và lấy dữ liệu nhóm
+                var excelData = new List<InforProduct>();
+                await using var connection = new OracleConnection(_oracleContext.Database.GetDbConnection().ConnectionString);
+                await connection.OpenAsync();
+
+                // Chia nhỏ serialNumbers thành các batch (tối đa 1000 phần tử mỗi batch)
+                var batches = serialNumbers
+                    .Select((value, index) => new { value, index })
+                    .GroupBy(x => x.index / 1000)
+                    .Select(group => group.Select(x => x.value).ToList())
+                    .ToList();
+
+                // Dữ liệu từ Oracle cho tất cả serialNumbers
+                var oracleData = new Dictionary<string, InforProduct>();
+
+                foreach (var batch in batches)
+                {
+                    var batchData = await GetOracleDataAsync(connection, batch);
+                    foreach (var entry in batchData)
+                    {
+                        oracleData[entry.Key] = entry.Value;
+                    }
+                }
+
+                // 4. Kết hợp dữ liệu từ SQL Server và Oracle
+                foreach (var product in allProducts)
+                {
+                    var oracleInfo = oracleData.GetValueOrDefault(product.SERIAL_NUMBER);
+                    var type = product.TaskNumber == null && !_sqlContext.ScrapLists.Any(sl => sl.SN == product.SERIAL_NUMBER)
+                        ? "No_Scrap"
+                        : product.TaskNumber != null
+                            ? "Scrap_has_task"
+                            : "Scrap_lacks_task";
+                    excelData.Add(new InforProduct
+                    {
+                        SerialNumber = product.SERIAL_NUMBER,
+                        ShelfCode = product?.ShelfCode ?? "",
+                        ColumnNumber = product?.ColumnNumber,
+                        LevelNumber = product?.LevelNumber,
+                        EntryDate = product?.entryDate,
+                        EntryPerson = product?.entryPerson ?? "",
+                        BorrowStatus = product?.borrowStatus ?? "",
+                        BorrowDate = product?.borrowDate,
+                        BorrowPerson = product?.borrowPerson ?? "",
+                        Note = product?.Note ?? "",
+                        ProductLine = oracleInfo?.ProductLine ?? "",
+                        BlockReason = oracleInfo?.BlockReason ?? "",
+                        TestCode = oracleInfo?.TestCode ?? "",
+                        Data1 = oracleInfo?.Data1 ?? "",
+                        WipGroup = oracleInfo?.WipGroup ?? "",
+                        WorkFlag = oracleInfo?.WorkFlag ?? "",
+                        TestGroup = oracleInfo?.TestGroup ?? "",
+                        MoNumber = oracleInfo?.MoNumber ?? "",
+                        ModelName = oracleInfo?.ModelName ?? "",
+                        ReasonCode = oracleInfo?.ReasonCode ?? "",
+                        Type = type
+                    });
+                }
+
+                // 5. Tạo file Excel
+                using (var workbook = new ClosedXML.Excel.XLWorkbook())
+                {
+                    var worksheet = workbook.Worksheets.Add("All_Data");
+                    var currentRow = 1;
+
+                    // Tạo header
+                    worksheet.Cell(currentRow, 1).Value = "SERIAL_NUMBER";
+                    worksheet.Cell(currentRow, 2).Value = "PRODUCT_LINE";
+                    worksheet.Cell(currentRow, 3).Value = "MODEL_NAME";
+                    worksheet.Cell(currentRow, 4).Value = "MO_NUMBER";
+                    worksheet.Cell(currentRow, 5).Value = "WIP_GROUP";
+                    worksheet.Cell(currentRow, 6).Value = "WORK_FLAG";
+                    worksheet.Cell(currentRow, 7).Value = "KỆ";
+                    worksheet.Cell(currentRow, 8).Value = "CỘT";
+                    worksheet.Cell(currentRow, 9).Value = "TẦNG";
+                    worksheet.Cell(currentRow, 10).Value = "BLOCK_REASON";
+                    worksheet.Cell(currentRow, 11).Value = "TEST_GROUP";
+                    worksheet.Cell(currentRow, 12).Value = "TEST_CODE";
+                    worksheet.Cell(currentRow, 13).Value = "ERROR_DESC";
+                    worksheet.Cell(currentRow, 14).Value = "REASON_CODE";
+                    worksheet.Cell(currentRow, 15).Value = "NGÀY_NHẬP";
+                    worksheet.Cell(currentRow, 16).Value = "NGƯỜI_NHẬP";
+                    worksheet.Cell(currentRow, 17).Value = "BORROW_STATUS";
+                    worksheet.Cell(currentRow, 18).Value = "BORROW_DATE";
+                    worksheet.Cell(currentRow, 19).Value = "BORROW_PERSON";
+                    worksheet.Cell(currentRow, 20).Value = "NOTE";
+                    worksheet.Cell(currentRow, 21).Value = "TYPE";
+                    // Điền dữ liệu
+                    foreach (var data in excelData)
+                    {
+                        currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = data.SerialNumber;
+                        worksheet.Cell(currentRow, 2).Value = data.ProductLine;
+                        worksheet.Cell(currentRow, 3).Value = data.ModelName;
+                        worksheet.Cell(currentRow, 4).Value = data.MoNumber;
+                        worksheet.Cell(currentRow, 5).Value = data.WipGroup;
+                        worksheet.Cell(currentRow, 6).Value = data.WorkFlag;
+                        worksheet.Cell(currentRow, 7).Value = data.ShelfCode;
+                        worksheet.Cell(currentRow, 8).Value = data.ColumnNumber;
+                        worksheet.Cell(currentRow, 9).Value = data.LevelNumber;
+                        worksheet.Cell(currentRow, 10).Value = data.BlockReason;
+                        worksheet.Cell(currentRow, 11).Value = data.TestGroup;
+                        worksheet.Cell(currentRow, 12).Value = data.TestCode;
+                        worksheet.Cell(currentRow, 13).Value = data.Data1;
+                        worksheet.Cell(currentRow, 14).Value = data.ReasonCode;
+                        worksheet.Cell(currentRow, 15).Value = data.EntryDate;
+                        worksheet.Cell(currentRow, 16).Value = data.EntryPerson;
+                        worksheet.Cell(currentRow, 17).Value = data.BorrowStatus;
+                        worksheet.Cell(currentRow, 18).Value = data.BorrowDate;
+                        worksheet.Cell(currentRow, 19).Value = data.BorrowPerson;
+                        worksheet.Cell(currentRow, 20).Value = data.Note;
+                        worksheet.Cell(currentRow, 21).Value = data.Type;
+                    }
+
+                    // Trả file Excel về client
+                    using (var stream = new MemoryStream())
+                    {
+                        workbook.SaveAs(stream);
+                        var content = stream.ToArray();
+                        return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "DataScrap.xlsx");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"System Error: {ex.Message}");
+                return StatusCode(500, new { success = false, message = $"Lỗi hệ thống: {ex.Message}" });
+            }
+        }
+
 
         [HttpPost("SearchSNScrap")]
         public async Task<IActionResult> SearchSNScrap([FromBody] List<string> serialNumbers)
@@ -357,7 +604,7 @@ namespace API_WEB.Controllers.Repositories
             }
         }
 
-        //===============XUẤT EXCEL SCRAP=================
+        //=======================XUẤT EXCEL SCRAP====================
         [HttpGet("ExportExcelScrap")]
         public async Task<IActionResult> ExportExcelScrap()
         {

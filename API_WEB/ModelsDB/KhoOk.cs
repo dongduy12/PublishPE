@@ -11,12 +11,13 @@ namespace API_WEB.ModelsDB
         public string? ShelfCode { get; set; }
         public int? ColumnNumber { get; set; }
         public int? LevelNumber { get; set; }
-        public int? TrayNumber { get; set; }
-        public int? Position { get; set; }
 
         [Column(TypeName = "datetime")]
         public DateTime? entryDate { get; set; }
         public string? entryPerson { get; set; }
+        public DateTime? borrowDate { get; set; }
+        public string? borrowPerson { get; set; }
+        public string? borrowStatus { get; set; }
         public string? Note { get; set; }
     }
 }

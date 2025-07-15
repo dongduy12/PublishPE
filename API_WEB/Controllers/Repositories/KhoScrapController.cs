@@ -517,6 +517,278 @@ namespace API_WEB.Controllers.Repositories
                 return StatusCode(500, new { success = false, message = $"Lỗi hệ thống: {ex.Message}" });
             }
         }
+
+        [HttpGet("totalKhoOk")]
+        public async Task<IActionResult> GetTotalKhoOk()
+        {
+            try
+            {
+                var totalCount = await _sqlContext.KhoOks.CountAsync();
+                return Ok(new { success = true, totalCount });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost("AddOk")]
+        public async Task<IActionResult> AddSNOk([FromBody] InforSNRequest request)
+        {
+
+            if (request == null || request.SerialNumbers == null || !request.SerialNumbers.Any())
+            {
+                return BadRequest(new { success = false, message = "Du lieu yeu cau khong hop le!!" });
+            }
+            using var transaction = await _sqlContext.Database.BeginTransactionAsync();
+
+            try
+            {
+                int maxSlots = 160;
+                request.SerialNumbers = request.SerialNumbers.Distinct().ToList();
+
+                //Kiem tra SerialNumber trong ScrapList
+                var validSerials = await _sqlContext.ScrapLists
+                    .Where(sl => request.SerialNumbers.Contains(sl.SN))
+                    .Select(sl => sl.SN)
+                    .ToListAsync();
+                var invalidSerials = request.SerialNumbers.Except(validSerials).ToList();
+                if (!invalidSerials.Any())
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Serial Number tồn tại trong ScrapList",
+                        invalidSerials
+                    });
+                }
+
+                var existingProducts = await _sqlContext.KhoOks
+                    .Where(p => request.SerialNumbers.Contains(p.SERIAL_NUMBER))
+                    .ToDictionaryAsync(p => p.SERIAL_NUMBER);
+
+                var results = new List<object>();
+                foreach (var serialNumber in request.SerialNumbers)
+                {
+                    //Kiem tra neu SerialNumber da ton tai
+                    var existingProduct = await _sqlContext.KhoOks.FirstOrDefaultAsync(p => p.SERIAL_NUMBER == serialNumber);
+                    if (existingProduct != null)
+                    {
+                        // Nếu trạng thái BorrowStatus là "Borrowed", cập nhật thông tin kệ
+                        if (existingProduct.borrowStatus == "Borrowed")
+                        {
+                            Console.WriteLine($"Updating product {serialNumber} with new location.");
+
+                            existingProduct.ShelfCode = request.Shelf;
+                            existingProduct.ColumnNumber = request.Column;
+                            existingProduct.LevelNumber = request.Level;
+                            existingProduct.borrowStatus = "Available"; // Cập nhật trạng thái
+                            existingProduct.entryPerson = request.EntryPerson;
+                            existingProduct.entryDate = DateTime.Now;
+                            existingProduct.borrowDate = null;
+                            existingProduct.borrowPerson = "";
+                            // Lưu cập nhật vào database
+                            _sqlContext.KhoOks.Update(existingProduct);
+                            await _sqlContext.SaveChangesAsync();
+
+                            results.Add(new { serialNumber, success = true, message = "Sản phẩm đã được cập nhật vị trí." });
+                        }
+                        else { results.Add(new { serialNumber, success = false, message = $"SerialNumber{serialNumber} da ton tai trong he thong" }); }
+                        continue;
+                    }
+                    //Save san pham vao SQL server
+                    var newProduct = new KhoOk
+                    {
+                        SERIAL_NUMBER = serialNumber,
+                        ShelfCode = request.Shelf,
+                        ColumnNumber = request.Column,
+                        LevelNumber = request.Level,
+                        entryDate = DateTime.Now,
+                        entryPerson = request.EntryPerson
+                    };
+                    _sqlContext.KhoOks.Add(newProduct);
+                    // Ghi log
+                    await LogAction("IMPORT_KHO_OK", serialNumber, request.EntryPerson, "");
+                    results.Add(new
+                    {
+                        serialNumber,
+                        success = true,
+                        message = "Da them san pham thanh cong"
+                    });
+                }
+                await _sqlContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return Ok(new { success = true, results });
+            }
+            catch (OracleException ex)
+            {
+                await transaction.RollbackAsync();
+                Console.WriteLine($"Oracle ERROR: {ex.Message}");
+                return StatusCode(500, new { success = false, message = $"Loi Oracle:{ex.Message}" });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"System ERROR:{ex.Message}");
+                return StatusCode(500, new { sucess = false, message = $"Loi He Thong: {ex.Message}" });
+            }
+
+        }
+
+        [HttpPost("ExportKhoOk")]
+        public async Task<IActionResult> ExportKhoOk([FromBody] ExportScrapRequest request)
+        {
+            if (request == null || request.SerialNumbers == null || !request.SerialNumbers.Any())
+            {
+                return BadRequest(new ExportScrapResponse
+                {
+                    Success = false,
+                    Message = "Danh sách Serial Number không hợp lệ.",
+                    Results = new List<ExportScrapResult>()
+                });
+            }
+
+            var response = new ExportScrapResponse
+            {
+                Success = true,
+                Results = new List<ExportScrapResult>(),
+                Message = ""
+            };
+            var validSerials = request.SerialNumbers
+                .Select(sn => sn?.Trim().ToUpper())
+                .Where(sn => !string.IsNullOrEmpty(sn))
+                .Distinct()
+                .ToList();
+            if (!validSerials.Any())
+            {
+                return BadRequest(new ExportScrapResponse
+                {
+                    Success = false,
+                    Message = "Không có Serial Number hợp lệ để xuất kho.",
+                    Results = new List<ExportScrapResult>()
+                });
+            }
+
+            foreach (var serial in validSerials)
+            {
+                var result = new ExportScrapResult { SerialNumber = serial };
+
+                try
+                {
+                    var snOk = await _sqlContext.KhoOks
+                        .FirstOrDefaultAsync(s => s.SERIAL_NUMBER == serial);
+
+                    if (snOk == null)
+                    {
+                        result.Success = false;
+                        result.Message = "Serial Number không tồn tại.";
+                        response.Results.Add(result);
+                        continue;
+                    }
+
+                    // Hard delete
+                    _sqlContext.KhoOks.Remove(snOk);
+                    await _sqlContext.SaveChangesAsync();
+
+                    // Ghi log
+                    await LogAction("EXPORT_KHO_OK", serial, request.ExportPerson, request.Note);
+
+                    result.Success = true;
+                    result.Message = "Xuất kho thành công.";
+                    response.Results.Add(result);
+                }
+                catch (Exception ex)
+                {
+                    result.Success = false;
+                    result.Message = $"Lỗi khi xuất kho: {ex.Message}";
+                    response.Results.Add(result);
+                    response.Success = false;
+                }
+            }
+
+            if (!response.Results.Any(r => r.Success))
+            {
+                response.Success = false;
+                response.Message = "Không xuất kho được Serial Number nào.";
+            }
+            else if (response.Results.Any(r => !r.Success))
+            {
+                response.Message = "Một số Serial Number không thể xuất kho.";
+            }
+            else
+            {
+                response.Message = "Xuất kho thành công.";
+            }
+
+            return Ok(response);
+        }
+
+        [HttpPost("BorrowKhoOk")]
+        public async Task<IActionResult> BorrowKhoOk([FromBody] BorrowSNListRequest request)
+        {
+            try
+            {
+                if (request == null || request.SerialNumbers == null || !request.SerialNumbers.Any() || string.IsNullOrEmpty(request.Borrower))
+                {
+                    return BadRequest(new { success = false, message = "Danh sách Serial Numbers và Borrower là bắt buộc." });
+                }
+
+                var borrowedResults = new List<object>();
+                var notFoundSerials = new List<string>();
+                var failedSerials = new List<string>();
+                var borrowHistories = new List<BorrowHistory>();
+                foreach (var serialNumber in request.SerialNumbers)
+                {
+                    try
+                    {
+                        // Tìm sản phẩm theo SerialNumber
+                        var product = await _sqlContext.KhoOks.FirstOrDefaultAsync(p => p.SERIAL_NUMBER == serialNumber);
+                        if (product == null)
+                        {
+                            notFoundSerials.Add(serialNumber);
+                            continue;
+                        }
+                        // Cập nhật thông tin mượn
+                        product.borrowStatus = "Borrowed";
+                        product.borrowDate = DateTime.Now;
+                        product.borrowPerson = request.Borrower;
+                        // Xóa thông tin vị trí
+                        product.ShelfCode = null;
+                        product.LevelNumber = null;
+                        product.ColumnNumber = null;
+                        borrowedResults.Add(new
+                        {
+                            SerialNumber = product.SERIAL_NUMBER,
+                            BorrowStatus = product.borrowStatus,
+                            BorrowDate = product.borrowDate,
+                            BorrowPerson = product.borrowPerson
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        // Ghi nhận lỗi khi xử lý từng serial number
+                        failedSerials.Add(serialNumber);
+                    }
+                }
+                await _sqlContext.SaveChangesAsync();
+
+                // Trả về kết quả
+                return Ok(new
+                {
+                    success = true,
+                    totalBorrowed = borrowedResults.Count,
+                    totalNotFound = notFoundSerials.Count,
+                    totalFailed = failedSerials.Count,
+                    borrowedResults,
+                    notFoundSerials,
+                    failedSerials
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = $"Lỗi hệ thống: {ex.Message}" });
+            }
+        }
+
         public class InforSNRequest
         {
             public string? Shelf { get; set; }
@@ -526,7 +798,6 @@ namespace API_WEB.Controllers.Repositories
             public string? EntryPerson { get; set; }
             public List<string>? SerialNumbers { get; set; }
         }
-        // Mô hình để chứa thông tin đầy đủ của SN
         public class ScrapInfo
         {
             public string SerialNumber { get; set; } = null!;

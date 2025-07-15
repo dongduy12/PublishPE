@@ -1525,7 +1525,7 @@ const ChartManager = (function () {
                 events: {
                     dataPointSelection: function (event, chartContext, config) {
                         const idx = config.dataPointIndex;
-                        const key = idx === 0 ? 'LessThanOneDay' : idx === 1 ? 'OneToThreeDays' : 'MoreThanThreeDays';
+                        const key = idx === 0 ? 'lessThanOneDay' : idx === 1 ? 'oneToThreeDays' : 'moreThanThreeDays';
                         currentAgingData = agingDetails[key] || [];
                         showAgingDetailModal(labels[idx], currentAgingData);
                     }
@@ -1654,7 +1654,8 @@ const ChartManager = (function () {
                 <td>${d.errorDesc || d.ErrorDesc || ''}</td>
                 <td>${d.moNumber || d.MONumber || ''}</td>
                 <td>${d.modelName || d.ModelName || ''}</td>
-                <td>${d.aging ?? d.Aging ?? ''}</td>`;
+                <td>${d.aging ?? d.Aging ?? ''}</td>
+                <td>${d.location ?? d.Location ?? ''}</td>`;
             tbody.appendChild(tr);
         });
         const title = document.querySelector('#agingDetailModal .modal-title');

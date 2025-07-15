@@ -63,17 +63,11 @@
                         <div class="col-md-2">
                             <input id="level" name="level" class="level-select form-control" readonly placeholder="Tầng" />
                         </div>
-                        <div class="col-md-2">
-                            <input id="tray" name="tray" class="tray-select form-control" readonly placeholder="Khay" />
-                        </div>
-
                     </div>
 
                     <div class="overflow-auto mt-3">
                         <div class="card-body">
                             <div class="mt-2">
-                                <small id="serial-count" class="form-text text-muted">Tổng số serial đã nhập: 0/...</small>
-                                <small id="serial-limit-warning" class="text-muted form-text text-danger" style="display: none;">Khay đã đầy! Vui lòng nhập khay khác!!!</small>
                                 <small id="duplicate-warning" class="text-muted form-text text-danger" style="display: none;">Có serial bị trùng lặp!</small>
                             </div>
                             <div class="row">
@@ -95,17 +89,6 @@
                                             <td class="col-md-3"><textarea name="modelName" class="model-name-field form-control" rows="8" readonly></textarea></td>
                                             <td class="col-md-3"><textarea name="productLine" class="product-line-field form-control" rows="8" readonly></textarea></td>
                                         </tr>
-                                    </tbody>
-                                </table>
-                                <table id="color-table" class="table table-bordered mt-2" style="width:25%">
-                                    <thead>
-                                        <tr>
-                                            <th>VỊ_TRÍ</th>
-                                            <th>SERIAL_NUMBER</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="serial-number-in-tray">
-                                        <!-- Dữ liệu sẽ được thêm vào đây -->
                                     </tbody>
                                 </table>
                             </div>
@@ -230,5 +213,5 @@
     <link href="~/lib/sweetalert2/dist/sweetalert2.min.css" rel="stylesheet" />
     <link href="~/lib/sweetalert2/dist/sweetalert2.css" rel="stylesheet" />
     <script src="~/lib/sweetalert2/dist/sweetalert2.js"></script>
-    <script src="~/assets/areas/repositories/js/khoScrap.js?v=@DateTime.Now.Ticks"></script>
+    <script src="~/assets/areas/repositories/js/khook.js?v=@DateTime.Now.Ticks"></script>
 }
