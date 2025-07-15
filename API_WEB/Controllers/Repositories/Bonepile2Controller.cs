@@ -1066,7 +1066,7 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                 LEFT JOIN SFIS1.C_ERROR_CODE_T ce_sfg ON r109_sfg.test_code = ce_sfg.error_code
                 LEFT JOIN SFIS1.C_ERROR_CODE_T ce_fg ON r109_fg.test_code = ce_fg.error_code
                 LEFT JOIN SFISM4.R107 r107 ON r107.SERIAL_NUMBER = a.SERIAL_NUMBER
-                WHERE a.WIP_GROUP LIKE '%B36R'
+                WHERE a.WIP_GROUP LIKE '%B36R%'
                   AND b.model_serial != 'SWITCH'";
 
             using (var command = new OracleCommand(query, connection))

@@ -176,7 +176,7 @@ namespace API_WEB.Controllers.Repositories
                 await _sqlContext.SaveChangesAsync();
 
                 // Update Oracle location via RepairStatus API
-                string location = $"{request.Shelf} {request.Column}-{request.Level}-K{request.Tray}";
+                string location = $"{request.Shelf}{request.Column}-{request.Level}-K{request.Tray}";
                 await SendReceivingStatusAsync(serialsToUpdateOracle, request.EntryPerson ?? string.Empty, location, "Nhập(Kho Phế)");
 
                 await transaction.CommitAsync();
@@ -616,6 +616,8 @@ namespace API_WEB.Controllers.Repositories
                     .ToDictionaryAsync(p => p.SERIAL_NUMBER);
 
                 var results = new List<object>();
+                var serialsToUpdateOracle = new List<string>();
+
                 foreach (var serialNumber in request.SerialNumbers)
                 {
                     //Kiem tra neu SerialNumber da ton tai
@@ -655,6 +657,7 @@ namespace API_WEB.Controllers.Repositories
                         entryPerson = request.EntryPerson
                     };
                     _sqlContext.KhoOks.Add(newProduct);
+                    serialsToUpdateOracle.Add(serialNumber);
                     // Ghi log
                     await LogAction("IMPORT_KHO_OK", serialNumber, request.EntryPerson, "");
                     results.Add(new
@@ -665,6 +668,10 @@ namespace API_WEB.Controllers.Repositories
                     });
                 }
                 await _sqlContext.SaveChangesAsync();
+                // Update Oracle location via RepairStatus API
+                string location = $"{request.Shelf}{request.Column}-{request.Level}";
+                await SendReceivingStatusAsync(serialsToUpdateOracle, request.EntryPerson ?? string.Empty, location, "Nhập(Kho Ok)");
+
                 await transaction.CommitAsync();
                 return Ok(new { success = true, results });
             }
