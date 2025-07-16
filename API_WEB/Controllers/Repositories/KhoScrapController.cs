@@ -1,11 +1,13 @@
 ﻿using API_WEB.ModelsDB;
-using API_WEB.ModelsOracle;
 using DocumentFormat.OpenXml.InkML;
 using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Oracle.ManagedDataAccess.Client;
+using System.Net.Http;
+using System.Text;
+using Newtonsoft.Json;
 
 namespace API_WEB.Controllers.Repositories
 {
@@ -14,12 +16,12 @@ namespace API_WEB.Controllers.Repositories
     public class KhoScrapController : ControllerBase
     {
         private readonly CSDL_NE _sqlContext;
-        private readonly OracleDbContext _oracleContext;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-        public KhoScrapController(CSDL_NE sqlContext, OracleDbContext oracleContext)
+        public KhoScrapController(CSDL_NE sqlContext, IHttpClientFactory httpClientFactory)
         {
             _sqlContext = sqlContext;
-            _oracleContext = oracleContext;
+            _httpClientFactory = httpClientFactory;
         }
 
         // API 1: Lấy tổng số lượng SN trong bảng Product
@@ -86,6 +88,7 @@ namespace API_WEB.Controllers.Repositories
 
 
                 var results = new List<object>();
+                var serialsToUpdateOracle = new List<string>();
                 foreach (var serialNumber in request.SerialNumbers)
                 {
                     //Kiem tra neu SerialNumber da ton tai
@@ -121,6 +124,7 @@ namespace API_WEB.Controllers.Repositories
                             // Lưu cập nhật vào database
                             _sqlContext.KhoScraps.Update(existingProduct);
                             await _sqlContext.SaveChangesAsync();
+                            serialsToUpdateOracle.Add(serialNumber);
 
                             results.Add(new { serialNumber, success = true, message = "Sản phẩm đã được cập nhật vị trí." });
                         }
@@ -156,6 +160,7 @@ namespace API_WEB.Controllers.Repositories
                         entryPerson = request.EntryPerson
                     };
                     _sqlContext.KhoScraps.Add(newProduct);
+                    serialsToUpdateOracle.Add(serialNumber);
                     // Ghi log
                     await LogAction("IMPORT", serialNumber, request.EntryPerson, "");
                     results.Add(new
@@ -166,6 +171,11 @@ namespace API_WEB.Controllers.Repositories
                     });
                 }
                 await _sqlContext.SaveChangesAsync();
+
+                // Update Oracle location via RepairStatus API
+                string location = $"{request.Shelf} {request.Column}-{request.Level}-K{request.Tray}";
+                await SendReceivingStatusAsync(serialsToUpdateOracle, request.EntryPerson ?? string.Empty, location, "NhậnNhập Kho(Phế)");
+
                 await transaction.CommitAsync();
                 return Ok(new { success = true, results });
             }
@@ -443,6 +453,26 @@ namespace API_WEB.Controllers.Repositories
                 Timestamp = DateTime.UtcNow
             });
             await _sqlContext.SaveChangesAsync();
+        }
+
+
+        private async Task SendReceivingStatusAsync(IEnumerable<string> serialNumbers, string owner, string location, string tag)
+        {
+            if (serialNumbers == null || !serialNumbers.Any()) return;
+
+            var client = _httpClientFactory.CreateClient();
+            var payload = new
+            {
+                serialnumbers = string.Join(",", serialNumbers),
+                owner,
+                location,
+                tag
+            };
+
+            var json = JsonConvert.SerializeObject(payload);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            await client.PostAsync("http://10.220.130.119:9090/api/RepairStatus/receiving-status", content);
         }
 
         [HttpPost("BorrowKhoScrap")]

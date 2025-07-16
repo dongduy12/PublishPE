@@ -226,8 +226,8 @@
             const payload = {
                 serialnumbers: serialNumbers.join(","),
                 owner: currentUser,
-                location: "TRONG_KHO",
-                tag: "Nhận(Nhập kho)"
+                location: trayInput.value.trim(),
+                tag: "Nhận(Nhập Kho)"
             };
 
             const receiveResponse = await fetch("http://10.220.130.119:9090/api/RepairStatus/receiving-status", {
