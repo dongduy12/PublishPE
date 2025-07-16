@@ -59,6 +59,14 @@
             </div>
         </div>
     </div>
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-success smaller-card">
+            <div class="card-body smaller-text">
+                <h5 class="card-title">Online</h5>
+                <p class="card-text" id="online">N/A</p>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Donut Chart and Table -->
@@ -108,11 +116,11 @@
     <style>
         .smaller-card {
             transform: scale(0.85); /* Reduce card size by 25% */
-            margin: 0 -5px; /* Minimize spacing between cards */
+            margin: 0 -3px; /* Minimize spacing between cards */
         }
 
         .smaller-text .card-title {
-            font-size: 1.3rem; /* Smaller title font size */
+            font-size: 1.2rem; /* Smaller title font size */
         }
 
         .smaller-text .card-text {
@@ -128,8 +136,8 @@
             .kpi-cards .col-lg-1,
             .kpi-cards .col-sm-3,
             .kpi-cards .col-3 {
-                flex: 0 0 16.66%; /* Divide equally for 7 cards (100% / 7) */
-                max-width: 16.66%; /* Ensure equal width */
+                flex: 0 0 14.28%; /* Divide equally for 7 cards (100% / 7) */
+                max-width: 14.28%; /* Ensure equal width */
                 padding: 0; /* Reduce padding for tighter fit */
             }
     </style>

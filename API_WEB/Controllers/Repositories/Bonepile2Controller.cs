@@ -869,9 +869,10 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                 {
                     "ScrapLackTask",
                     "ScrapHasTask",
+                    "Online",
                     "WatitingScrap",
                     "ApproveBGA",
-                    "RepairInRE"
+                    "RepairInRE",
                 };
                 // Phân loại status theo yêu cầu
                 var result = allData
@@ -880,8 +881,13 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                         var sn = b.SFG?.Trim().ToUpper() ?? "";
                         string status;
 
+                        var groupKanban = b.WIP_GROUP_KANBAN?.Trim();
                         // Kiểm tra thông tin trong scrapDict
-                        if (scrapDict.TryGetValue(sn, out var scrapInfo))
+                        if (!string.IsNullOrEmpty(groupKanban) && groupKanban.IndexOf("B36R_TO_SFG", StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            status = "Online";
+                        }
+                        else if (scrapDict.TryGetValue(sn, out var scrapInfo))
                         {
                             var applyTaskStatus = scrapInfo.ApplyTaskStatus;
                             var taskNumber = scrapInfo.TaskNumber;
@@ -961,8 +967,14 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                 {
                     var sn = b.SFG?.Trim().ToUpper() ?? "";
                     string status;
-                    // Kiểm tra thông tin trong scrapDict
-                    if (scrapDict.TryGetValue(sn, out var scrapInfo))
+
+                    var groupKanban = b.WIP_GROUP_KANBAN.Trim();
+
+                    if (!string.IsNullOrEmpty(groupKanban) && groupKanban.IndexOf("B36R_TO_SFG", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        status = "Online";
+                    }
+                    else if (scrapDict.TryGetValue(sn, out var scrapInfo))
                     {
                         var applyTaskStatus = scrapInfo.ApplyTaskStatus;
                         var taskNumber = scrapInfo.TaskNumber;
@@ -1009,65 +1021,51 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
 
         private async Task<List<BonepileAfterKanbanResult>> ExecuteBonepileAfterKanbanQuery()
         {
-            var result = new List<BonepileAfterKanbanResult>();
+            var rawResult = new List<BonepileAfterKanbanRawResult>();
 
             await using var connection = new OracleConnection(_oracleContext.Database.GetDbConnection().ConnectionString);
             await connection.OpenAsync();
 
-            string query = @"SELECT 
-                    a.SERIAL_NUMBER AS SFG,
-                    c.SERIAL_NUMBER AS FG,
-                    a.MO_NUMBER,
-                    a.MODEL_NAME,
-                    b.PRODUCT_LINE,
-                    a.WIP_GROUP AS WIP_GROUP_KANAN,
-                    r107.WIP_GROUP AS WIP_GROUP_SFC,
-                    c.WORK_TIME,
-                    CASE 
-                        WHEN NVL(r109_sfg.test_time, TO_DATE('1900-01-01','YYYY-MM-DD')) >= NVL(r109_fg.test_time, TO_DATE('1900-01-01','YYYY-MM-DD'))
-                        THEN r109_sfg.test_code
-                        ELSE r109_fg.test_code
-                    END AS TEST_CODE,
-                    CASE 
-                        WHEN NVL(r109_sfg.test_time, TO_DATE('1900-01-01','YYYY-MM-DD')) >= NVL(r109_fg.test_time, TO_DATE('1900-01-01','YYYY-MM-DD'))
-                        THEN r109_sfg.test_group
-                        ELSE r109_fg.test_group
-                    END AS TEST_GROUP,
-                    CASE 
-                        WHEN NVL(r109_sfg.test_time, TO_DATE('1900-01-01','YYYY-MM-DD')) >= NVL(r109_fg.test_time, TO_DATE('1900-01-01','YYYY-MM-DD'))
-                        THEN r109_sfg.test_time
-                        ELSE r109_fg.test_time
-                    END AS TEST_TIME,
-                    CASE 
-                        WHEN NVL(r109_sfg.test_time, TO_DATE('1900-01-01','YYYY-MM-DD')) >= NVL(r109_fg.test_time, TO_DATE('1900-01-01','YYYY-MM-DD'))
-                        THEN ce_sfg.error_desc
-                        ELSE ce_fg.error_desc
-                    END AS ERROR_CODE
-                FROM SFISM4.Z_KANBAN_TRACKING_T a
-                INNER JOIN SFIS1.C_MODEL_DESC_T b ON a.MODEL_NAME = b.MODEL_NAME
-                LEFT JOIN (
-                    SELECT * FROM (
-                        SELECT t.*, ROW_NUMBER() OVER (PARTITION BY t.KEY_PART_SN ORDER BY t.WORK_TIME DESC) AS rn
-                        FROM SFISM4.P_WIP_KEYPARTS_T t
-                    ) WHERE rn = 1
-                ) c ON a.SERIAL_NUMBER = c.KEY_PART_SN
-                LEFT JOIN (
-                    SELECT * FROM (
-                        SELECT t.*, ROW_NUMBER() OVER (PARTITION BY t.serial_number ORDER BY t.test_time DESC) AS rn
-                        FROM SFISM4.R109 t
-                    ) WHERE rn = 1
-                ) r109_sfg ON a.SERIAL_NUMBER = r109_sfg.serial_number
-                LEFT JOIN (
-                    SELECT * FROM (
-                        SELECT t.*, ROW_NUMBER() OVER (PARTITION BY t.serial_number ORDER BY t.test_time DESC) AS rn
-                        FROM SFISM4.R109 t
-                    ) WHERE rn = 1
-                ) r109_fg ON c.SERIAL_NUMBER = r109_fg.serial_number
-                LEFT JOIN SFIS1.C_ERROR_CODE_T ce_sfg ON r109_sfg.test_code = ce_sfg.error_code
-                LEFT JOIN SFIS1.C_ERROR_CODE_T ce_fg ON r109_fg.test_code = ce_fg.error_code
-                LEFT JOIN SFISM4.R107 r107 ON r107.SERIAL_NUMBER = a.SERIAL_NUMBER
-                WHERE a.WIP_GROUP LIKE '%B36R%'
-                  AND b.model_serial != 'SWITCH'";
+            string query = @"
+        SELECT 
+            a.SERIAL_NUMBER AS SFG,
+            c.SERIAL_NUMBER AS FG,
+            a.MO_NUMBER,
+            a.MODEL_NAME,
+            b.PRODUCT_LINE,
+            a.WIP_GROUP AS WIP_GROUP_KANBAN,
+            r107.WIP_GROUP AS WIP_GROUP_SFC,
+            c.WORK_TIME,
+
+            r109_sfg.test_time AS SFG_TEST_TIME,
+            r109_sfg.test_code AS SFG_TEST_CODE,
+            r109_sfg.test_group AS SFG_TEST_GROUP,
+            ce_sfg.error_desc AS SFG_ERROR_DESC,
+
+            r109_fg.test_time AS FG_TEST_TIME,
+            r109_fg.test_code AS FG_TEST_CODE,
+            r109_fg.test_group AS FG_TEST_GROUP,
+            ce_fg.error_desc AS FG_ERROR_DESC
+
+        FROM SFISM4.Z_KANBAN_TRACKING_T a
+        INNER JOIN SFIS1.C_MODEL_DESC_T b ON a.MODEL_NAME = b.MODEL_NAME
+        LEFT JOIN (
+            SELECT t.*, ROW_NUMBER() OVER (PARTITION BY t.KEY_PART_SN ORDER BY t.WORK_TIME DESC) AS rn
+            FROM SFISM4.P_WIP_KEYPARTS_T t
+        ) c ON a.SERIAL_NUMBER = c.KEY_PART_SN AND c.rn = 1
+        LEFT JOIN (
+            SELECT t.*, ROW_NUMBER() OVER (PARTITION BY t.serial_number ORDER BY t.test_time DESC) AS rn
+            FROM SFISM4.R109 t
+        ) r109_sfg ON a.SERIAL_NUMBER = r109_sfg.serial_number AND r109_sfg.rn = 1
+        LEFT JOIN (
+            SELECT t.*, ROW_NUMBER() OVER (PARTITION BY t.serial_number ORDER BY t.test_time DESC) AS rn
+            FROM SFISM4.R109 t
+        ) r109_fg ON c.SERIAL_NUMBER = r109_fg.serial_number AND r109_fg.rn = 1
+        LEFT JOIN SFIS1.C_ERROR_CODE_T ce_sfg ON r109_sfg.test_code = ce_sfg.error_code
+        LEFT JOIN SFIS1.C_ERROR_CODE_T ce_fg ON r109_fg.test_code = ce_fg.error_code
+        LEFT JOIN SFISM4.R107 r107 ON r107.SERIAL_NUMBER = a.SERIAL_NUMBER
+        WHERE a.WIP_GROUP LIKE '%B36R%'
+        AND b.model_serial != 'SWITCH'";
 
             using (var command = new OracleCommand(query, connection))
             {
@@ -1075,27 +1073,57 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                 {
                     while (await reader.ReadAsync())
                     {
-                        result.Add(new BonepileAfterKanbanResult
+                        var item = new BonepileAfterKanbanRawResult
                         {
-                            SFG = reader["SFG"].ToString(),
-                            FG = reader["FG"].ToString(),
-                            MO_NUMBER = reader["MO_NUMBER"].ToString(),
-                            MODEL_NAME = reader["MODEL_NAME"].ToString(),
-                            PRODUCT_LINE = reader["PRODUCT_LINE"].ToString(),
-                            WIP_GROUP_KANBAN = reader["WIP_GROUP_KANAN"].ToString(),
-                            WIP_GROUP_SFC = reader["WIP_GROUP_SFC"].ToString(),
-                            WORK_TIME = reader["WORK_TIME"] != DBNull.Value ? Convert.ToDateTime(reader["WORK_TIME"]) : (DateTime?)null,
-                            TEST_CODE = reader["TEST_CODE"].ToString(),
-                            TEST_GROUP = reader["TEST_GROUP"].ToString(),
-                            TEST_TIME = reader["TEST_TIME"] != DBNull.Value ? Convert.ToDateTime(reader["TEST_TIME"]) : (DateTime?)null,
-                            ERROR_CODE = reader["ERROR_CODE"].ToString()
-                        });
+                            SFG = reader["SFG"]?.ToString(),
+                            FG = reader["FG"]?.ToString(),
+                            MO_NUMBER = reader["MO_NUMBER"]?.ToString(),
+                            MODEL_NAME = reader["MODEL_NAME"]?.ToString(),
+                            PRODUCT_LINE = reader["PRODUCT_LINE"]?.ToString(),
+                            WIP_GROUP_KANBAN = reader["WIP_GROUP_KANBAN"]?.ToString(),
+                            WIP_GROUP_SFC = reader["WIP_GROUP_SFC"]?.ToString(),
+                            WORK_TIME = reader["WORK_TIME"] != DBNull.Value ? (DateTime?)reader["WORK_TIME"] : null,
+                            SFG_TEST_TIME = reader["SFG_TEST_TIME"] != DBNull.Value ? (DateTime?)reader["SFG_TEST_TIME"] : null,
+                            SFG_TEST_CODE = reader["SFG_TEST_CODE"]?.ToString(),
+                            SFG_TEST_GROUP = reader["SFG_TEST_GROUP"]?.ToString(),
+                            SFG_ERROR_DESC = reader["SFG_ERROR_DESC"]?.ToString(),
+                            FG_TEST_TIME = reader["FG_TEST_TIME"] != DBNull.Value ? (DateTime?)reader["FG_TEST_TIME"] : null,
+                            FG_TEST_CODE = reader["FG_TEST_CODE"]?.ToString(),
+                            FG_TEST_GROUP = reader["FG_TEST_GROUP"]?.ToString(),
+                            FG_ERROR_DESC = reader["FG_ERROR_DESC"]?.ToString(),
+                        };
+                        rawResult.Add(item);
                     }
                 }
             }
 
+            // Chuyển thành danh sách chuẩn hóa, chọn theo test_time lớn hơn
+            var result = rawResult.Select(b =>
+            {
+                var sfgTime = b.SFG_TEST_TIME ?? DateTime.MinValue;
+                var fgTime = b.FG_TEST_TIME ?? DateTime.MinValue;
+                bool useSFG = sfgTime >= fgTime;
+
+                return new BonepileAfterKanbanResult
+                {
+                    SFG = b.SFG,
+                    FG = b.FG,
+                    MO_NUMBER = b.MO_NUMBER,
+                    MODEL_NAME = b.MODEL_NAME,
+                    PRODUCT_LINE = b.PRODUCT_LINE,
+                    WIP_GROUP_KANBAN = b.WIP_GROUP_KANBAN,
+                    WIP_GROUP_SFC = b.WIP_GROUP_SFC,
+                    WORK_TIME = b.WORK_TIME,
+                    TEST_CODE = useSFG ? b.SFG_TEST_CODE : b.FG_TEST_CODE,
+                    TEST_GROUP = useSFG ? b.SFG_TEST_GROUP : b.FG_TEST_GROUP,
+                    TEST_TIME = useSFG ? b.SFG_TEST_TIME : b.FG_TEST_TIME,
+                    ERROR_CODE = useSFG ? b.SFG_ERROR_DESC : b.FG_ERROR_DESC
+                };
+            }).ToList();
+
             return result;
         }
+
 
     }
 }
