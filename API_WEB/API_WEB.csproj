@@ -32,10 +32,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="Uploads\" />
-	</ItemGroup>
-
-	<ItemGroup>
 	  <Content Update="api_appsettings.json">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </Content>

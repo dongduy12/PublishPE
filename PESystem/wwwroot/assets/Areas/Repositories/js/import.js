@@ -226,7 +226,7 @@
             const payload = {
                 serialnumbers: serialNumbers.join(","),
                 owner: currentUser,
-                location: "TRONG_KHO",
+                location: trayInput.value.trim(),
                 tag: "Nhận(Nhập kho)"
             };
 

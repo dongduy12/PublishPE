@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml.InkML;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OfficeOpenXml;
 using Oracle.ManagedDataAccess.Client;
 using System.Linq;
 using System.Runtime.Intrinsics.X86;
@@ -838,6 +839,7 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
+        /// 
         [HttpPost("bonepile-after-kanban")]
         public async Task<IActionResult> BonepileAfterKanban([FromBody] StatusRequestBonepile request)
         {
@@ -851,6 +853,11 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                 var statuses = filterByStatus ? request.Statuses.Where(s => !string.IsNullOrEmpty(s)).ToList() : null;
                 var allData = await ExecuteBonepileAfterKanbanQuery();
 
+                var excludedSNs = GetExcludedSerialNumbers();
+                if (excludedSNs.Any())
+                {
+                    allData = allData.Where(d => !excludedSNs.Contains(d.SFG?.Trim().ToUpper())).ToList();
+                }
 
                 var sfgList = allData.Select(d => d.SFG).Where(s => !string.IsNullOrEmpty(s)).ToList();
 
@@ -955,6 +962,13 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
             try
             {
                 var repairTaskData = await ExecuteBonepileAfterKanbanQuery();
+
+                var excludedSNs = GetExcludedSerialNumbers();
+                if (excludedSNs.Any())
+                {
+                    repairTaskData = repairTaskData.Where(d => !excludedSNs.Contains(d.SFG?.Trim().ToUpper())).ToList();
+                }
+
                 var scrapCategories = await _sqlContext.ScrapLists
                     .Select(s => new { SN = s.SN, ApplyTaskStatus = s.ApplyTaskStatus, TaskNumber = s.TaskNumber })
                     .ToListAsync();
@@ -1124,6 +1138,33 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
             return result;
         }
 
+        private List<string> GetExcludedSerialNumbers()
+        {
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "Uploads");
+            var filePath = Path.Combine(uploadsFolder, "ScrapOk.xlsx");
+            var snList = new List<string>();
 
+            if (System.IO.File.Exists(filePath))
+            {
+                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+                using var package = new ExcelPackage(new FileInfo(filePath));
+                var worksheet = package.Workbook.Worksheets.FirstOrDefault();
+
+                if (worksheet != null)
+                {
+                    int rowCount = worksheet.Dimension.Rows;
+                    for (int row = 1; row <= rowCount; row++)
+                    {
+                        var sn = worksheet.Cells[row, 1].Text.Trim();
+                        if (!string.IsNullOrEmpty(sn))
+                        {
+                            snList.Add(sn.ToUpper());
+                        }
+                    }
+                }
+            }
+
+            return snList;
+        }
     }
 }

@@ -165,7 +165,7 @@
                                 const localDate = new Date(now.getTime() + offset * 60 * 1000);
                                 const dateStr = localDate.toISOString().slice(0, 10).replace(/-/g, '');
                                 const timeStr = localDate.toTimeString().slice(0, 8).replace(/:/g, '');
-                                return `Bonepile1_0_${dateStr}_${timeStr}`;
+                                return `Bonepile_before_${dateStr}_${timeStr}`;
                             },
                             exportOptions: {
                                 columns: ':visible',
