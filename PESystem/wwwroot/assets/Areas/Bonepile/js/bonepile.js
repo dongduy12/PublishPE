@@ -285,7 +285,7 @@
                                                                             <option value="Waiting SPE approve scrap">Waiting SPE Approve Scrap</option>
                                                                             <option value="Rework FG">Rework FG</option>
                                                                             <option value="Under repair in RE">Under repair in RE</option>
-                                                                            <option value="Under repair in RE">Waiting Check Out</option>
+                                                                            <option value="Waiting Check Out">Waiting Check Out</option>
                                                                             <option value="Under repair in PD">Under repair in PD</option>
                                                                         </select>
                                                                     </div>
