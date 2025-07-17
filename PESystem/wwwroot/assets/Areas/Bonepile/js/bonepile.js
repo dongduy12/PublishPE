@@ -149,6 +149,7 @@
                         { data: "workFlag" },
                         { data: "errorFlag" },
                         { data: "checkInDate" },
+                        { data: "agingDay" },
                         { data: "status" },
                         { data: "note" }
                     ],

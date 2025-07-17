@@ -63,7 +63,7 @@
         public string? STATUS { get; set; }
         public string? AGING_DAY { get; set; }
         public DateTime? CHECKIN_DATE { get; set; }
-    }
+    } 
 
     // Result model for bonepile after kanban query
     public class BonepileAfterKanbanResult

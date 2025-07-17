@@ -638,169 +638,169 @@ namespace API_WEB.Controllers.Repositories
             await using var connection = new OracleConnection(_oracleContext.Database.GetDbConnection().ConnectionString);
             await connection.OpenAsync();
 
-            string query = @"
-                SELECT 
-                    a.SERIAL_NUMBER,
-                    a.MODEL_NAME,
-                    c.PRODUCT_LINE,
-                    a.MO_NUMBER,
-                    a.TEST_GROUP,
-                    a.TEST_CODE,
-                    a.TEST_TIME,
-                    r107.WIP_GROUP,
-                    r107.ERROR_FLAG,
-                    r107.WORK_FLAG,
-                    a.DATA1,
-                    a.DATA12,
-                    a.DATA19,
-                    'REPAIR_TASK' AS SOURCE,
-                    (
-                        SELECT MIN(d.DATE3)
-                        FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
-                        WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
-                          AND d.DATA12 = 'CHECK_IN'
-                    ) AS CHECKIN_DATE,
-                    (
-                        SYSDATE - (
-                            SELECT MIN(d.DATE3)
-                            FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
-                            WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
-                              AND d.DATA12 = 'CHECK_IN'
-                        )
-                    ) AS AGING_DAY
-                FROM SFISM4.R_REPAIR_TASK_T a
-                INNER JOIN SFIS1.C_MODEL_DESC_T c ON a.MODEL_NAME = c.MODEL_NAME
-                LEFT JOIN SFISM4.R107 r107 ON a.SERIAL_NUMBER = r107.SERIAL_NUMBER
-                WHERE NOT EXISTS (
-                    SELECT 1 
-                    FROM SFISM4.Z_KANBAN_TRACKING_T z 
-                    WHERE z.serial_number = a.SERIAL_NUMBER
-                )
-                AND NOT EXISTS (
-                    SELECT 1 
-                    FROM SFISM4.Z_KANBAN_TRACKING_T z 
-                    WHERE z.serial_number = a.SERIAL_NUMBER 
-                    AND z.WIP_GROUP LIKE '%B36R%'
-                )
-                AND a.MO_NUMBER NOT LIKE '8%'
-                AND (
-                    (c.MODEL_SERIAL = 'ADAPTER' AND a.MODEL_NAME NOT LIKE '900%' AND a.MODEL_NAME NOT LIKE '692%')
-                    OR ((a.MODEL_NAME LIKE '900%' OR a.MODEL_NAME LIKE '692%') AND a.MO_NUMBER LIKE '400%')
-                )
-                AND r107.WIP_GROUP NOT LIKE '%BR2C%'
-                AND a.TEST_CODE NOT IN (
-                    'BV00', 'PP10', 'BRK00', 'HSK00', 'SCR00', 'C028', 'TA00', 'CAR0', 'C010', 'C012',
-                    'LBxx', 'GB00', 'CLExx', 'GL00', 'BHSK00', 'DIR02', 'DIR03', 'DR00', 'GF06',
-                    'CLE02', 'CLE03', 'CLE04', 'CLE05', 'CLE06', 'CLE07', 'CLE08', 'LB01', 'LB02', 
-                    'LB03', 'LB04', 'LB05', 'LB06', 'LB07', 'CK00'
-                )
+            string query = @"SELECT 
+    a.SERIAL_NUMBER,
+    a.MODEL_NAME,
+    c.PRODUCT_LINE,
+    a.MO_NUMBER,
+    a.TEST_GROUP,
+    a.TEST_CODE,
+    a.TEST_TIME,
+    r107.WIP_GROUP,
+    r107.ERROR_FLAG,
+    r107.WORK_FLAG,
+    a.DATA1,
+    a.DATA11,
+    a.DATA19,
+    'REPAIR_TASK' AS SOURCE,
+    (
+        SELECT MIN(d.DATE3)
+        FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
+        WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
+          AND d.DATA12 = 'CHECK_IN'
+    ) AS CHECKIN_DATE,
+    ROUND(
+        SYSDATE - (
+            SELECT MIN(d.DATE3)
+            FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
+            WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
+              AND d.DATA12 = 'CHECK_IN'
+        ), 2
+    ) AS AGING_DAY
+FROM SFISM4.R_REPAIR_TASK_T a
+INNER JOIN SFIS1.C_MODEL_DESC_T c ON a.MODEL_NAME = c.MODEL_NAME
+LEFT JOIN SFISM4.R107 r107 ON a.SERIAL_NUMBER = r107.SERIAL_NUMBER
+WHERE NOT EXISTS (
+    SELECT 1 
+    FROM SFISM4.Z_KANBAN_TRACKING_T z 
+    WHERE z.serial_number = a.SERIAL_NUMBER
+)
+AND NOT EXISTS (
+    SELECT 1 
+    FROM SFISM4.Z_KANBAN_TRACKING_T z 
+    WHERE z.serial_number = a.SERIAL_NUMBER 
+      AND z.WIP_GROUP LIKE '%B36R%'
+)
+AND a.MO_NUMBER NOT LIKE '8%'
+AND (
+    (c.MODEL_SERIAL = 'ADAPTER' AND a.MODEL_NAME NOT LIKE '900%' AND a.MODEL_NAME NOT LIKE '692%')
+    OR ((a.MODEL_NAME LIKE '900%' OR a.MODEL_NAME LIKE '692%') AND a.MO_NUMBER LIKE '400%')
+)
+AND r107.WIP_GROUP NOT LIKE '%BR2C%'
+AND a.TEST_CODE NOT IN (
+    'BV00', 'PP10', 'BRK00', 'HSK00', 'SCR00', 'C028', 'TA00', 'CAR0', 'C010', 'C012',
+    'LBxx', 'GB00', 'CLExx', 'GL00', 'BHSK00', 'DIR02', 'DIR03', 'DR00', 'GF06',
+    'CLE02', 'CLE03', 'CLE04', 'CLE05', 'CLE06', 'CLE07', 'CLE08', 'LB01', 'LB02', 
+    'LB03', 'LB04', 'LB05', 'LB06', 'LB07', 'CK00'
+)
 
-                UNION ALL
+UNION ALL
 
-                SELECT 
-                    a.SERIAL_NUMBER,
-                    a.MODEL_NAME,
-                    c.PRODUCT_LINE,
-                    a.MO_NUMBER,
-                    a.TEST_GROUP,
-                    a.TEST_CODE,
-                    a.TEST_TIME,
-                    b.WIP_GROUP,
-                    b.ERROR_FLAG,
-                    b.WORK_FLAG,
-                    a.DATA1,
-                    NULL AS DATA12,
-                    NULL AS DATA19,
-                    'R109_ERROR_FLAG1' AS SOURCE,
-                    (
-                        SELECT MIN(d.DATE3)
-                        FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
-                        WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
-                          AND d.DATA12 = 'CHECK_IN'
-                    ) AS CHECKIN_DATE,
-                    (
-                        SYSDATE - (
-                            SELECT MIN(d.DATE3)
-                            FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
-                            WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
-                              AND d.DATA12 = 'CHECK_IN'
-                        )
-                    ) AS AGING_DAY
-                FROM SFISM4.R109 a
-                INNER JOIN SFISM4.R107 b ON a.SERIAL_NUMBER = b.SERIAL_NUMBER
-                INNER JOIN SFIS1.C_MODEL_DESC_T c ON a.MODEL_NAME = c.MODEL_NAME
-                WHERE a.REASON_CODE IS NULL
-                AND a.MODEL_NAME IN (
-                    SELECT MODEL_NAME 
-                    FROM SFIS1.C_MODEL_DESC_T 
-                    WHERE MODEL_SERIAL = 'ADAPTER'
-                )
-                AND a.MODEL_NAME NOT LIKE '900%'
-                AND a.MODEL_NAME NOT LIKE 'TB%'
-                AND b.ERROR_FLAG = 1
-                AND a.MO_NUMBER NOT LIKE '8%'
-                AND NOT EXISTS (
-                    SELECT 1 
-                    FROM SFISM4.Z_KANBAN_TRACKING_T z 
-                    WHERE z.serial_number = a.SERIAL_NUMBER 
-                    AND z.WIP_GROUP LIKE '%B36R%'
-                )
-                AND b.WIP_GROUP NOT LIKE '%BR2C%'
-                AND a.TEST_CODE NOT IN (
-                    'BV00', 'PP10', 'BRK00', 'HSK00', 'SCR00', 'C028', 'TA00', 'CAR0', 'C010', 'C012',
-                    'LBxx', 'GB00', 'CLExx', 'GL00', 'BHSK00', 'DIR02', 'DIR03', 'DR00', 'GF06',
-                    'CLE02', 'CLE03', 'CLE04', 'CLE05', 'CLE06', 'CLE07', 'CLE08', 'LB01', 'LB02', 
-                    'LB03', 'LB04', 'LB05', 'LB06', 'LB07', 'CK00'
-                )
-                AND (SYSDATE - a.TEST_TIME) * 24 >= 8
+SELECT 
+    a.SERIAL_NUMBER,
+    a.MODEL_NAME,
+    c.PRODUCT_LINE,
+    a.MO_NUMBER,
+    a.TEST_GROUP,
+    a.TEST_CODE,
+    a.TEST_TIME,
+    b.WIP_GROUP,
+    b.ERROR_FLAG,
+    b.WORK_FLAG,
+    a.DATA1,
+    NULL AS DATA11,
+    NULL AS DATA19,
+    'R109_ERROR_FLAG1' AS SOURCE,
+    (
+        SELECT MIN(d.DATE3)
+        FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
+        WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
+          AND d.DATA12 = 'CHECK_IN'
+    ) AS CHECKIN_DATE,
+    ROUND(
+        SYSDATE - (
+            SELECT MIN(d.DATE3)
+            FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
+            WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
+              AND d.DATA12 = 'CHECK_IN'
+        ), 2
+    ) AS AGING_DAY
+FROM SFISM4.R109 a
+INNER JOIN SFISM4.R107 b ON a.SERIAL_NUMBER = b.SERIAL_NUMBER
+INNER JOIN SFIS1.C_MODEL_DESC_T c ON a.MODEL_NAME = c.MODEL_NAME
+WHERE a.REASON_CODE IS NULL
+AND a.MODEL_NAME IN (
+    SELECT MODEL_NAME 
+    FROM SFIS1.C_MODEL_DESC_T 
+    WHERE MODEL_SERIAL = 'ADAPTER'
+)
+AND a.MODEL_NAME NOT LIKE '900%'
+AND a.MODEL_NAME NOT LIKE 'TB%'
+AND b.ERROR_FLAG = 1
+AND a.MO_NUMBER NOT LIKE '8%'
+AND NOT EXISTS (
+    SELECT 1 
+    FROM SFISM4.Z_KANBAN_TRACKING_T z 
+    WHERE z.serial_number = a.SERIAL_NUMBER 
+      AND z.WIP_GROUP LIKE '%B36R%'
+)
+AND b.WIP_GROUP NOT LIKE '%BR2C%'
+AND a.TEST_CODE NOT IN (
+    'BV00', 'PP10', 'BRK00', 'HSK00', 'SCR00', 'C028', 'TA00', 'CAR0', 'C010', 'C012',
+    'LBxx', 'GB00', 'CLExx', 'GL00', 'BHSK00', 'DIR02', 'DIR03', 'DR00', 'GF06',
+    'CLE02', 'CLE03', 'CLE04', 'CLE05', 'CLE06', 'CLE07', 'CLE08', 'LB01', 'LB02', 
+    'LB03', 'LB04', 'LB05', 'LB06', 'LB07', 'CK00'
+)
+AND (SYSDATE - a.TEST_TIME) * 24 >= 8
 
-                UNION ALL
+UNION ALL
 
-                SELECT 
-                    a.SERIAL_NUMBER,
-                    a.MODEL_NAME,
-                    c.PRODUCT_LINE,
-                    a.MO_NUMBER,
-                    a.TEST_GROUP,
-                    a.TEST_CODE,
-                    a.TEST_TIME,
-                    b.WIP_GROUP,
-                    b.ERROR_FLAG,
-                    b.WORK_FLAG,
-                    a.DATA1,
-                    NULL AS DATA12,
-                    NULL AS DATA19,
-                    'R109_REASON_B001' AS SOURCE,
-                    (
-                        SELECT MIN(d.DATE3)
-                        FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
-                        WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
-                          AND d.DATA12 = 'CHECK_IN'
-                    ) AS CHECKIN_DATE,
-                    (
-                        SYSDATE - (
-                            SELECT MIN(d.DATE3)
-                            FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
-                            WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
-                              AND d.DATA12 = 'CHECK_IN'
-                        )
-                    ) AS AGING_DAY
-                FROM SFISM4.R109 a
-                INNER JOIN SFISM4.R107 b ON a.SERIAL_NUMBER = b.SERIAL_NUMBER
-                INNER JOIN SFIS1.C_MODEL_DESC_T c ON a.MODEL_NAME = c.MODEL_NAME
-                WHERE a.SERIAL_NUMBER NOT IN (SELECT SERIAL_NUMBER FROM SFISM4.Z_KANBAN_TRACKING_T)
-                AND NOT EXISTS (
-                    SELECT 1 
-                    FROM SFISM4.Z_KANBAN_TRACKING_T z 
-                    WHERE z.serial_number = a.SERIAL_NUMBER 
-                    AND z.WIP_GROUP LIKE '%B36R%'
-                )
-                AND a.REASON_CODE = 'B001'
-                AND b.WIP_GROUP NOT LIKE '%BR2C%'
-                AND c.MODEL_SERIAL = 'ADAPTER'
-                AND a.MO_NUMBER NOT LIKE '8%'
-                AND a.REPAIR_TIME BETWEEN TO_DATE('2025-05-15 23:59:59', 'YYYY-MM-DD HH24:MI:SS')
-                AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:SS')";
+SELECT 
+    a.SERIAL_NUMBER,
+    a.MODEL_NAME,
+    c.PRODUCT_LINE,
+    a.MO_NUMBER,
+    a.TEST_GROUP,
+    a.TEST_CODE,
+    a.TEST_TIME,
+    b.WIP_GROUP,
+    b.ERROR_FLAG,
+    b.WORK_FLAG,
+    a.DATA1,
+    NULL AS DATA11,
+    NULL AS DATA19,
+    'R109_REASON_B001' AS SOURCE,
+    (
+        SELECT MIN(d.DATE3)
+        FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
+        WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
+          AND d.DATA12 = 'CHECK_IN'
+    ) AS CHECKIN_DATE,
+    ROUND(
+        SYSDATE - (
+            SELECT MIN(d.DATE3)
+            FROM SFISM4.R_REPAIR_TASK_DETAIL_T d
+            WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
+              AND d.DATA12 = 'CHECK_IN'
+        ), 2
+    ) AS AGING_DAY
+FROM SFISM4.R109 a
+INNER JOIN SFISM4.R107 b ON a.SERIAL_NUMBER = b.SERIAL_NUMBER
+INNER JOIN SFIS1.C_MODEL_DESC_T c ON a.MODEL_NAME = c.MODEL_NAME
+WHERE a.SERIAL_NUMBER NOT IN (SELECT SERIAL_NUMBER FROM SFISM4.Z_KANBAN_TRACKING_T)
+AND NOT EXISTS (
+    SELECT 1 
+    FROM SFISM4.Z_KANBAN_TRACKING_T z 
+    WHERE z.serial_number = a.SERIAL_NUMBER 
+      AND z.WIP_GROUP LIKE '%B36R%'
+)
+AND a.REASON_CODE = 'B001'
+AND b.WIP_GROUP NOT LIKE '%BR2C%'
+AND c.MODEL_SERIAL = 'ADAPTER'
+AND a.MO_NUMBER NOT LIKE '8%'
+AND a.REPAIR_TIME BETWEEN TO_DATE('2025-05-15 23:59:59', 'YYYY-MM-DD HH24:MI:SS')
+AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:SS')
+";
 
             using (var command = new OracleCommand(query, connection))
             {
@@ -824,6 +824,7 @@ namespace API_WEB.Controllers.Repositories
                             DATA11 = reader["DATA11"] != DBNull.Value ? reader["DATA11"].ToString() : null,
                             DATA19 = reader["DATA19"] != DBNull.Value ? reader["DATA19"].ToString() : null,
                             CHECKIN_DATE = reader["CHECKIN_DATE"] != DBNull.Value ? Convert.ToDateTime(reader["CHECKIN_DATE"]) : (DateTime?)null,
+                            AGING_DAY = reader["AGING_DAY"] != DBNull.Value ? reader["AGING_DAY"].ToString() : null,
                         });
                     }
                 }
