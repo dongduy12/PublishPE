@@ -62,8 +62,7 @@
 
 <!-- Donut Chart and sumMaterialsTable -->
 <div class="row my-4">
-    <!-- Biểu đồ phân bố trạng thái -->
-    <div class="col-md-4">
+    <div class="col-md-6">
         <div class="card">
             <div class="card-body" style="display: flex; flex-direction: column; align-items: center;">
                 <h5 class="card-title">Phân bố trạng thái</h5>
@@ -71,9 +70,18 @@
             </div>
         </div>
     </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body" style="display: flex; flex-direction: column; align-items: center;">
+                <h5 class="card-title">Phân bố thời gian chờ</h5>
+                <canvas id="agingDonutChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <!-- Bảng sumMaterialsTable -->
-    <div class="col-md-8">
+<div class="row my-4">
+    <div class="col-md-12">
         <div class="card">
             <!--HTML CỦA SPINER-->
             <div id="spinner-overlay">

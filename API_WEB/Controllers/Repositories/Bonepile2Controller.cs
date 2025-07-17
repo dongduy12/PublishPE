@@ -426,10 +426,7 @@ namespace API_WEB.Controllers.Repositories
                 var allData = await ExecuteAdapterRepairQuery();
 
                 // Lấy ApplyTaskStatus từ ScrapLists
-                var serialNumbers = allData.Select(x => x.SERIAL_NUMBER.Trim().ToUpper()).Distinct().ToList();
-
                 var scrapCategories = await _sqlContext.ScrapLists
-                    .Where(s => serialNumbers.Contains(s.SN.Trim().ToUpper()))
                     .Select(s => new { SN = s.SN, ApplyTaskStatus = s.ApplyTaskStatus, TaskNumber = s.TaskNumber })
                     .ToListAsync();
 
@@ -624,6 +621,129 @@ namespace API_WEB.Controllers.Repositories
                 {
                     totalCount = result.Count,
                     statusCounts = statusCounts
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
+            }
+        }
+
+        [HttpGet("adapter-repair-aging-count")]
+        public async Task<IActionResult> AdapterRepairAgingCount()
+        {
+            try
+            {
+                var allData = await ExecuteAdapterRepairQuery();
+
+                var scrapCategories = await _sqlContext.ScrapLists
+                    .Select(s => new { SN = s.SN, ApplyTaskStatus = s.ApplyTaskStatus, TaskNumber = s.TaskNumber })
+                    .ToListAsync();
+
+                var scrapDict = scrapCategories.ToDictionary(
+                    c => c.SN?.Trim().ToUpper() ?? "",
+                    c => (ApplyTaskStatus: c.ApplyTaskStatus, TaskNumber: c.TaskNumber),
+                    StringComparer.OrdinalIgnoreCase
+                );
+
+                var validStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "Scrap Lacks Task",
+                    "Scrap Has Scrap",
+                    "SPE approve to BGA",
+                    "Waiting SPE approve scrap",
+                    "Rework FG",
+                    "Under repair in RE",
+                    "Waiting Check Out",
+                    "Under repair in PD"
+                };
+
+                var records = allData
+                    .Select(b =>
+                    {
+                        var sn = b.SERIAL_NUMBER?.Trim().ToUpper() ?? "";
+                        string status;
+
+                        if (scrapDict.TryGetValue(sn, out var scrapInfo))
+                        {
+                            var applyTaskStatus = scrapInfo.ApplyTaskStatus;
+                            var taskNumber = scrapInfo.TaskNumber;
+
+                            if (applyTaskStatus == 0 || applyTaskStatus == 1)
+                            {
+                                status = string.IsNullOrEmpty(taskNumber) ? "Scrap Lacks Task" : "Scrap Has Scrap";
+                            }
+                            else
+                            {
+                                status = applyTaskStatus switch
+                                {
+                                    2 => "Waiting SPE approve scrap",
+                                    3 => "SPE approve to BGA",
+                                    _ => "Under repair in PD"
+                                };
+                            }
+                        }
+                        else if (b.MO_NUMBER?.Trim().StartsWith("4") == true)
+                        {
+                            status = "Rework FG";
+                        }
+                        else
+                        {
+                            status = b.ERROR_FLAG switch
+                            {
+                                "7" => "Under repair in RE",
+                                "8" => "Waiting Check Out",
+                                "0" => "Under repair in PD",
+                                _ => "Under repair in PD"
+                            };
+                        }
+
+                        return new
+                        {
+                            SN = b.SERIAL_NUMBER,
+                            ModelName = b.MODEL_NAME,
+                            MoNumber = b.MO_NUMBER,
+                            ProductLine = b.PRODUCT_LINE,
+                            ErrorFlag = b.ERROR_FLAG,
+                            WorkFlag = b.WORK_FLAG,
+                            WipGroup = b.WIP_GROUP,
+                            Data11 = b.DATA11,
+                            Status = status,
+                            testTime = b.TEST_TIME,
+                            testCode = b.TEST_CODE,
+                            testGroup = b.TEST_GROUP,
+                            errorDesc = b.ERROR_DESC,
+                            note = b.DATA19,
+                            agingDay = b.AGING_DAY,
+                            checkInDate = b.CHECKIN_DATE
+                        };
+                    })
+                    .Where(r => validStatuses.Contains(r.Status, StringComparer.OrdinalIgnoreCase))
+                    .ToList();
+
+                var agingGroups = records
+                    .GroupBy(r =>
+                    {
+                        if (double.TryParse(r.agingDay, out double aging))
+                        {
+                            if (aging < 30) return "<30";
+                            if (aging <= 90) return "30-90";
+                            return ">90";
+                        }
+                        return "Unknown";
+                    })
+                    .Select(g => new
+                    {
+                        AgeRange = g.Key,
+                        Count = g.Count(),
+                        Records = g.ToList()
+                    })
+                    .ToList();
+
+                return Ok(new
+                {
+                    totalCount = records.Count,
+                    agingCounts = agingGroups
                 });
             }
             catch (Exception ex)

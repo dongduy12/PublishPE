@@ -2,6 +2,9 @@
     const apiBase = "http://10.220.130.119:9090/api/Bonepile2";
     const apiCountUrl = `${apiBase}/adapter-repair-status-count`;
     const apiDetailUrl = `${apiBase}/adapter-repair-records`;
+    const apiAgingUrl = `${apiBase}/adapter-repair-aging-count`;
+
+    let agingData = [];
 
     // Định nghĩa tất cả trạng thái hợp lệ
     const validStatuses = [
@@ -26,6 +29,13 @@
         "Under repair in PD": "#17a2b8"
     };
 
+    const agingColorMap = {
+        "<30": "#28a745",
+        "30-90": "#ffc107",
+        ">90": "#dc3545",
+        "Unknown": "#6c757d"
+    };
+
     let dataTable;
 
     // Load KPI + Donut chart
@@ -33,6 +43,10 @@
         try {
             const res = await axios.get(apiCountUrl);
             const { totalCount, statusCounts } = res.data;
+
+            const agingRes = await axios.get(apiAgingUrl);
+            const { agingCounts } = agingRes.data;
+            agingData = agingCounts;
 
             // Gán KPI
             document.getElementById("totalCount").innerText = totalCount || 0;
@@ -108,6 +122,77 @@
                 },
                 plugins: [ChartDataLabels]
             });
+
+            // Vẽ biểu đồ AGING_DAY
+            const agingTotal = agingCounts.reduce((sum, a) => sum + a.count, 0);
+            const agingPercentages = agingCounts.map(a => agingTotal > 0 ? ((a.count / agingTotal) * 100).toFixed(1) : 0);
+            const agingCtx = document.getElementById("agingDonutChart").getContext("2d");
+            const agingChart = new Chart(agingCtx, {
+                type: "doughnut",
+                data: {
+                    labels: agingCounts.map(a => a.ageRange),
+                    datasets: [{
+                        data: agingCounts.map(a => a.count),
+                        backgroundColor: agingCounts.map(a => agingColorMap[a.ageRange] || "#ccc"),
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: "bottom",
+                            labels: {
+                                boxWidth: 20,
+                                boxHeight: 20,
+                                generateLabels: (chart) => {
+                                    const data = chart.data;
+                                    return data.labels.map((label, i) => ({
+                                        text: `${label} (${agingPercentages[i]}%)`,
+                                        fillStyle: data.datasets[0].backgroundColor[i],
+                                        strokeStyle: data.datasets[0].backgroundColor[i],
+                                        lineWidth: 1,
+                                        hidden: isNaN(data.datasets[0].data[i]) || data.datasets[0].data[i] === 0,
+                                        index: i
+                                    }));
+                                }
+                            },
+                            maxWidth: 300,
+                            align: "center"
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const percentage = agingPercentages[context.dataIndex];
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            formatter: (value, ctx) => {
+                                const total = agingCounts.reduce((sum, d) => sum + d.count, 0);
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                return `${percentage}%`;
+                            },
+                            color: '#000',
+                            font: { weight: 'bold', size: 12 }
+                        }
+
+                    }
+                },
+                plugins: [ChartDataLabels]
+            });
+
+            agingChart.canvas.onclick = function (evt) {
+                const points = agingChart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+                if (points.length) {
+                    const index = points[0].index;
+                    const label = agingChart.data.labels[index];
+                    const records = agingData.find(a => a.ageRange === label)?.records || [];
+                    loadTableFromRecords(records);
+                }
+            };
 
             // Load dữ liệu bảng ban đầu (Tất cả trạng thái)
             await loadTableData(validStatuses);
@@ -200,7 +285,7 @@
                                                                             <option value="Waiting SPE approve scrap">Waiting SPE Approve Scrap</option>
                                                                             <option value="Rework FG">Rework FG</option>
                                                                             <option value="Under repair in RE">Under repair in RE</option>
-                                                                            <option value="Under repair in RE">Waiting Check Out</option>
+                                                                            <option value="Waiting Check Out">Waiting Check Out</option>
                                                                             <option value="Under repair in PD">Under repair in PD</option>
                                                                         </select>
                                                                     </div>
@@ -227,6 +312,17 @@
             alert("Không thể tải dữ liệu bảng. Vui lòng thử lại!");
         } finally {
             //document.getElementById("spinner-overlay").style.display = "none";
+            hideSpinner();
+        }
+    }
+
+    function loadTableFromRecords(records) {
+        try {
+            showSpinner();
+            if (dataTable) {
+                dataTable.clear().rows.add(records).draw();
+            }
+        } finally {
             hideSpinner();
         }
     }
