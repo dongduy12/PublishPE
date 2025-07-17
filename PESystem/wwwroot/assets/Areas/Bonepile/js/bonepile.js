@@ -4,6 +4,8 @@
     const apiDetailUrl = `${apiBase}/adapter-repair-records`;
     const apiAgingUrl = `${apiBase}/adapter-repair-aging-count`;
 
+    let agingData = [];
+
     // Định nghĩa tất cả trạng thái hợp lệ
     const validStatuses = [
         "Scrap Lacks Task",
@@ -44,6 +46,7 @@
 
             const agingRes = await axios.get(apiAgingUrl);
             const { agingCounts } = agingRes.data;
+            agingData = agingCounts;
 
             // Gán KPI
             document.getElementById("totalCount").innerText = totalCount || 0;
@@ -124,7 +127,7 @@
             const agingTotal = agingCounts.reduce((sum, a) => sum + a.count, 0);
             const agingPercentages = agingCounts.map(a => agingTotal > 0 ? ((a.count / agingTotal) * 100).toFixed(1) : 0);
             const agingCtx = document.getElementById("agingDonutChart").getContext("2d");
-            new Chart(agingCtx, {
+            const agingChart = new Chart(agingCtx, {
                 type: "doughnut",
                 data: {
                     labels: agingCounts.map(a => a.ageRange),
@@ -180,6 +183,16 @@
                 },
                 plugins: [ChartDataLabels]
             });
+
+            agingChart.canvas.onclick = function (evt) {
+                const points = agingChart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+                if (points.length) {
+                    const index = points[0].index;
+                    const label = agingChart.data.labels[index];
+                    const records = agingData.find(a => a.ageRange === label)?.records || [];
+                    loadTableFromRecords(records);
+                }
+            };
 
             // Load dữ liệu bảng ban đầu (Tất cả trạng thái)
             await loadTableData(validStatuses);
@@ -299,6 +312,17 @@
             alert("Không thể tải dữ liệu bảng. Vui lòng thử lại!");
         } finally {
             //document.getElementById("spinner-overlay").style.display = "none";
+            hideSpinner();
+        }
+    }
+
+    function loadTableFromRecords(records) {
+        try {
+            showSpinner();
+            if (dataTable) {
+                dataTable.clear().rows.add(records).draw();
+            }
+        } finally {
             hideSpinner();
         }
     }
