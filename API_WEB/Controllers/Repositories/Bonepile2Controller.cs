@@ -426,10 +426,7 @@ namespace API_WEB.Controllers.Repositories
                 var allData = await ExecuteAdapterRepairQuery();
 
                 // Lấy ApplyTaskStatus từ ScrapLists
-                var serialNumbers = allData.Select(x => x.SERIAL_NUMBER.Trim().ToUpper()).Distinct().ToList();
-
                 var scrapCategories = await _sqlContext.ScrapLists
-                    .Where(s => serialNumbers.Contains(s.SN.Trim().ToUpper()))
                     .Select(s => new { SN = s.SN, ApplyTaskStatus = s.ApplyTaskStatus, TaskNumber = s.TaskNumber })
                     .ToListAsync();
 
@@ -639,10 +636,7 @@ namespace API_WEB.Controllers.Repositories
             {
                 var allData = await ExecuteAdapterRepairQuery();
 
-                var serialNumbers = allData.Select(x => x.SERIAL_NUMBER.Trim().ToUpper()).Distinct().ToList();
-
                 var scrapCategories = await _sqlContext.ScrapLists
-                    .Where(s => serialNumbers.Contains(s.SN.Trim().ToUpper()))
                     .Select(s => new { SN = s.SN, ApplyTaskStatus = s.ApplyTaskStatus, TaskNumber = s.TaskNumber })
                     .ToListAsync();
 
