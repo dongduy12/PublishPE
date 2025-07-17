@@ -2,6 +2,7 @@
     const apiBase = "http://10.220.130.119:9090/api/Bonepile2";
     const apiCountUrl = `${apiBase}/adapter-repair-status-count`;
     const apiDetailUrl = `${apiBase}/adapter-repair-records`;
+    const apiAgingUrl = `${apiBase}/adapter-repair-aging-count`;
 
     // Định nghĩa tất cả trạng thái hợp lệ
     const validStatuses = [
@@ -26,6 +27,13 @@
         "Under repair in PD": "#17a2b8"
     };
 
+    const agingColorMap = {
+        "<30": "#28a745",
+        "30-90": "#ffc107",
+        ">90": "#dc3545",
+        "Unknown": "#6c757d"
+    };
+
     let dataTable;
 
     // Load KPI + Donut chart
@@ -33,6 +41,9 @@
         try {
             const res = await axios.get(apiCountUrl);
             const { totalCount, statusCounts } = res.data;
+
+            const agingRes = await axios.get(apiAgingUrl);
+            const { agingCounts } = agingRes.data;
 
             // Gán KPI
             document.getElementById("totalCount").innerText = totalCount || 0;
@@ -101,6 +112,67 @@
                                 return `${percentage}%`;
                             },
                             color: '#000', // Màu chữ
+                            font: { weight: 'bold', size: 12 }
+                        }
+
+                    }
+                },
+                plugins: [ChartDataLabels]
+            });
+
+            // Vẽ biểu đồ AGING_DAY
+            const agingTotal = agingCounts.reduce((sum, a) => sum + a.count, 0);
+            const agingPercentages = agingCounts.map(a => agingTotal > 0 ? ((a.count / agingTotal) * 100).toFixed(1) : 0);
+            const agingCtx = document.getElementById("agingDonutChart").getContext("2d");
+            new Chart(agingCtx, {
+                type: "doughnut",
+                data: {
+                    labels: agingCounts.map(a => a.ageRange),
+                    datasets: [{
+                        data: agingCounts.map(a => a.count),
+                        backgroundColor: agingCounts.map(a => agingColorMap[a.ageRange] || "#ccc"),
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: "bottom",
+                            labels: {
+                                boxWidth: 20,
+                                boxHeight: 20,
+                                generateLabels: (chart) => {
+                                    const data = chart.data;
+                                    return data.labels.map((label, i) => ({
+                                        text: `${label} (${agingPercentages[i]}%)`,
+                                        fillStyle: data.datasets[0].backgroundColor[i],
+                                        strokeStyle: data.datasets[0].backgroundColor[i],
+                                        lineWidth: 1,
+                                        hidden: isNaN(data.datasets[0].data[i]) || data.datasets[0].data[i] === 0,
+                                        index: i
+                                    }));
+                                }
+                            },
+                            maxWidth: 300,
+                            align: "center"
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const percentage = agingPercentages[context.dataIndex];
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            formatter: (value, ctx) => {
+                                const total = agingCounts.reduce((sum, d) => sum + d.count, 0);
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                return `${percentage}%`;
+                            },
+                            color: '#000',
                             font: { weight: 'bold', size: 12 }
                         }
 

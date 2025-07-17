@@ -631,6 +631,47 @@ namespace API_WEB.Controllers.Repositories
                 return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
             }
         }
+
+        [HttpGet("adapter-repair-aging-count")]
+        public async Task<IActionResult> AdapterRepairAgingCount()
+        {
+            try
+            {
+                var repairTaskData = await ExecuteAdapterRepairQuery();
+
+                var agingGroups = repairTaskData
+                    .Select(r =>
+                    {
+                        if (double.TryParse(r.AGING_DAY, out double aging))
+                        {
+                            if (aging < 30)
+                                return "<30";
+                            else if (aging <= 90)
+                                return "30-90";
+                            else
+                                return ">90";
+                        }
+                        return "Unknown";
+                    })
+                    .GroupBy(g => g)
+                    .Select(g => new
+                    {
+                        AgeRange = g.Key,
+                        Count = g.Count()
+                    })
+                    .ToList();
+
+                return Ok(new
+                {
+                    totalCount = repairTaskData.Count,
+                    agingCounts = agingGroups
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
+            }
+        }
         private async Task<List<RepairTaskResult>> ExecuteAdapterRepairQuery()
         {
             var result = new List<RepairTaskResult>();
