@@ -194,6 +194,7 @@ function renderTableWithDataTable(data, tableId, checkboxName, selectAllId) {
                 <td data-bs-toggle="tooltip" data-bs-title="${item.approveScrapPerson || 'N/A'}">${item.approveScrapPerson || "N/A"}</td>
                 <td data-bs-toggle="tooltip" data-bs-title="${item.kanBanStatus || 'N/A'}">${item.kanBanStatus || "N/A"}</td>
                 <td data-bs-toggle="tooltip" data-bs-title="${item.category || 'N/A'}">${item.category || "N/A"}</td>
+                <td data-bs-toggle="tooltip" data-bs-title="${item.remark || 'N/A'}">${item.remark || "N/A"}</td>
                 <td data-bs-toggle="tooltip" data-bs-title="${item.createTime || 'N/A'}">${item.createTime || "N/A"}</td>
                 <td data-bs-toggle="tooltip" data-bs-title="${item.createBy || 'N/A'}">${item.createBy || "N/A"}</td>
                 <td data-bs-toggle="tooltip" data-bs-title="${checkboxName === 'history-task-checkbox' ? (item.applyTime || 'N/A') : (item.applyTaskStatus || 'N/A')}">${checkboxName === "history-task-checkbox" ? (item.applyTime || "N/A") : (item.applyTaskStatus || "N/A")}</td>

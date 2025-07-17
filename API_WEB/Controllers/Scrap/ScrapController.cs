@@ -117,6 +117,21 @@ namespace API_WEB.Controllers.Scrap
                     return BadRequest(new { message = "Không có SN nào hợp lệ để cập nhật (yêu cầu ApplyTaskStatus = 2)." });
                 }
 
+                // kiểm tra xem có lẫn lộn bản giữa Bonepile 1.0 và SN 2.0 không
+                var remarkGroups = existingSNs
+                .Where(s => s.Remark != null) // Chỉ xét các SN có Remark không null
+                .GroupBy(s => s.Remark)
+                .Select(g => new { Remark = g.Key!, SNs = g.Select(s => s.SN).ToList() })
+                .ToList();
+
+                if (remarkGroups.Count > 1)
+                {
+                    var errorMessage = "Danh sách SN có trạng thái cả Bonpile 1.0 và Bonpile 2.0:\n" +
+                        string.Join("\n", remarkGroups.Select(g => $"Remark '{g.Remark}': {string.Join(", ", g.SNs)}"));
+                    return BadRequest(new { message = errorMessage });
+                }
+
+
                 // Tạo danh sách SN để gửi đến API bên thứ ba
                 var serialNumbers = string.Join(",", request.SNs);
                 Console.WriteLine($"Sending t_serial_numbers to external API: {serialNumbers}");
@@ -262,7 +277,7 @@ namespace API_WEB.Controllers.Scrap
                     scrapEntry.TaskNumber = null; // Để trống
                     scrapEntry.PO = null; // Để trống
                     scrapEntry.Cost = ""; // Không cho phép NULL, để trống dưới dạng chuỗi rỗng
-                    scrapEntry.Remark = null; // Để trống
+                    //scrapEntry.Remark = null; // Để trống
                     scrapEntry.CreatedBy = request.CreatedBy;
                     scrapEntry.Desc = request.Description ?? ""; // Không cho phép NULL, dùng chuỗi rỗng nếu Description là null
                     scrapEntry.CreateTime = DateTime.Now; // Thời gian hiện tại
@@ -368,6 +383,7 @@ namespace API_WEB.Controllers.Scrap
                         ApproveScrapPerson = g.First().ApproveScrapperson, // Lấy giá trị đầu tiên
                         KanBanStatus = g.First().KanBanStatus, // Lấy giá trị đầu tiên
                         Category = g.First().Category,
+                        Remark = g.First().Remark,
                         CreateTime = g.First().CreateTime.ToString("yyyy-MM-dd"), // Chỉ lấy ngày tháng năm
                         CreateBy = g.First().CreatedBy, // Lấy giá trị đầu tiên
                         ApplyTaskStatus = g.First().ApplyTaskStatus, // Lấy giá trị đầu tiên
@@ -909,6 +925,7 @@ namespace API_WEB.Controllers.Scrap
                         ApproveScrapPerson = g.First().ApproveScrapperson,
                         KanBanStatus = g.First().KanBanStatus,
                         Category = g.First().Category,
+                        Remark = g.First().Remark,
                         CreateTime = g.First().CreateTime.ToString("yyyy-MM-dd"),
                         CreateBy = g.First().CreatedBy,
                         ApplyTime = g.First().ApplyTime.HasValue ? g.First().ApplyTime.Value.ToString("yyyy-MM-dd") : "N/A",
@@ -1157,6 +1174,7 @@ namespace API_WEB.Controllers.Scrap
                     return BadRequest(new { message = "CreatedBy và Description không được dài quá 50 ký tự." });
                 }
 
+
                 // Kiểm tra SN trong bảng R117
                 string connectionString = "User Id=TE;Password=B05te;Data Source=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=10.220.130.220)(PORT=1521)))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=vnsfc)))";
 
@@ -1173,26 +1191,72 @@ namespace API_WEB.Controllers.Scrap
                         AND GROUP_NAME = 'SMTLOADING' 
                         AND MO_NUMBER LIKE '5%'";
 
-                    using (var command = new OracleCommand(sqlQuery, connection))
+                    // Chỉ kiểm tra điều kiện MO_NUMBER nếu Description không chứa "BGA"
+                    if (request.Description == null || !request.Description.Contains("BGA", StringComparison.OrdinalIgnoreCase))
                     {
-                        using (var reader = await command.ExecuteReaderAsync())
+                        
+                        using (var command = new OracleCommand(sqlQuery, connection))
                         {
-                            var invalidSNs = new List<string>();
-                            while (await reader.ReadAsync())
+                            using (var reader = await command.ExecuteReaderAsync())
                             {
-                                string serialNumber = reader.GetString(0);
-                                string moNumber = reader.GetString(1);
-                                invalidSNs.Add($"{serialNumber} (MO: {moNumber})");
+                                var invalidSNs = new List<string>();
+                                while (await reader.ReadAsync())
+                                {
+                                    string serialNumber = reader.GetString(0);
+                                    string moNumber = reader.GetString(1);
+                                    invalidSNs.Add($"{serialNumber} (MO: {moNumber})");
+                                }
+
+                                if (invalidSNs.Any())
+                                {
+                                    return BadRequest(new { message = $"Các SN sau có MO_NUMBER bắt đầu bằng 5xxxx và không thể xử lý: {string.Join(", ", invalidSNs)}" });
+                                }
+                            }
+                        }
+                    }
+
+                    // kiểm tra điều kiện Bonepile
+                    if (request.Remark == "BP-10" || request.Remark == "BP-20")
+                    {
+                        string sqlQueryBonepile = $@"
+                            SELECT SERIAL_NUMBER 
+                            FROM sfism4.nvidia_bonpile_sn_log 
+                            WHERE SERIAL_NUMBER IN ({snList})";
+
+                        using (var command = new OracleCommand(sqlQueryBonepile, connection))
+                        {
+                            var foundSNs = new List<string>();
+                            using (var reader = await command.ExecuteReaderAsync())
+                            {
+                                while (await reader.ReadAsync())
+                                {
+                                    string serialNumber = reader.GetString(0);
+                                    foundSNs.Add(serialNumber);
+                                }
                             }
 
-                            if (invalidSNs.Any())
+                            if (request.Remark == "BP-10")
                             {
-                                return BadRequest(new { message = $"Các SN sau có MO_NUMBER bắt đầu bằng 5xxxx và không thể xử lý: {string.Join(", ", invalidSNs)}" });
+                                // BP-10: Pass nếu không có SN nào trong bảng, reject nếu có bất kỳ SN nào
+                                if (foundSNs.Any())
+                                {
+                                    return BadRequest(new { message = $"Các SN sau tồn tại trong bảng Bonepile 2.0: {string.Join(", ", foundSNs)}" });
+                                }
+                            }
+                            else if (request.Remark == "BP-20")
+                            {
+                                // BP-20: Pass nếu tất cả SN đều có trong bảng, reject nếu thiếu bất kỳ SN nào
+                                var missingSNs = request.SNs.Except(foundSNs).ToList();
+                                if (missingSNs.Any())
+                                {
+                                    return BadRequest(new { message = $"Các SN sau không tồn tại trong bảng Bonepile 2.0: {string.Join(", ", missingSNs)}" });
+                                }
                             }
                         }
                     }
                 }
 
+                
                 // Kiểm tra trùng lặp SN trong bảng ScrapList
                 var existingSNs = await _sqlContext.ScrapLists
                     .Where(s => request.SNs.Contains(s.SN))
@@ -1244,7 +1308,7 @@ namespace API_WEB.Controllers.Scrap
                         TaskNumber = null,
                         PO = null,
                         Cost = "N/A",
-                        Remark = null,
+                        Remark = request.Remark,
                         CreatedBy = request.CreatedBy,
                         Desc = request.Description ?? "N/A",
                         CreateTime = DateTime.Now,
@@ -1268,7 +1332,7 @@ namespace API_WEB.Controllers.Scrap
                     sn.TaskNumber = null;
                     sn.PO = null;
                     sn.Cost = "N/A";
-                    sn.Remark = null;
+                    sn.Remark = request.Remark;
                     sn.CreatedBy = request.CreatedBy;
                     sn.Desc = request.Description ?? "N/A";
                     sn.CreateTime = DateTime.Now;
@@ -1322,6 +1386,7 @@ namespace API_WEB.Controllers.Scrap
                         Description = s.Desc,
                         CreateTime = s.CreateTime.ToString("yyyy-MM-dd"),
                         ApplyTaskStatus = s.ApplyTaskStatus,
+                        Remark = s.Remark,
                         CreateBy = s.CreatedBy
                     })
                     .ToListAsync();
@@ -1406,6 +1471,7 @@ namespace API_WEB.Controllers.Scrap
     {
         public List<string> SNs { get; set; } = new List<string>();
         public string Description { get; set; } = string.Empty;
+        public string Remark { get; set; } = string.Empty;
         public string CreatedBy { get; set; } = string.Empty;
     }
 

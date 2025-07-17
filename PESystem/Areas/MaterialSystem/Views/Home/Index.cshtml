@@ -75,7 +75,6 @@
 
 @section Scripts {
     <style>
-
         /* CSS cho tooltip tùy chỉnh */
         .custom-tooltip {
             position: absolute;
@@ -127,7 +126,6 @@
         .datatable-table tbody tr:hover td,
         .datatable-table tbody tr:hover th {
             background-color: #76b900 !important;
-            /*transition: background-color 0.2s ease;*/
         }
     </style>
 
@@ -229,87 +227,95 @@
                 const dcLcData = await dcLcResponse.json();
 
                 // Check if data is empty
-                if (!dcLcData || Object.keys(dcLcData).length === 0) {
+                if (!dcLcData || !dcLcData.result || dcLcData.result.length === 0) {
                     alert('Không tìm thấy dữ liệu từ API info-allpart/with-refdes!');
                     return;
                 }
 
                 // Populate GET_DC_LC table with tooltips
                 const dcLcTableBody = document.getElementById('dcLcTableBody');
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                            <td>${createTooltipCell(dcLcData.p_sn)}</td>
-                            <td>${createTooltipCell(dcLcData.p_no)}</td>
-                            <td>${createTooltipCell(dcLcData.kp_no)}</td>
-                            <td>${createTooltipCell(dcLcData.mfr_kp_no)}</td>
-                            <td>${createTooltipCell(dcLcData.mfr_name)}</td>
-                            <td>${createTooltipCell(dcLcData.ref_des)}</td>
-                            <td>${createTooltipCell(dcLcData.date_code)}</td>
-                            <td>${createTooltipCell(dcLcData.lot_code)}</td>
-                            <td>${createTooltipCell(dcLcData.process_flag)}</td>
-                            <td>${createTooltipCell(dcLcData.station)}</td>
-                            <td>${createTooltipCell(dcLcData.group_name)}</td>
-                            <td>${createTooltipCell(dcLcData.work_time)}</td>
-                            <td>${createTooltipCell(dcLcData.wo)}</td>
-                        `;
-                dcLcTableBody.appendChild(row);
+                dcLcData.result.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                                <td>${createTooltipCell(item.p_sn)}</td>
+                                <td>${createTooltipCell(item.p_no)}</td>
+                                <td>${createTooltipCell(item.kp_no)}</td>
+                                <td>${createTooltipCell(item.mfr_kp_no)}</td>
+                                <td>${createTooltipCell(item.mfr_name)}</td>
+                                <td>${createTooltipCell(item.ref_des)}</td>
+                                <td>${createTooltipCell(item.date_code)}</td>
+                                <td>${createTooltipCell(item.lot_code)}</td>
+                                <td>${createTooltipCell(item.process_flag)}</td>
+                                <td>${createTooltipCell(item.station)}</td>
+                                <td>${createTooltipCell(item.group_name)}</td>
+                                <td>${createTooltipCell(item.work_time)}</td>
+                                <td>${createTooltipCell(item.wo)}</td>
+                            `;
+                    dcLcTableBody.appendChild(row);
+                });
 
                 // Reinitialize DataTable for dcLcTable
                 $('#dcLcTable').DataTable({
                     pageLength: 10,
-                    responsive: true
+                    scrollX: true,
+                    responsive: true,
+                    fixedHeader: true
                 });
 
-                // Get KP_NO from the result
-                const kpNo = dcLcData.kp_no;
+                // Get unique KP_NO values from the result for material API call
+                const kpNos = [...new Set(dcLcData.result.map(item => item.kp_no))];
 
-                // Call SearchByMaLieu API
-                const materialResponse = await fetch('http://10.220.130.119:9090/api/MaterialSystem/SearchByMaLieu', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        maLieu: kpNo
-                    })
-                });
-
-                if (!materialResponse.ok) {
-                    throw new Error('Lỗi khi gọi API SearchByMaLieu');
-                }
-
-                const materialData = await materialResponse.json();
-
-                if (!materialData || materialData.length === 0) {
-                    alert('Không tìm thấy dữ liệu từ API SearchByMaLieu!');
-                    return;
-                }
-
-                // Populate Material table with tooltips
+                // Call SearchByMaLieu API for each unique KP_NO
                 const materialTableBody = document.getElementById('materialTableBody');
-                materialData.forEach(item => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                                <td>${createTooltipCell(item.mA_LIEU)}</td>
-                                <td>${createTooltipCell(item.nhA_CUNG_UNG)}</td>
-                                <td>${createTooltipCell(item.datE_CODE)}</td>
-                                <td>${createTooltipCell(item.loT_CODE)}</td>
-                                <td>${createTooltipCell(item.location)}</td>
-                                <td>${createTooltipCell(item.tonG_LINH)}</td>
-                                <td>${createTooltipCell(item.sO_LUONG_OK)}</td>
-                                <td>${createTooltipCell(item.sO_LUONG_NG)}</td>
-                                <td>${createTooltipCell(item.chO_MUON)}</td>
-                                <td>${createTooltipCell(item.dA_BAO_PHE)}</td>
-                                <td>${createTooltipCell(item.esd)}</td>
-                                <td>${createTooltipCell(item.remark)}</td>
-                            `;
-                    materialTableBody.appendChild(row);
-                });
+                for (const kpNo of kpNos) {
+                    const materialResponse = await fetch('http://10.220.130.119:9090/api/MaterialSystem/SearchByMaLieu', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            maLieu: kpNo
+                        })
+                    });
+
+                    if (!materialResponse.ok) {
+                        throw new Error('Lỗi khi gọi API SearchByMaLieu');
+                    }
+
+                    const materialData = await materialResponse.json();
+
+                    if (!materialData || materialData.length === 0) {
+                        console.warn(`Không tìm thấy dữ liệu từ API SearchByMaLieu cho KP_NO: ${kpNo}`);
+                        continue;
+                    }
+
+                    // jugando: Populate Material table with tooltips
+                    materialData.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                                    <td>${createTooltipCell(item.mA_LIEU)}</td>
+                                    <td>${createTooltipCell(item.nhA_CUNG_UNG)}</td>
+                                    <td>${createTooltipCell(item.datE_CODE)}</td>
+                                    <td>${createTooltipCell(item.loT_CODE)}</td>
+                                    <td>${createTooltipCell(item.location)}</td>
+                                    <td>${createTooltipCell(item.tonG_LINH)}</td>
+                                    <td>${createTooltipCell(item.sO_LUONG_OK)}</td>
+                                    <td>${createTooltipCell(item.sO_LUONG_NG)}</td>
+                                    <td>${createTooltipCell(item.chO_MUON)}</td>
+                                    <td>${createTooltipCell(item.dA_BAO_PHE)}</td>
+                                    <td>${createTooltipCell(item.esd)}</td>
+                                    <td>${createTooltipCell(item.remark)}</td>
+                                `;
+                        materialTableBody.appendChild(row);
+                    });
+                }
 
                 // Reinitialize DataTable for materialTable
                 $('#materialTable').DataTable({
                     pageLength: 10,
-                    responsive: true
+                    scrollX: true,
+                    responsive: true,
+                    fixedHeader: true
                 });
 
                 // Attach tooltip events after populating tables

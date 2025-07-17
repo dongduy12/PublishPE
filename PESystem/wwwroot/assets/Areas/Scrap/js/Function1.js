@@ -69,6 +69,7 @@ function displayTableWithPagination(data, resultDiv, itemsPerPage = 10) {
                             <th>Description</th>
                             <th>Create Time</th>
                             <th>Apply Task Status</th>
+                            <th>Type Bonepile</th>
                             <th>Create By</th>
                         </tr>
                     </thead>
@@ -83,6 +84,7 @@ function displayTableWithPagination(data, resultDiv, itemsPerPage = 10) {
                     <td>${item.description || "N/A"}</td>
                     <td>${item.createTime || "N/A"}</td>
                     <td>${item.applyTaskStatus}</td>
+                    <td>${item.remark}</td>
                     <td>${item.createBy || "N/A"}</td>
                 </tr>
             `;
@@ -222,6 +224,9 @@ document.addEventListener("DOMContentLoaded", function () {
         // Lấy mô tả từ input
         const description = document.getElementById("description-input-1").value.trim();
 
+        // Lấy thông tin loại Bonepile
+        const typeBonepile = document.getElementById("bp-options").value;
+
         // Lấy thông tin người dùng hiện tại
         const createdBy = getCurrentUsername();
 
@@ -229,7 +234,25 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!sNs.length) {
             resultDiv.innerHTML = `
                 <div class="alert alert-warning">
-                    <strong>Cảnh báo:</strong> Vui lòng nhập ít nhất một Serial Number hợp lệ.
+                    <strong>Cảnh báo:</strong> Vui lòng nhập ít nhất một Serial Number hợp lệ!
+                </div>
+            `;
+            return;
+        }
+
+        if (!description) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-warning">
+                    <strong>Cảnh báo:</strong> Vui lòng nhập mô tả!
+                </div>
+            `;
+            return;
+        }
+
+        if (!["BP-10", "BP-20"].includes(typeBonepile)) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-warning">
+                    <strong>Cảnh báo:</strong> Vui lòng chọn loại BonePile!
                 </div>
             `;
             return;
@@ -245,6 +268,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const requestData = {
             sNs: sNs,
             description: description,
+            remark: typeBonepile,
             createdBy: createdBy
         };
 

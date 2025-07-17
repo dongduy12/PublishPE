@@ -29,6 +29,14 @@
                         <label for="description-input" class="form-label">Description</label>
                         <input type="text" id="description-input-1" name="description" class="form-control" placeholder="Nhập mô tả">
                     </div>
+                    <div class="mb-2">
+                        <label for="tpye-bp-input" class="form-label">Type Bonepile</label>
+                        <select id="bp-options" class="form-select">
+                            <option selected disabled>SELECT TYPE BONEPILE</option>
+                            <option value="BP-10">BONEPILE 1.0</option>
+                            <option value="BP-20">BONEPILE 2.0</option>
+                        </select>
+                    </div>
                     <button id="input-sn-btn" class="btn btn-ne" type="button">INPUT SN</button>
                 </div>
             </div>
@@ -59,6 +67,7 @@
                         <th>DESCRIPTION</th>
                         <th>CREATE_TIME</th>
                         <th>APPLY_TASK_STATUS</th>
+                        <th>BONEPILE_TYPE</th>
                         <th>CREATE_BY</th>
                     </tr>
                 </thead>

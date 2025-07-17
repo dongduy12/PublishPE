@@ -196,6 +196,10 @@
                 return;
             }
 
+            // Nối các giá trị thành chuỗi phân cách bằng dấu ";"
+            const var1 = serialNumbers.join(';');
+            const var2 = refDesValues.join(';');
+
             // Làm mới bảng trước khi tìm kiếm
             dcLcTable.clear();
 
@@ -209,53 +213,51 @@
             document.body.appendChild(loading);
 
             try {
-                // Lặp qua từng cặp SerialNumber và RefDes để gọi API
-                for (let i = 0; i < Math.min(serialNumbers.length, refDesValues.length); i++) {
-                    const serialNumber = serialNumbers[i];
-                    const refDes = refDesValues[i];
+                // Gọi API với var_1 và var_2 là chuỗi phân cách bằng dấu ";"
+                const dcLcResponse = await fetch('http://10.220.130.119:9090/api/RepairStatus/info-allpart/with-refdes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        type: 'GET_DC_LC',
+                        item: 'BY-RE-SN',
+                        var_1: var1,
+                        var_2: var2
+                    })
+                });
 
-                    const dcLcResponse = await fetch('http://10.220.130.119:9090/api/RepairStatus/info-allpart/with-refdes', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            type: 'GET_DC_LC',
-                            item: 'BY-RE-SN',
-                            var_1: serialNumber,
-                            var_2: refDes
-                        })
-                    });
-
-                    if (!dcLcResponse.ok) {
-                        const errorText = await dcLcResponse.text();
-                        throw new Error(`Lỗi khi gọi API GET_DC_LC cho ${serialNumber}/${refDes}: ${dcLcResponse.status} - ${errorText}`);
-                    }
-
-                    const dcLcData = await dcLcResponse.json();
-
-                    if (!dcLcData || typeof dcLcData !== 'object' || Object.keys(dcLcData).length === 0) {
-                        alert(`Không tìm thấy dữ liệu hợp lệ từ API cho ${serialNumber}/${refDes}!`);
-                        continue;
-                    }
-
-                    // Thêm dữ liệu vào bảng
-                    dcLcTable.row.add([
-                        createTooltipCell(dcLcData.p_sn),
-                        createTooltipCell(dcLcData.p_no),
-                        createTooltipCell(dcLcData.kp_no),
-                        createTooltipCell(dcLcData.mfr_kp_no),
-                        createTooltipCell(dcLcData.mfr_name),
-                        createTooltipCell(dcLcData.ref_des),
-                        createTooltipCell(dcLcData.date_code),
-                        createTooltipCell(dcLcData.lot_code),
-                        createTooltipCell(dcLcData.process_flag),
-                        createTooltipCell(dcLcData.station),
-                        createTooltipCell(dcLcData.group_name),
-                        createTooltipCell(dcLcData.work_time),
-                        createTooltipCell(dcLcData.wo)
-                    ]).draw();
+                if (!dcLcResponse.ok) {
+                    const errorText = await dcLcResponse.text();
+                    throw new Error(`Lỗi khi gọi API GET_DC_LC: ${dcLcResponse.status} - ${errorText}`);
                 }
+
+                const dcLcData = await dcLcResponse.json();
+
+                if (!dcLcData || !dcLcData.result || dcLcData.result.length === 0) {
+                    alert('Không tìm thấy dữ liệu hợp lệ từ API!');
+                    document.body.removeChild(loading);
+                    return;
+                }
+
+                // Thêm dữ liệu vào bảng
+                dcLcData.result.forEach(item => {
+                    dcLcTable.row.add([
+                        createTooltipCell(item.p_sn),
+                        createTooltipCell(item.p_no),
+                        createTooltipCell(item.kp_no),
+                        createTooltipCell(item.mfr_kp_no),
+                        createTooltipCell(item.mfr_name),
+                        createTooltipCell(item.ref_des),
+                        createTooltipCell(item.date_code),
+                        createTooltipCell(item.lot_code),
+                        createTooltipCell(item.process_flag),
+                        createTooltipCell(item.station),
+                        createTooltipCell(item.group_name),
+                        createTooltipCell(item.work_time),
+                        createTooltipCell(item.wo)
+                    ]).draw();
+                });
 
                 // Gắn sự kiện tooltip
                 attachTooltipEvents();

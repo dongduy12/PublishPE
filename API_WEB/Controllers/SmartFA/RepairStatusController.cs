@@ -173,26 +173,25 @@ public class RepairStatusController : ControllerBase
 
                 if (resultArray != null && resultArray.Count > 0)
                 {
-                    var firstResult = resultArray[0];
-                    var mappedResponse = new
+                    var mappedResponse = resultArray.Select(result => new
                     {
-                        p_sn = firstResult["P_SN"]?.ToString(),
-                        wo = firstResult["WO"]?.ToString(),
-                        p_no = firstResult["P_NO"]?.ToString(),
-                        tr_sn = firstResult["TR_SN"]?.ToString(),
-                        kp_no = firstResult["KP_NO"]?.ToString(),//mA LIEU
-                        mfr_kp_no = firstResult["MFR_KP_NO"]?.ToString(),
-                        date_code = firstResult["DATE_CODE"]?.ToString(),
-                        lot_code = firstResult["LOT_CODE"]?.ToString(),
-                        mfr_name = firstResult["MFR_NAME"]?.ToString(),
-                        process_flag = firstResult["PROCESS_FLAG"]?.ToString(),
-                        station = firstResult["STATION"]?.ToString(),
-                        group_name = firstResult["GROUP_NAME"]?.ToString(),
-                        work_time = firstResult["WORK_TIME"]?.ToString(),
-                        ref_des = firstResult["REF_DES"]?.ToString()
-                    };
+                        p_sn = result["P_SN"]?.ToString(),
+                        wo = result["WO"]?.ToString(),
+                        p_no = result["P_NO"]?.ToString(),
+                        tr_sn = result["TR_SN"]?.ToString(),
+                        kp_no = result["KP_NO"]?.ToString(),
+                        mfr_kp_no = result["MFR_KP_NO"]?.ToString(),
+                        date_code = result["DATE_CODE"]?.ToString(),
+                        lot_code = result["LOT_CODE"]?.ToString(),
+                        mfr_name = result["MFR_NAME"]?.ToString(),
+                        process_flag = result["PROCESS_FLAG"]?.ToString(),
+                        station = result["STATION"]?.ToString(),
+                        group_name = result["GROUP_NAME"]?.ToString(),
+                        work_time = result["WORK_TIME"]?.ToString(),
+                        ref_des = result["REF_DES"]?.ToString()
+                    }).ToList();
 
-                    return Ok(mappedResponse);
+                    return Ok(new { result = mappedResponse });
                 }
                 else
                 {
