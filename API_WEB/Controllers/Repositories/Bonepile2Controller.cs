@@ -640,24 +640,21 @@ namespace API_WEB.Controllers.Repositories
                 var repairTaskData = await ExecuteAdapterRepairQuery();
 
                 var agingGroups = repairTaskData
-                    .Select(r =>
+                    .GroupBy(r =>
                     {
                         if (double.TryParse(r.AGING_DAY, out double aging))
                         {
-                            if (aging < 30)
-                                return "<30";
-                            else if (aging <= 90)
-                                return "30-90";
-                            else
-                                return ">90";
+                            if (aging < 30) return "<30";
+                            if (aging <= 90) return "30-90";
+                            return ">90";
                         }
                         return "Unknown";
                     })
-                    .GroupBy(g => g)
                     .Select(g => new
                     {
                         AgeRange = g.Key,
-                        Count = g.Count()
+                        Count = g.Count(),
+                        SerialNumbers = g.Select(r => r.SERIAL_NUMBER).ToList()
                     })
                     .ToList();
 
