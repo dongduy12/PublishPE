@@ -1,6 +1,7 @@
 ﻿document.addEventListener("DOMContentLoaded", async function () {
     const apiBase = "http://10.220.130.119:9090/api/Bonepile2";
     const apiCountUrl = `${apiBase}/bonepile-after-kanban-count`;
+    const apiAgingCountUrl = `${apiBase}/bonepile-after-kanban-aging-count`;
     const apiDetailUrl = `${apiBase}/bonepile-after-kanban`;
 
     // Định nghĩa tất cả trạng thái hợp lệ
@@ -29,6 +30,9 @@
         try {
             const res = await axios.get(apiCountUrl);
             const { totalCount, statusCounts } = res.data;
+
+            const agingRes = await axios.get(apiAgingCountUrl);
+            const { agingCounts } = agingRes.data;
 
             // Gán KPI
             document.getElementById("totalCount").innerText = totalCount || 0;
@@ -97,6 +101,66 @@
                             font: { weight: 'bold', size: 12 }
                         }
 
+                    }
+                },
+                plugins: [ChartDataLabels]
+            });
+
+            // Tính phần trăm cho biểu đồ aging
+            const agingTotal = agingCounts.reduce((sum, a) => sum + a.count, 0);
+            const agingPercentages = agingCounts.map(a => agingTotal > 0 ? ((a.count / agingTotal) * 100).toFixed(1) : 0);
+
+            // Vẽ biểu đồ Aging
+            const agingCtx = document.getElementById("agingPieChart").getContext("2d");
+            new Chart(agingCtx, {
+                type: "pie",
+                data: {
+                    labels: agingCounts.map(a => a.ageRange),
+                    datasets: [{
+                        data: agingCounts.map(a => a.count),
+                        backgroundColor: ["#4e73df", "#1cc88a", "#e74a3b"],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: "bottom",
+                            labels: {
+                                boxWidth: 20,
+                                boxHeight: 20,
+                                generateLabels: (chart) => {
+                                    const data = chart.data;
+                                    return data.labels.map((label, i) => ({
+                                        text: `${label} (${agingPercentages[i]}%)`,
+                                        fillStyle: data.datasets[0].backgroundColor[i],
+                                        strokeStyle: data.datasets[0].backgroundColor[i],
+                                        lineWidth: 1,
+                                        hidden: isNaN(data.datasets[0].data[i]) || data.datasets[0].data[i] === 0,
+                                        index: i
+                                    }));
+                                }
+                            },
+                            align: "center"
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const percentage = agingPercentages[context.dataIndex];
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            formatter: (value, ctx) => {
+                                const percentage = agingPercentages[ctx.dataIndex];
+                                return `${percentage}%`;
+                            },
+                            color: '#000',
+                            font: { weight: 'bold', size: 12 }
+                        }
                     }
                 },
                 plugins: [ChartDataLabels]

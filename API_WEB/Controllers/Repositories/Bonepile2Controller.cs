@@ -1155,6 +1155,68 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
             }
         }
 
+        [HttpGet("bonepile-after-kanban-aging-count")]
+        public async Task<IActionResult> BonepileAfterKanbanAgingCount()
+        {
+            try
+            {
+                var allData = await ExecuteBonepileAfterKanbanQuery();
+
+                var excludedSNs = GetExcludedSerialNumbers();
+                if (excludedSNs.Any())
+                {
+                    allData = allData.Where(d => !excludedSNs.Contains(d.SFG?.Trim().ToUpper())).ToList();
+                }
+
+                var records = allData
+                    .Select(b => new
+                    {
+                        SN = b.SFG,
+                        FG = b.FG,
+                        ModelName = b.MODEL_NAME,
+                        MoNumber = b.MO_NUMBER,
+                        ProductLine = b.PRODUCT_LINE,
+                        WipGroupSFC = b.WIP_GROUP_SFC,
+                        WipGroupKANBAN = b.WIP_GROUP_KANBAN,
+                        testTime = b.TEST_TIME,
+                        testCode = b.TEST_CODE,
+                        testGroup = b.TEST_GROUP,
+                        errorDesc = b.ERROR_CODE,
+                        fgAging = b.FG_AGING
+                    })
+                    .ToList();
+
+                var agingGroups = records
+                    .GroupBy(r =>
+                    {
+                        if (double.TryParse(r.fgAging, out double aging))
+                        {
+                            if (aging < 30) return "<30";
+                            if (aging <= 90) return "30-90";
+                            return ">90";
+                        }
+                        return "Unknown";
+                    })
+                    .Select(g => new
+                    {
+                        AgeRange = g.Key,
+                        Count = g.Count(),
+                        Records = g.ToList()
+                    })
+                    .ToList();
+
+                return Ok(new
+                {
+                    totalCount = records.Count,
+                    agingCounts = agingGroups
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
+            }
+        }
+
         private async Task<List<BonepileAfterKanbanResult>> ExecuteBonepileAfterKanbanQuery()
         {
             var rawResult = new List<BonepileAfterKanbanRawResult>();

@@ -69,10 +69,10 @@
     </div>
 </div>
 
-<!-- Donut Chart and Table -->
+<!-- Charts -->
 <div class="row my-4">
     <!-- Biểu đồ phân bố trạng thái -->
-    <div class="col-md-4">
+    <div class="col-md-6 mb-3 mb-md-0">
         <div class="card">
             <div class="card-body" style="display: flex; flex-direction: column; align-items: center;">
                 <h5 class="card-title">Phân bố trạng thái</h5>
@@ -80,9 +80,20 @@
             </div>
         </div>
     </div>
+    <!-- Biểu đồ Aging -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body" style="display: flex; flex-direction: column; align-items: center;">
+                <h5 class="card-title">FG Aging</h5>
+                <canvas id="agingPieChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <!-- Bảng sumMaterialsTable -->
-    <div class="col-md-8">
+<!-- Bảng sumMaterialsTable -->
+<div class="row my-4">
+    <div class="col-md-12">
         <div class="card">
             <div class="card-body">
                 <table id="sumMaterialsTable" class="display table table-bordered table-striped datatable-table" style="width:100%">
