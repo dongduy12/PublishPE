@@ -37,6 +37,7 @@
     };
 
     let dataTable;
+    let modalTable;
 
     // Load KPI + Donut chart
     async function loadDashboardData() {
@@ -319,9 +320,40 @@
     function loadTableFromRecords(records) {
         try {
             showSpinner();
-            if (dataTable) {
-                dataTable.clear().rows.add(records).draw();
+            if (modalTable) {
+                modalTable.clear().rows.add(records).draw();
+            } else {
+                modalTable = $('#recordsTable').DataTable({
+                    data: records,
+                    scrollX: true,
+                    columns: [
+                        { data: "sn" },
+                        { data: "productLine" },
+                        { data: "modelName" },
+                        { data: "moNumber" },
+                        { data: "wipGroup" },
+                        { data: "testGroup" },
+                        { data: "testCode" },
+                        { data: "testTime" },
+                        { data: "errorDesc" },
+                        { data: "workFlag" },
+                        { data: "errorFlag" },
+                        { data: "checkInDate" },
+                        { data: "agingDay" },
+                        { data: "status" },
+                        { data: "note" }
+                    ],
+                    destroy: true,
+                    language: {
+                        search: "",
+                        emptyTable: "Không có dữ liệu để hiển thị",
+                        zeroRecords: "Không tìm thấy bản ghi phù hợp"
+                    }
+                });
             }
+            const modalEl = document.getElementById('recordsModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
         } finally {
             hideSpinner();
         }

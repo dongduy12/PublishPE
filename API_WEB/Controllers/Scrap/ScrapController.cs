@@ -1216,7 +1216,7 @@ namespace API_WEB.Controllers.Scrap
                     }
 
                     // kiểm tra điều kiện Bonepile
-                    if (request.Remark == "BP-10" || request.Remark == "BP-20")
+                    /*if (request.Remark == "BP-10" || request.Remark == "BP-20")
                     {
                         string sqlQueryBonepile = $@"
                             SELECT SERIAL_NUMBER 
@@ -1253,7 +1253,7 @@ namespace API_WEB.Controllers.Scrap
                                 }
                             }
                         }
-                    }
+                    }*/
                 }
 
                 

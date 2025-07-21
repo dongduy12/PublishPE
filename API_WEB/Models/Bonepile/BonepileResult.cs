@@ -81,6 +81,7 @@
         public DateTime? TEST_TIME { get; set; }
         public string ERROR_CODE { get; set; }
         public string STATUS { get; set; }
+        public string FG_AGING { get; set; }
     }
     // Result model for bonepile after kanban query
     public class BonepileAfterKanbanRawResult
@@ -101,5 +102,6 @@
         public string FG_TEST_CODE { get; set; }
         public string FG_TEST_GROUP { get; set; }
         public string FG_ERROR_DESC { get; set; }
+        public string FG_AGING { get; set; }
     }
 }
