@@ -39,6 +39,42 @@
     let dataTable;
     let modalTable;
 
+    // Tạo nội dung ô có tooltip
+    function createTooltipCell(data) {
+        return `<span class="tooltip-trigger" data-tooltip="${data || ''}">${data || ''}</span>`;
+    }
+
+    // Gắn sự kiện tooltip
+    function attachTooltipEvents() {
+        $(document).on('mouseover', '.tooltip-trigger', function (e) {
+            const $this = $(this);
+            const tooltipText = $this.data('tooltip');
+            if (tooltipText) {
+                let tooltip = document.querySelector('.custom-tooltip');
+                if (!tooltip) {
+                    tooltip = document.createElement('div');
+                    tooltip.className = 'custom-tooltip';
+                    document.body.appendChild(tooltip);
+                }
+                tooltip.textContent = tooltipText;
+                tooltip.style.display = 'block';
+                tooltip.style.left = (e.pageX + 10) + 'px';
+                tooltip.style.top = (e.pageY - 20) + 'px';
+            }
+        }).on('mousemove', '.tooltip-trigger', function (e) {
+            const tooltip = document.querySelector('.custom-tooltip');
+            if (tooltip && tooltip.style.display === 'block') {
+                tooltip.style.left = (e.pageX + 10) + 'px';
+                tooltip.style.top = (e.pageY - 20) + 'px';
+            }
+        }).on('mouseout', '.tooltip-trigger', function () {
+            const tooltip = document.querySelector('.custom-tooltip');
+            if (tooltip) {
+                tooltip.style.display = 'none';
+            }
+        });
+    }
+
     // Load KPI + Donut chart
     async function loadDashboardData() {
         try {
@@ -322,6 +358,7 @@
             showSpinner();
             if (modalTable) {
                 modalTable.clear().rows.add(records).draw();
+                attachTooltipEvents();
             } else {
                 modalTable = $('#recordsTable').DataTable({
                     data: records,
@@ -343,6 +380,13 @@
                         { data: "status" },
                         { data: "note" }
                     ],
+                    columnDefs: [
+                        {
+                            targets: '_all',
+                            width: '120px',
+                            render: function (data) { return createTooltipCell(data); }
+                        }
+                    ],
                     destroy: true,
                     language: {
                         search: "",
@@ -354,6 +398,7 @@
             const modalEl = document.getElementById('recordsModal');
             const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
             modal.show();
+            attachTooltipEvents();
         } finally {
             hideSpinner();
         }
