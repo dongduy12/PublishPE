@@ -1,6 +1,7 @@
 ﻿document.addEventListener("DOMContentLoaded", async function () {
     const apiBase = "http://10.220.130.119:9090/api/Bonepile2";
     const apiCountUrl = `${apiBase}/bonepile-after-kanban-count`;
+    const apiAgingCountUrl = `${apiBase}/bonepile-after-kanban-aging-count`;
     const apiDetailUrl = `${apiBase}/bonepile-after-kanban`;
 
     // Định nghĩa tất cả trạng thái hợp lệ
@@ -23,12 +24,18 @@
     };
 
     let dataTable;
+    let modalTable;
+    let agingData = [];
 
     // Load KPI + Donut chart
     async function loadDashboardData() {
         try {
             const res = await axios.get(apiCountUrl);
             const { totalCount, statusCounts } = res.data;
+
+            const agingRes = await axios.get(apiAgingCountUrl);
+            const { agingCounts } = agingRes.data;
+            agingData = agingCounts;
 
             // Gán KPI
             document.getElementById("totalCount").innerText = totalCount || 0;
@@ -101,6 +108,77 @@
                 },
                 plugins: [ChartDataLabels]
             });
+
+            // Tính phần trăm cho biểu đồ aging
+            const agingTotal = agingCounts.reduce((sum, a) => sum + a.count, 0);
+            const agingPercentages = agingCounts.map(a => agingTotal > 0 ? ((a.count / agingTotal) * 100).toFixed(1) : 0);
+
+            // Vẽ biểu đồ Aging
+            const agingCtx = document.getElementById("agingPieChart").getContext("2d");
+            const agingChart = new Chart(agingCtx, {
+                type: "pie",
+                data: {
+                    labels: agingCounts.map(a => a.ageRange),
+                    datasets: [{
+                        data: agingCounts.map(a => a.count),
+                        backgroundColor: ["#4e73df", "#1cc88a", "#e74a3b"],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: "bottom",
+                            labels: {
+                                boxWidth: 20,
+                                boxHeight: 20,
+                                generateLabels: (chart) => {
+                                    const data = chart.data;
+                                    return data.labels.map((label, i) => ({
+                                        text: `${label} (${agingPercentages[i]}%)`,
+                                        fillStyle: data.datasets[0].backgroundColor[i],
+                                        strokeStyle: data.datasets[0].backgroundColor[i],
+                                        lineWidth: 1,
+                                        hidden: isNaN(data.datasets[0].data[i]) || data.datasets[0].data[i] === 0,
+                                        index: i
+                                    }));
+                                }
+                            },
+                            align: "center"
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const percentage = agingPercentages[context.dataIndex];
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            formatter: (value, ctx) => {
+                                const percentage = agingPercentages[ctx.dataIndex];
+                                return `${percentage}%`;
+                            },
+                            color: '#000',
+                            font: { weight: 'bold', size: 12 }
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels]
+
+            });
+
+            agingChart.canvas.onclick = function (evt) {
+                const points = agingChart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+                if (points.length) {
+                    const index = points[0].index;
+                    const label = agingChart.data.labels[index];
+                    const records = agingData.find(a => a.ageRange === label)?.records || [];
+                    loadTableFromRecords(records);
+                }
+            };
 
             // Load dữ liệu bảng ban đầu (Tất cả trạng thái)
             await loadTableData(validStatuses);
@@ -215,6 +293,62 @@
             alert("Không thể tải dữ liệu bảng. Vui lòng thử lại!");
         } finally {
             //document.getElementById("spinner-overlay").style.display = "none";
+            hideSpinner();
+        }
+    }
+
+    function loadTableFromRecords(records) {
+        try {
+            showSpinner();
+            if (modalTable) {
+                modalTable.clear().rows.add(records).draw();
+            } else {
+                modalTable = $('#recordsTable').DataTable({
+                    data: records,
+                    scrollX: true,
+                    columns: [
+                        { data: "sn" },
+                        { data: "fg" },
+                        { data: "productLine" },
+                        { data: "modelName" },
+                        { data: "moNumber" },
+                        { data: "wipGroupSFC" },
+                        { data: "wipGroupKANBAN" },
+                        { data: "testGroup" },
+                        { data: "testTime" },
+                        { data: "testCode" },
+                        { data: "errorDesc" },
+                        { data: "fgAging" }
+                    ],
+                    dom: '<"top"fB>rt<"bottom"ip>',
+                    buttons: [
+                        {
+                            extend: 'excelHtml5',
+                            text: '<img src="/assets/img/excel.png" class="excel-icon excel-button"/>',
+                            title: '',
+                            filename: function () {
+                                const now = new Date();
+                                const offset = 7 * 60;
+                                const localDate = new Date(now.getTime() + offset * 60 * 1000);
+                                const dateStr = localDate.toISOString().slice(0, 10).replace(/-/g, '');
+                                const timeStr = localDate.toTimeString().slice(0, 8).replace(/:/g, '');
+                                return `Bonepile_after_aging_${dateStr}_${timeStr}`;
+                            },
+                            exportOptions: { columns: ':visible' }
+                        }
+                    ],
+                    destroy: true,
+                    language: {
+                        search: '',
+                        emptyTable: 'Không có dữ liệu để hiển thị',
+                        zeroRecords: 'Không tìm thấy bản ghi phù hợp'
+                    }
+                });
+            }
+            const modalEl = document.getElementById('recordsModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        } finally {
             hideSpinner();
         }
     }
