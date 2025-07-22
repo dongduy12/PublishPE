@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     const beforeDetailUrl = `${apiBase}/adapter-repair-records`;
     const afterCountUrl = `${apiBase}/bonepile-after-kanban-count`;
     const afterDetailUrl = `${apiBase}/bonepile-after-kanban`;
+    const locationUrl = 'http://10.220.130.119:9090/api/Search/GetLocations';
 
     const beforeStatuses = [
         'Scrap Lacks Task',
@@ -138,6 +139,20 @@ document.addEventListener('DOMContentLoaded', async function () {
             const afterRes = await axios.post(afterDetailUrl, { statuses: afterStatuses });
             const beforeData = beforeRes.data?.data || [];
             const afterData = afterRes.data?.data || [];
+
+            const serials = Array.from(new Set([
+                ...beforeData.map(b => b.sn),
+                ...afterData.map(a => a.sn),
+                ...afterData.map(a => a.fg)
+            ].filter(Boolean)));
+
+            let locationMap = {};
+            try {
+                const locRes = await axios.post(locationUrl, serials);
+                locationMap = locRes.data?.data || {};
+            } catch (err) {
+                console.error('Error fetching location', err);
+            }
             const mappedBefore = beforeData.map(b => ({
                 type: 'Before',
                 sn: b.sn,
@@ -153,6 +168,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 errorDesc: b.errorDesc,
                 status: normalizeStatus(b.status),
                 aging: b.agingDay,
+                location: locationMap[b.sn] || '',
                 note: b.note || ''
             }));
             const mappedAfter = afterData.map(a => ({
@@ -170,6 +186,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 errorDesc: a.errorDesc,
                 status: normalizeStatus(a.status),
                 aging: a.fgAging,
+                location: locationMap[a.sn] || locationMap[a.fg] || '',
                 note: ''
             }));
             const combined = mappedBefore.concat(mappedAfter);
@@ -194,6 +211,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                         { data: 'errorDesc' },
                         { data: 'status' },
                         { data: 'aging' },
+                        { data: 'location' },
                         { data: 'note' }
                     ],
                     dom: '<"top d-flex align-items-center"flB>rt<"bottom"ip>',

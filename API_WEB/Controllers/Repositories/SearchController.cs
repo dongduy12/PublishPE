@@ -779,6 +779,65 @@ namespace API_WEB.Controllers.Repositories
             }
         }
 
+        [HttpPost("GetLocations")]
+        public async Task<IActionResult> GetLocations([FromBody] List<string> serialNumbers)
+        {
+            if (serialNumbers == null || serialNumbers.Count == 0)
+            {
+                return BadRequest(new { success = false, message = "Danh sách serialNumbers rỗng." });
+            }
+
+            var locationMap = new Dictionary<string, string>();
+
+            var scrapRecords = await _sqlContext.KhoScraps
+                .Where(p => serialNumbers.Contains(p.SERIAL_NUMBER))
+                .Select(p => new { p.SERIAL_NUMBER, p.ShelfCode, p.ColumnNumber, p.LevelNumber, p.TrayNumber, p.Position })
+                .ToListAsync();
+
+            foreach (var r in scrapRecords)
+            {
+                locationMap[r.SERIAL_NUMBER] = BuildLocation(r.ShelfCode, r.ColumnNumber, r.LevelNumber, r.TrayNumber, r.Position);
+            }
+
+            var remaining = serialNumbers.Except(locationMap.Keys).ToList();
+
+            var okRecords = await _sqlContext.KhoOks
+                .Where(p => remaining.Contains(p.SERIAL_NUMBER))
+                .Select(p => new { p.SERIAL_NUMBER, p.ShelfCode, p.ColumnNumber, p.LevelNumber, p.TrayNumber })
+                .ToListAsync();
+
+            foreach (var r in okRecords)
+            {
+                locationMap[r.SERIAL_NUMBER] = BuildLocation(r.ShelfCode, r.ColumnNumber, r.LevelNumber, r.TrayNumber, null);
+            }
+
+            remaining = remaining.Except(okRecords.Select(o => o.SERIAL_NUMBER)).ToList();
+
+            var productRecords = await _sqlContext.Products
+                .Include(p => p.Shelf)
+                .Where(p => remaining.Contains(p.SerialNumber))
+                .Select(p => new { SerialNumber = p.SerialNumber, ShelfCode = p.Shelf != null ? p.Shelf.ShelfCode : null, p.ColumnNumber, p.LevelNumber, p.TrayNumber, PositionInTray = p.PositionInTray })
+                .ToListAsync();
+
+            foreach (var r in productRecords)
+            {
+                locationMap[r.SerialNumber] = BuildLocation(r.ShelfCode, r.ColumnNumber, r.LevelNumber, r.TrayNumber, r.PositionInTray);
+            }
+
+            return Ok(new { success = true, data = locationMap });
+        }
+
+        private static string BuildLocation(string shelf, int? column, int? level, int? tray, int? position)
+        {
+            if (string.IsNullOrEmpty(shelf) || column == null || level == null || tray == null)
+            {
+                return string.Empty;
+            }
+
+            var baseLoc = $"{shelf}{column}-{level}-K{tray}";
+            return position.HasValue ? $"{baseLoc}-{position}" : baseLoc;
+        }
+
         private async Task<Dictionary<string, InforProduct>> GetOracleDataAsync(OracleConnection connection, List<string> serialNumbers)
         {
             var productData = new Dictionary<string, InforProduct>();
