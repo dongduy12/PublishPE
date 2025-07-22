@@ -140,11 +140,10 @@ document.addEventListener('DOMContentLoaded', async function () {
             const beforeData = beforeRes.data?.data || [];
             const afterData = afterRes.data?.data || [];
 
-            const serials = Array.from(new Set([
-                ...beforeData.map(b => b.sn),
-                ...afterData.map(a => a.sn),
-                ...afterData.map(a => a.fg)
-            ].filter(Boolean)));
+            // Chỉ lấy vị trí cho SERIAL_NUMBER(FG)
+            const serials = Array.from(new Set(
+                afterData.map(a => a.fg).filter(Boolean)
+            ));
 
             let locationMap = {};
             try {
@@ -168,7 +167,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 errorDesc: b.errorDesc,
                 status: normalizeStatus(b.status),
                 aging: b.agingDay,
-                location: locationMap[b.sn] || '',
+                location: '',
                 note: b.note || ''
             }));
             const mappedAfter = afterData.map(a => ({
@@ -186,7 +185,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 errorDesc: a.errorDesc,
                 status: normalizeStatus(a.status),
                 aging: a.fgAging,
-                location: locationMap[a.sn] || locationMap[a.fg] || '',
+                location: locationMap[a.fg] || '',
                 note: ''
             }));
             const combined = mappedBefore.concat(mappedAfter);
