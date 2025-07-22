@@ -1,0 +1,72 @@
+@{
+    ViewData["Title"] = "Bonepile Summary";
+    Layout = "~/Areas/Bonepile/Views/Shared/_Layout_Bonepile.cshtml";
+}
+<header>
+    <h1>Bonepile Summary</h1>
+</header>
+<div class="kpi-cards row">
+    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+        <div class="card text-white bg-total smaller-card">
+            <div class="card-body smaller-text">
+                <h5 class="card-title">Total</h5>
+                <p class="card-text" id="totalCount">N/A</p>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row my-4 justify-content-center" style="align-items: center;">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Trạng Thái</h5>
+                <canvas id="statusDonutChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row my-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <table id="summaryTable" class="display table table-bordered table-striped datatable-table" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>TYPE</th>
+                            <th>SERIAL_NUMBER</th>
+                            <th>FG</th>
+                            <th>PRODUCT_LINE</th>
+                            <th>MODEL_NAME</th>
+                            <th>MO_NUMBER</th>
+                            <th>WIP_GROUP</th>
+                            <th>WIP_GROUP_KANBAN</th>
+                            <th>TEST_GROUP</th>
+                            <th>TEST_CODE</th>
+                            <th>TEST_TIME</th>
+                            <th>ERROR_DESC</th>
+                            <th>STATUS</th>
+                            <th>AGING</th>
+                            <th>NOTE</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script src="~/assets/areas/bonepile/js/bonepile_summary.js?v=@DateTime.Now.Ticks"></script>
+    <style>
+        .smaller-card {
+            transform: scale(0.75);
+            margin: 0 -5px;
+        }
+        .smaller-text .card-title {
+            font-size: 1.3rem;
+        }
+        .smaller-text .card-text {
+            font-size: 1.3rem;
+        }
+    </style>
+}
