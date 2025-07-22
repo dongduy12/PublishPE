@@ -834,7 +834,7 @@ namespace API_WEB.Controllers.Repositories
                 return string.Empty;
             }
 
-            var baseLoc = $"{shelf}{column}-{level}-K{tray}";
+            var baseLoc = $"{shelf}-{column}-K{level}-{tray}";
             return position.HasValue ? $"{baseLoc}-{position}" : baseLoc;
         }
 
