@@ -6,7 +6,7 @@
     <h1>Bonepile Summary</h1>
 </header>
 <div class="kpi-cards row">
-    <div class="col-md-2 col-lg-1 col-sm-3 col-3">
+    <div class="col-md-4 col-lg-2 col-sm-6">
         <div class="card text-white bg-total smaller-card">
             <div class="card-body smaller-text">
                 <h5 class="card-title">Total</h5>
@@ -15,7 +15,7 @@
         </div>
     </div>
 </div>
-<div class="row my-4 justify-content-center" style="align-items: center;">
+<div class="row my-4">
     <div class="col-md-4">
         <div class="card">
             <div class="card-body">
@@ -24,9 +24,7 @@
             </div>
         </div>
     </div>
-</div>
-<div class="row my-4">
-    <div class="col-md-12">
+    <div class="col-md-8">
         <div class="card">
             <div class="card-body">
                 <table id="summaryTable" class="display table table-bordered table-striped datatable-table" style="width:100%">
@@ -59,15 +57,12 @@
 @section Scripts {
     <script src="~/assets/areas/bonepile/js/bonepile_summary.js?v=@DateTime.Now.Ticks"></script>
     <style>
-        .smaller-card {
-            transform: scale(0.75);
-            margin: 0 -5px;
-        }
-        .smaller-text .card-title {
-            font-size: 1.3rem;
-        }
-        .smaller-text .card-text {
-            font-size: 1.3rem;
+        #summaryTable th, #summaryTable td {
+            width: 120px !important;
+            max-width: 120px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
     </style>
 }
