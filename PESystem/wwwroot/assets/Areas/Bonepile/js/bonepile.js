@@ -343,6 +343,22 @@
                         { data: "status" },
                         { data: "note" }
                     ],
+                    buttons: [
+                        {
+                            extend: 'excelHtml5',
+                            text: '<img src="/assets/img/excel.png" class="excel-icon excel-button"/>',
+                            title: '',
+                            filename: function () {
+                                const now = new Date();
+                                const offset = 7 * 60;
+                                const localDate = new Date(now.getTime() + offset * 60 * 1000);
+                                const dateStr = localDate.toISOString().slice(0, 10).replace(/-/g, '');
+                                const timeStr = localDate.toTimeString().slice(0, 8).replace(/:/g, '');
+                                return `Bonepile_after_aging_${dateStr}_${timeStr}`;
+                            },
+                            exportOptions: { columns: ':visible' }
+                        }
+                    ],
                     destroy: true,
                     language: {
                         search: "",

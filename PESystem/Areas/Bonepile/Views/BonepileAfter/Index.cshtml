@@ -70,9 +70,9 @@
 </div>
 
 <!-- Charts -->
-<div class="row my-4">
+<div class="row my-3 justify-content-center" style="align-items: center;">
     <!-- Biểu đồ phân bố trạng thái -->
-    <div class="col-md-6 mb-3 mb-md-0">
+    <div class="col-md-4">
         <div class="card">
             <div class="card-body" style="display: flex; flex-direction: column; align-items: center;">
                 <h5 class="card-title">Phân bố trạng thái</h5>
@@ -81,10 +81,10 @@
         </div>
     </div>
     <!-- Biểu đồ Aging -->
-    <div class="col-md-6">
+    <div class="col-md-4">
         <div class="card">
             <div class="card-body" style="display: flex; flex-direction: column; align-items: center;">
-                <h5 class="card-title">FG Aging</h5>
+                <h5 class="card-title">Aging</h5>
                 <canvas id="agingPieChart"></canvas>
             </div>
         </div>
@@ -144,6 +144,7 @@
                             <th>TEST_CODE</th>
                             <th>ERROR_DESC</th>
                             <th>STATUS</th>
+                            <th>FG_AGING</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -184,4 +185,34 @@
                 max-width: 14.28%; /* Ensure equal width */
                 padding: 0; /* Reduce padding for tighter fit */
             }
+
+            /* Định dạng bảng recordsTable */
+        #recordsTable th, #recordsTable td {
+            width: 120px !important;
+            max-width: 120px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #sumMaterialsTable th, #sumMaterialsTable td {
+            width: 120px !important;
+            max-width: 120px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .custom-tooltip {
+            position: absolute;
+            background-color: #333;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+            display: none;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
     </style>

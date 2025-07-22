@@ -98,7 +98,7 @@
 </div>
 <!-- Modal for aging records -->
 <div class="modal fade" id="recordsModal" tabindex="-1" aria-labelledby="recordsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-lg-custom">
+    <div class="modal-dialog  modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="recordsModalLabel">Serial Numbers</h5>
@@ -192,5 +192,36 @@
                 max-width: 12.5%; /* Ensure equal width */
                 padding: 0; /* Reduce padding for tighter fit */
             }
+
+
+                    /* Định dạng bảng recordsTable */
+        #recordsTable th, #recordsTable td {
+            width: 120px !important;
+            max-width: 120px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #sumMaterialsTable th, #sumMaterialsTable td {
+            width: 120px !important;
+            max-width: 120px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .custom-tooltip {
+            position: absolute;
+            background-color: #333;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+            display: none;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
     </style>
 }

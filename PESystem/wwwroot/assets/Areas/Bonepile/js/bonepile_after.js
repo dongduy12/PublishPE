@@ -27,6 +27,44 @@
     let modalTable;
     let agingData = [];
 
+    // Tạo nội dung ô có tooltip
+    function createTooltipCell(data) {
+        return `<span class="tooltip-trigger" data-tooltip="${data || ''}">${data || ''}</span>`;
+    }
+
+    // Gắn sự kiện tooltip
+    function attachTooltipEvents() {
+        $(document).on('mouseover', '.tooltip-trigger', function (e) {
+            const $this = $(this);
+            const tooltipText = $this.data('tooltip');
+            if (tooltipText) {
+                let tooltip = document.querySelector('.custom-tooltip');
+                if (!tooltip) {
+                    tooltip = document.createElement('div');
+                    tooltip.className = 'custom-tooltip';
+                    document.body.appendChild(tooltip);
+                }
+                tooltip.textContent = tooltipText;
+                tooltip.style.display = 'block';
+                tooltip.style.left = (e.pageX + 10) + 'px';
+                tooltip.style.top = (e.pageY - 20) + 'px';
+            }
+        }).on('mousemove', '.tooltip-trigger', function (e) {
+            const tooltip = document.querySelector('.custom-tooltip');
+            if (tooltip && tooltip.style.display === 'block') {
+                tooltip.style.left = (e.pageX + 10) + 'px';
+                tooltip.style.top = (e.pageY - 20) + 'px';
+            }
+        }).on('mouseout', '.tooltip-trigger', function () {
+            const tooltip = document.querySelector('.custom-tooltip');
+            if (tooltip) {
+                tooltip.style.display = 'none';
+            }
+        });
+    }
+
+
+
     // Load KPI + Donut chart
     async function loadDashboardData() {
         try {
@@ -207,6 +245,10 @@
                 dataTable = $('#sumMaterialsTable').DataTable({
                     data: tableData,
                     scrollX: true,
+                    ordering: true,
+                    info: true,
+                    autoWidth: false,
+                    order: [[3, "desc"]],
                     columns: [
                         { data: "sn" },
                         { data: "fg" },
@@ -219,7 +261,8 @@
                         { data: "testTime" },
                         { data: "testCode" },
                         { data: "errorDesc" },
-                        { data: "status" }
+                        { data: "status" },
+                        { data: "fgAging" },
                     ],
                     dom: '<"top d-flex align-items-center"flB>rt<"bottom"ip>',
 
@@ -302,10 +345,14 @@
             showSpinner();
             if (modalTable) {
                 modalTable.clear().rows.add(records).draw();
+                attachTooltipEvents();
             } else {
                 modalTable = $('#recordsTable').DataTable({
                     data: records,
                     scrollX: true,
+                    searching: true,
+                    ordering: false,
+                    info: true,
                     columns: [
                         { data: "sn" },
                         { data: "fg" },
@@ -320,7 +367,13 @@
                         { data: "errorDesc" },
                         { data: "fgAging" }
                     ],
-                    dom: '<"top"fB>rt<"bottom"ip>',
+                    columnDefs: [
+                        {
+                            targets: '_all',
+                            width: '120px',
+                            render: function (data) { return createTooltipCell(data); }
+                        }
+                    ],
                     buttons: [
                         {
                             extend: 'excelHtml5',
@@ -348,6 +401,7 @@
             const modalEl = document.getElementById('recordsModal');
             const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
             modal.show();
+            attachTooltipEvents();
         } finally {
             hideSpinner();
         }
