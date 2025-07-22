@@ -25,6 +25,25 @@ document.addEventListener('DOMContentLoaded', async function () {
         'Online'
     ];
 
+    const statusAliasMap = {
+        'ScrapHasTask': 'Scrap Has Scrap',
+        'ScrapHasScrap': 'Scrap Has Scrap',
+        'Scrap Has Scrap': 'Scrap Has Scrap',
+        'ScrapLackTask': 'Scrap Lacks Task',
+        'Scrap Lacks Scrap': 'Scrap Lacks Task',
+        'Scrap Lacks Task': 'Scrap Lacks Task',
+        'WatitingScrap': 'Waiting SPE approve scrap',
+        'Waiting SPE approve scrap': 'Waiting SPE approve scrap',
+        'ApproveBGA': 'SPE approve to BGA',
+        'SPE approve to BGA': 'SPE approve to BGA',
+        'RepairInRE': 'Under repair in RE',
+        'Under repair in RE': 'Under repair in RE',
+        'Under repair in PD': 'Online',
+        'Online': 'Online'
+    };
+
+    const normalizeStatus = status => statusAliasMap[status] || status;
+
     const statusColorMap = {
         'Scrap Lacks Task': '#ffc107',
         'Scrap Has Scrap': '#05b529',
@@ -33,12 +52,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         'Rework FG': '#6c757d',
         'Under repair in RE': '#ff8307',
         'Waiting Check Out': '#fe8307',
-        'Under repair in PD': '#17a2b8',
-        'ScrapHasTask': '#05b529',
-        'ScrapLackTask': '#ffc107',
-        'WatitingScrap': '#dc3545',
-        'ApproveBGA': '#17b86d',
-        'RepairInRE': '#ff8307',
         'Online': '#28a745'
     };
 
@@ -53,10 +66,12 @@ document.addEventListener('DOMContentLoaded', async function () {
             const afterTotal = afterRes.data.totalCount || 0;
 
             (beforeRes.data.statusCounts || []).forEach(s => {
-                statusCountsMap[s.status] = (statusCountsMap[s.status] || 0) + s.count;
+                const key = normalizeStatus(s.status);
+                statusCountsMap[key] = (statusCountsMap[key] || 0) + s.count;
             });
             (afterRes.data.statusCounts || []).forEach(s => {
-                statusCountsMap[s.status] = (statusCountsMap[s.status] || 0) + s.count;
+                const key = normalizeStatus(s.status);
+                statusCountsMap[key] = (statusCountsMap[key] || 0) + s.count;
             });
 
             const statusCounts = Object.keys(statusCountsMap).map(k => ({ status: k, count: statusCountsMap[k] }));
@@ -136,7 +151,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 testCode: b.testCode,
                 testTime: b.testTime,
                 errorDesc: b.errorDesc,
-                status: b.status,
+                status: normalizeStatus(b.status),
                 aging: b.agingDay,
                 note: b.note || ''
             }));
@@ -153,7 +168,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 testCode: a.testCode,
                 testTime: a.testTime,
                 errorDesc: a.errorDesc,
-                status: a.status,
+                status: normalizeStatus(a.status),
                 aging: a.fgAging,
                 note: ''
             }));
