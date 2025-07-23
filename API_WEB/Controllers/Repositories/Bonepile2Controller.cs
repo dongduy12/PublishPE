@@ -1010,26 +1010,31 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                         string status;
 
                         var groupKanban = b.WIP_GROUP_KANBAN?.Trim();
-                        // Ưu tiên xác định ScrapLackTask và ScrapHasTask trước
-                        if (scrapDict.TryGetValue(sn, out var scrapInfo) &&
-                            (scrapInfo.ApplyTaskStatus == 0 || scrapInfo.ApplyTaskStatus == 1))
+                        // Ưu tiên xác định ScrapLackTask, ScrapHasTask, WatitingScrap và ApproveBGA trước
+                        if (scrapDict.TryGetValue(sn, out var scrapInfo))
                         {
-                            status = string.IsNullOrEmpty(scrapInfo.TaskNumber) ? "ScrapLackTask" : "ScrapHasTask";
+                            var applyTaskStatus = scrapInfo.ApplyTaskStatus;
+
+                            if (applyTaskStatus == 0 || applyTaskStatus == 1)
+                            {
+                                status = string.IsNullOrEmpty(scrapInfo.TaskNumber) ? "ScrapLackTask" : "ScrapHasTask";
+                            }
+                            else if (applyTaskStatus == 2)
+                            {
+                                status = "WatitingScrap";
+                            }
+                            else if (applyTaskStatus == 3)
+                            {
+                                status = "ApproveBGA";
+                            }
+                            else
+                            {
+                                status = "RepairInRE";
+                            }
                         }
                         else if (!string.IsNullOrEmpty(groupKanban) && groupKanban.IndexOf("B36R_TO_SFG", StringComparison.OrdinalIgnoreCase) >= 0)
                         {
                             status = "Online";
-                        }
-                        else if (scrapDict.TryGetValue(sn, out scrapInfo))
-                        {
-                            var applyTaskStatus = scrapInfo.ApplyTaskStatus;
-
-                            status = applyTaskStatus switch
-                            {
-                                2 => "WatitingScrap",
-                                3 => "ApproveBGA",
-                                _ => "RepairInRE"
-                            };
                         }
                         else
                         {
@@ -1166,24 +1171,30 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
 
                     var groupKanban = b.WIP_GROUP_KANBAN.Trim();
 
-                    if (scrapDict.TryGetValue(sn, out var scrapInfo) &&
-                        (scrapInfo.ApplyTaskStatus == 0 || scrapInfo.ApplyTaskStatus == 1))
+                    if (scrapDict.TryGetValue(sn, out var scrapInfo))
                     {
-                        status = string.IsNullOrEmpty(scrapInfo.TaskNumber) ? "ScrapLackTask" : "ScrapHasTask";
+                        var applyTaskStatus = scrapInfo.ApplyTaskStatus;
+
+                        if (applyTaskStatus == 0 || applyTaskStatus == 1)
+                        {
+                            status = string.IsNullOrEmpty(scrapInfo.TaskNumber) ? "ScrapLackTask" : "ScrapHasTask";
+                        }
+                        else if (applyTaskStatus == 2)
+                        {
+                            status = "WatitingScrap";
+                        }
+                        else if (applyTaskStatus == 3)
+                        {
+                            status = "ApproveBGA";
+                        }
+                        else
+                        {
+                            status = "RepairInRE";
+                        }
                     }
                     else if (!string.IsNullOrEmpty(groupKanban) && groupKanban.IndexOf("B36R_TO_SFG", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
                         status = "Online";
-                    }
-                    else if (scrapDict.TryGetValue(sn, out scrapInfo))
-                    {
-                        var applyTaskStatus = scrapInfo.ApplyTaskStatus;
-                        status = applyTaskStatus switch
-                        {
-                            2 => "WatitingScrap",
-                            3 => "ApproveBGA",
-                            _ => "RepairInRE"
-                        };
                     }
                     else
                     {
