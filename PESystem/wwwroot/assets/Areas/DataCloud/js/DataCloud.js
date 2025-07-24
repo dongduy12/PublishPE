@@ -319,6 +319,8 @@
                 });
             } else if (action === 'preview') {
                 previewFile(path, fileUrl);
+            } else if (action === 'preview-new-tab') {
+                openFileInNewTab(path, fileUrl);
             }
             $('#context-menu').hide();
         }
@@ -414,6 +416,58 @@
                 text: "Chỉ hỗ trợ xem trước tệp PDF và PowerPoint (.ppt, .pptx).",
                 icon: "warning"
             });
+        }
+    }
+
+    function openFileInNewTab(path, fileUrl) {
+        const fileName = path.split('\\').pop().toLowerCase();
+
+        if (fileName.endsWith('.pdf')) {
+            const viewerUrl = `/lib/pdfjs/web/viewer.html?file=${encodeURIComponent(fileUrl)}`;
+            window.open(viewerUrl, '_blank');
+        } else if (fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) {
+            const newWindow = window.open('', '_blank');
+            swalWithBootstrapButtons.fire({
+                title: "Đang tải...",
+                text: "Vui lòng đợi trong khi tệp được tải để xem trước.",
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+            $.ajax({
+                url: `${API_BASE}/render-pptx`,
+                type: 'GET',
+                data: { path: path },
+                success: function (response) {
+                    Swal.close();
+                    if (response && response.slides && response.slides.length > 0) {
+                        let html = '<html><head><title>Preview PPT</title></head><body style="margin:0; padding:10px;">';
+                        response.slides.forEach(slideUrl => {
+                            html += `<img src="${slideUrl}" style="width:100%;margin-bottom:10px;display:block;"/>`;
+                        });
+                        html += '</body></html>';
+                        newWindow.document.write(html);
+                        newWindow.document.close();
+                    } else {
+                        newWindow.close();
+                        swalWithBootstrapButtons.fire({
+                            title: "Lỗi!",
+                            text: "Không thể render tệp PPT/PPTX.",
+                            icon: "error"
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    newWindow.close();
+                    Swal.close();
+                    swalWithBootstrapButtons.fire({
+                        title: "Lỗi!",
+                        text: `Không thể render tệp PPT/PPTX: ${xhr.status} - ${xhr.responseText}`,
+                        icon: "error"
+                    });
+                }
+            });
+        } else {
+            window.open(fileUrl, '_blank');
         }
     }
 
