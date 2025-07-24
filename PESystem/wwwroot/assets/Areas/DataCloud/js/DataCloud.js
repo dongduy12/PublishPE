@@ -317,105 +317,104 @@
                     }
                 });
             } else if (action === 'preview') {
-                const fileName = path.split('\\').pop().toLowerCase();
-
-                // Hiển thị thông báo loading
-                swalWithBootstrapButtons.fire({
-                    title: "Đang tải...",
-                    text: "Vui lòng đợi trong khi tệp được tải để xem trước.",
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-
-                if (fileName.endsWith('.pdf')) {
-                    // Xem trước PDF bằng pdf.js viewer
-                    $('#pptViewer').hide();
-                    $('#pdfViewer').show();
-                    const viewerUrl = `/lib/pdfjs/web/viewer.html?file=${encodeURIComponent(fileUrl)}`;
-                    $('#pdfViewer').attr('src', viewerUrl);
-
-                    setTimeout(() => {
-                        Swal.close();
-                        $('#previewModal').modal('show');
-                    }, 1000);
-                } else if (fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) {
-                    // Xem trước PPT/PPTX bằng Aspose.Slides (render thành hình ảnh)
-                    $('#pdfViewer').hide();
-                    $('#pptViewer').show().empty();
-
-                    $.ajax({
-                        url: 'http://10.220.130.119:8000/api/data/render-pptx',
-                        type: 'GET',
-                        data: { path: path },
-                        success: function (response) {
-                            if (response && response.slides && response.slides.length > 0) {
-                                // Hiển thị các slide dưới dạng hình ảnh
-                                response.slides.forEach((slideUrl, index) => {
-                                    const img = $('<img>')
-                                        .attr('src', slideUrl)
-                                        .css({
-                                            'width': '100%',
-                                            'margin-bottom': '10px',
-                                            'display': 'block'
-                                        })
-                                        .attr('alt', `Slide ${index + 1}`);
-                                    $('#pptViewer').append(img);
-                                });
-
-                                // Thêm nút phóng to/thu nhỏ
-                                $('#pptViewer').prepend(`
-                                <div class="d-flex justify-content-between mb-2">
-                                    <button id="zoomIn" class="btn btn-secondary">Phóng to</button>
-                                    <button id="zoomOut" class="btn btn-secondary">Thu nhỏ</button>
-                                </div>
-                            `);
-
-                                let zoomLevel = 1;
-                                $('#zoomIn').click(function () {
-                                    zoomLevel += 0.1;
-                                    $('#pptViewer img').css('width', `${100 * zoomLevel}%`);
-                                });
-                                $('#zoomOut').click(function () {
-                                    if (zoomLevel > 0.5) {
-                                        zoomLevel -= 0.1;
-                                        $('#pptViewer img').css('width', `${100 * zoomLevel}%`);
-                                    }
-                                });
-
-                                Swal.close();
-                                $('#previewModal').modal('show');
-                            } else {
-                                Swal.close();
-                                swalWithBootstrapButtons.fire({
-                                    title: "Lỗi!",
-                                    text: "Không thể render tệp PPT/PPTX.",
-                                    icon: "error"
-                                });
-                            }
-                        },
-                        error: function (xhr) {
-                            Swal.close();
-                            swalWithBootstrapButtons.fire({
-                                title: "Lỗi!",
-                                text: `Không thể render tệp PPT/PPTX: ${xhr.status} - ${xhr.responseText}`,
-                                icon: "error"
-                            });
-                        }
-                    });
-                } else {
-                    Swal.close();
-                    swalWithBootstrapButtons.fire({
-                        title: "Không hỗ trợ",
-                        text: "Chỉ hỗ trợ xem trước tệp PDF và PowerPoint (.ppt, .pptx).",
-                        icon: "warning"
-                    });
-                }
+                previewFile(path, fileUrl);
             }
             $('#context-menu').hide();
         }
     });
+
+    function previewFile(path, fileUrl) {
+        const fileName = path.split('\\').pop().toLowerCase();
+
+        swalWithBootstrapButtons.fire({
+            title: "Đang tải...",
+            text: "Vui lòng đợi trong khi tệp được tải để xem trước.",
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        if (fileName.endsWith('.pdf')) {
+            $('#pptViewer').hide();
+            $('#pdfViewer').show();
+            const viewerUrl = `/lib/pdfjs/web/viewer.html?file=${encodeURIComponent(fileUrl)}`;
+            $('#pdfViewer').attr('src', viewerUrl);
+
+            setTimeout(() => {
+                Swal.close();
+                $('#previewModal').modal('show');
+            }, 1000);
+        } else if (fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) {
+            $('#pdfViewer').hide();
+            $('#pptViewer').show().empty();
+
+            $.ajax({
+                url: 'http://10.220.130.119:8000/api/data/render-pptx',
+                type: 'GET',
+                data: { path: path },
+                success: function (response) {
+                    if (response && response.slides && response.slides.length > 0) {
+                        response.slides.forEach((slideUrl, index) => {
+                            const img = $('<img>')
+                                .attr('src', slideUrl)
+                                .css({
+                                    'width': '100%',
+                                    'margin-bottom': '10px',
+                                    'display': 'block'
+                                })
+                                .attr('alt', `Slide ${index + 1}`);
+                            $('#pptViewer').append(img);
+                        });
+
+                        $('#pptViewer').prepend(`
+                            <div class="d-flex justify-content-between mb-2">
+                                <button id="zoomIn" class="btn btn-secondary">Phóng to</button>
+                                <button id="zoomOut" class="btn btn-secondary">Thu nhỏ</button>
+                            </div>
+                        `);
+
+                        let zoomLevel = 1;
+                        $('#zoomIn').click(function () {
+                            zoomLevel += 0.1;
+                            $('#pptViewer img').css('width', `${100 * zoomLevel}%`);
+                        });
+                        $('#zoomOut').click(function () {
+                            if (zoomLevel > 0.5) {
+                                zoomLevel -= 0.1;
+                                $('#pptViewer img').css('width', `${100 * zoomLevel}%`);
+                            }
+                        });
+
+                        Swal.close();
+                        $('#previewModal').modal('show');
+                    } else {
+                        Swal.close();
+                        swalWithBootstrapButtons.fire({
+                            title: "Lỗi!",
+                            text: "Không thể render tệp PPT/PPTX.",
+                            icon: "error"
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    Swal.close();
+                    swalWithBootstrapButtons.fire({
+                        title: "Lỗi!",
+                        text: `Không thể render tệp PPT/PPTX: ${xhr.status} - ${xhr.responseText}`,
+                        icon: "error"
+                    });
+                }
+            });
+        } else {
+            Swal.close();
+            swalWithBootstrapButtons.fire({
+                title: "Không hỗ trợ",
+                text: "Chỉ hỗ trợ xem trước tệp PDF và PowerPoint (.ppt, .pptx).",
+                icon: "warning"
+            });
+        }
+    }
 
 
     $('#previewModal').on('hidden.bs.modal', function () {
@@ -460,6 +459,15 @@
             }
             console.log("pathHistory sau khi click data-item:", pathHistory);
             loadData(path);
+        }
+    });
+
+    $('#data-cloud-items').on('dblclick', '.data-item', function () {
+        const path = normalizePath($(this).attr('custom-path'));
+        const type = $(this).attr('custom-type');
+        if (type === 'File') {
+            const fileUrl = `http://10.220.130.119:8000/api/data/download-file?path=${encodeURIComponent(path)}`;
+            previewFile(path, fileUrl);
         }
     });
 
