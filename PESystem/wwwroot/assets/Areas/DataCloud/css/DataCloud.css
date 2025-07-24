@@ -37,7 +37,9 @@
     border-radius: 8px;
     background-color: #fff;
     padding: 10px;
-    text-align: center;
+    text-align: left;
+    display: flex;
+    align-items: center;
     transition: box-shadow 0.2s, transform 0.2s;
 }
 
@@ -49,8 +51,8 @@
 .data-item i {
     font-size: 40px;
     color: #5f6368;
-    margin-bottom: 8px;
-    display: block;
+    margin-right: 10px;
+    display: inline-block;
 }
 
 .data-item span {
