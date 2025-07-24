@@ -37,13 +37,13 @@
                     response.items.forEach(item => {
                         const icon = item.type === "Folder" ? "fas fa-folder" : "fas fa-file"; // Sửa item.type thành item.Type
                         const colElement = $('<div>').addClass('col');
-                        const itemElement = $('<div>')
-                            .addClass('data-item')
-                            .attr('custom-path', normalizePath(item.path)) // Sửa item.path thành item.Path
-                            .attr('custom-type', item.type) // Sửa item.type thành item.Type
-                            .html(`
+                    const itemElement = $('<div>')
+                        .addClass('data-item')
+                        .attr('custom-path', normalizePath(item.path)) // Sửa item.path thành item.Path
+                        .attr('custom-type', item.type) // Sửa item.type thành item.Type
+                        .html(`
                                 <i class="${icon}"></i>
-                                <span>${item.name}</span> <!-- Sử dụng item.Name thay vì item.name -->
+                                <span title="${item.name}">${item.name}</span>
                             `);
                         colElement.append(itemElement);
                         $('#data-cloud-items').append(colElement);
@@ -98,7 +98,7 @@
                                 .attr('custom-type', item.type) // Sửa item.type thành item.Type
                                 .html(`
                                     <i class="${icon}"></i>
-                                    <span>${item.name}</span> <!-- Sử dụng item.Name thay vì item.name -->
+                                    <span title="${item.name}">${item.name}</span>
                                 `);
                             colElement.append(itemElement);
                             $('#data-cloud-items').append(colElement);

@@ -31,6 +31,12 @@
     padding: 10px;
 }
 
+.layout-icon {
+    cursor: pointer;
+    font-size: 20px;
+    color: #5f6368;
+}
+
 .data-item {
     cursor: pointer;
     border: 1px solid #e0e0e0;
@@ -40,12 +46,6 @@
     text-align: left;
     display: flex;
     align-items: center;
-    transition: box-shadow 0.2s, transform 0.2s;
-}
-
-.data-item:hover {
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
 }
 
 .data-item i {
@@ -67,12 +67,6 @@
     max-height: 40px;
 }
 
-.data-item:hover span {
-    overflow: visible;
-    text-overflow: unset;
-    -webkit-line-clamp: unset;
-    max-height: none;
-}
 
 .data-item[custom-type="Folder"] i {
     color: #F5D471;
