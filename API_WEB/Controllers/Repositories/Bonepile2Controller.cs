@@ -1010,29 +1010,31 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                         string status;
 
                         var groupKanban = b.WIP_GROUP_KANBAN?.Trim();
-                        // Kiểm tra thông tin trong scrapDict
-                        if (!string.IsNullOrEmpty(groupKanban) && groupKanban.IndexOf("B36R_TO_SFG", StringComparison.OrdinalIgnoreCase) >= 0)
-                        {
-                            status = "Online";
-                        }
-                        else if (scrapDict.TryGetValue(sn, out var scrapInfo))
+                        // Ưu tiên xác định ScrapLackTask, ScrapHasTask, WatitingScrap và ApproveBGA trước
+                        if (scrapDict.TryGetValue(sn, out var scrapInfo))
                         {
                             var applyTaskStatus = scrapInfo.ApplyTaskStatus;
-                            var taskNumber = scrapInfo.TaskNumber;
 
                             if (applyTaskStatus == 0 || applyTaskStatus == 1)
                             {
-                                status = string.IsNullOrEmpty(taskNumber) ? "ScrapLackTask" : "ScrapHasTask";
+                                status = string.IsNullOrEmpty(scrapInfo.TaskNumber) ? "ScrapLackTask" : "ScrapHasTask";
+                            }
+                            else if (applyTaskStatus == 2)
+                            {
+                                status = "WatitingScrap";
+                            }
+                            else if (applyTaskStatus == 3)
+                            {
+                                status = "ApproveBGA";
                             }
                             else
                             {
-                                status = applyTaskStatus switch
-                                {
-                                    2 => "WatitingScrap",
-                                    3 => "ApproveBGA",
-                                    _ => "RepairInRE"
-                                };
+                                status = "RepairInRE";
                             }
+                        }
+                        else if (!string.IsNullOrEmpty(groupKanban) && groupKanban.IndexOf("B36R_TO_SFG", StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            status = "Online";
                         }
                         else
                         {
@@ -1169,28 +1171,30 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
 
                     var groupKanban = b.WIP_GROUP_KANBAN.Trim();
 
-                    if (!string.IsNullOrEmpty(groupKanban) && groupKanban.IndexOf("B36R_TO_SFG", StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
-                        status = "Online";
-                    }
-                    else if (scrapDict.TryGetValue(sn, out var scrapInfo))
+                    if (scrapDict.TryGetValue(sn, out var scrapInfo))
                     {
                         var applyTaskStatus = scrapInfo.ApplyTaskStatus;
-                        var taskNumber = scrapInfo.TaskNumber;
 
                         if (applyTaskStatus == 0 || applyTaskStatus == 1)
                         {
-                            status = string.IsNullOrEmpty(taskNumber) ? "ScrapLackTask" : "ScrapHasTask";
+                            status = string.IsNullOrEmpty(scrapInfo.TaskNumber) ? "ScrapLackTask" : "ScrapHasTask";
+                        }
+                        else if (applyTaskStatus == 2)
+                        {
+                            status = "WatitingScrap";
+                        }
+                        else if (applyTaskStatus == 3)
+                        {
+                            status = "ApproveBGA";
                         }
                         else
                         {
-                            status = applyTaskStatus switch
-                            {
-                                2 => "WatitingScrap",
-                                3 => "ApproveBGA",
-                                _ => "RepairInRE"
-                            };
+                            status = "RepairInRE";
                         }
+                    }
+                    else if (!string.IsNullOrEmpty(groupKanban) && groupKanban.IndexOf("B36R_TO_SFG", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        status = "Online";
                     }
                     else
                     {
