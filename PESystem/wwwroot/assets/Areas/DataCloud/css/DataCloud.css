@@ -67,6 +67,13 @@
     max-height: 40px;
 }
 
+.data-item:hover span {
+    overflow: visible;
+    text-overflow: unset;
+    -webkit-line-clamp: unset;
+    max-height: none;
+}
+
 .data-item[custom-type="Folder"] i {
     color: #F5D471;
 }
