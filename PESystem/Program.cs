@@ -61,7 +61,12 @@ builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 // Cấu hình dịch vụ
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 104857600; // Giới hạn 100 MB
+    options.MultipartBodyLengthLimit = 209715200; // Giới hạn 200 MB
+});
+
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 209715200; // 200 MB
 });
 
 builder.Services.AddCors(options =>

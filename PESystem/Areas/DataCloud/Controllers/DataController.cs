@@ -165,6 +165,7 @@ namespace PESystem.Areas.DataCloud.Controllers
         }
 
         [HttpPost("upload-file")]
+        [RequestSizeLimit(209715200)]
         public IActionResult UploadFile([FromForm] List<IFormFile> files, [FromForm] string path)
         {
             try
@@ -189,6 +190,7 @@ namespace PESystem.Areas.DataCloud.Controllers
         }
 
         [HttpPost("upload-folder")]
+        [RequestSizeLimit(209715200)]
         public IActionResult UploadFolder([FromForm] List<IFormFile> files, [FromForm] string path)
         {
             try
