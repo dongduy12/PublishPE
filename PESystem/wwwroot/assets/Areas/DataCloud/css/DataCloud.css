@@ -75,17 +75,6 @@
     color: #5f6368;
 }
 
-@media (max-width: 768px) {
-    #data-cloud-items {
-        row-cols-md-2;
-    }
-}
-
-@media (max-width: 576px) {
-    #data-cloud-items {
-        row-cols-1;
-    }
-}
 
 .context-menu {
     position: fixed;
