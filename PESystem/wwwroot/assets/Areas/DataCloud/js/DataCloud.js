@@ -1,6 +1,7 @@
 ﻿$(document).ready(function () {
     let pathHistory = ['D:\\DataCloud']; // Khởi tạo với đường dẫn mặc định
     let selectedItem = null; // Lưu thông tin item được click chuột phải
+    const API_BASE = `${window.location.origin}/api/data`;
 
     // Hàm chuẩn hóa đường dẫn
     function normalizePath(path) {
@@ -25,7 +26,7 @@
         path = normalizePath(path); // Chuẩn hóa trước khi gửi
         console.log("Gửi yêu cầu với đường dẫn:", path);
         $.ajax({
-            url: 'http://10.220.130.119:8000/api/data/get-data',
+            url: `${API_BASE}/get-data`,
             type: 'GET',
             data: { path: path },
             success: function (response) {
@@ -74,7 +75,7 @@
 
         console.log("Gửi yêu cầu tìm kiếm với từ khóa:", keyword);
         $.ajax({
-            url: 'http://10.220.130.119:8000/api/data/search',
+            url: `${API_BASE}/search`,
             type: 'GET',
             data: {
                 keyword: keyword,
@@ -252,8 +253,8 @@
             const path = selectedItem.attr('custom-path');
             const type = selectedItem.attr('custom-type');
             const fileUrl = type === 'File'
-                ? `http://10.220.130.119:8000/api/data/download-file?path=${encodeURIComponent(path)}`
-                : `http://10.220.130.119:8000/api/data/download-folder?path=${encodeURIComponent(path)}`;
+                ? `${API_BASE}/download-file?path=${encodeURIComponent(path)}`
+                : `${API_BASE}/download-folder?path=${encodeURIComponent(path)}`;
 
             if (action === 'download') {
                 swalWithBootstrapButtons.fire({
@@ -287,7 +288,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
-                            url: 'http://10.220.130.119:8000/api/data/delete-items',
+                            url: `${API_BASE}/delete-items`,
                             type: 'POST',
                             contentType: 'application/json',
                             data: JSON.stringify([{ path: path, type: type }]),
@@ -350,7 +351,7 @@
             $('#pptViewer').show().empty();
 
             $.ajax({
-                url: 'http://10.220.130.119:8000/api/data/render-pptx',
+                url: `${API_BASE}/render-pptx`,
                 type: 'GET',
                 data: { path: path },
                 success: function (response) {
@@ -420,7 +421,7 @@
     $('#previewModal').on('hidden.bs.modal', function () {
         // Gửi yêu cầu xóa thư mục tạm (nếu cần)
         $.ajax({
-            url: 'http://10.220.130.119:8000/api/data/cleanup-temp',
+            url: `${API_BASE}/cleanup-temp`,
             type: 'POST',
             data: JSON.stringify({ tempDir: $('#pptViewer img').first().attr('src')?.split('/').slice(0, -1).join('/') }),
             success: function () {
@@ -466,7 +467,7 @@
         const path = normalizePath($(this).attr('custom-path'));
         const type = $(this).attr('custom-type');
         if (type === 'File') {
-            const fileUrl = `http://10.220.130.119:8000/api/data/download-file?path=${encodeURIComponent(path)}`;
+            const fileUrl = `${API_BASE}/download-file?path=${encodeURIComponent(path)}`;
             previewFile(path, fileUrl);
         }
     });
@@ -497,7 +498,7 @@
         }).then((result) => {
             if (result.isConfirmed && result.value) {
                 $.ajax({
-                    url: 'http://10.220.130.119:8000/api/data/create-folder',
+                    url: `${API_BASE}/create-folder`,
                     type: 'POST',
                     data: { path: currentPath, folderName: result.value },
                     success: function (response) {
@@ -559,7 +560,7 @@
             }
         });
         $.ajax({
-            url: 'http://10.220.130.119:8000/api/data/upload-file',
+            url: `${API_BASE}/upload-file`,
             type: 'POST',
             data: formData,
             processData: false,
@@ -624,7 +625,7 @@
         });
 
         $.ajax({
-            url: 'http://10.220.130.119:8000/api/data/upload-folder',
+            url: `${API_BASE}/upload-folder`,
             type: 'POST',
             data: formData,
             processData: false,
@@ -698,7 +699,7 @@
             });
 
             $.ajax({
-                url: 'http://10.220.130.119:8000/api/data/upload-folder',
+                url: `${API_BASE}/upload-folder`,
                 type: 'POST',
                 data: formData,
                 processData: false,
@@ -723,6 +724,15 @@
                 }
             });
         });
+
+    // Chuyển đổi bố cục
+    $('#grid-view-btn').click(function () {
+        $('#data-cloud-items').removeClass('list-view');
+    });
+
+    $('#list-view-btn').click(function () {
+        $('#data-cloud-items').addClass('list-view');
+    });
 
     // Sự kiện tìm kiếm
     let debounceTimer;

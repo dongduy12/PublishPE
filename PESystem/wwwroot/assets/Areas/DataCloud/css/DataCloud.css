@@ -117,3 +117,25 @@
     background-color: #e8f0fe;
     border: 2px dashed #1a73e8;
 }
+
+/* List view styles */
+#data-cloud-items.list-view .col {
+    flex: 0 0 100%;
+    max-width: 100%;
+}
+
+#data-cloud-items.list-view .data-item {
+    display: flex;
+    align-items: center;
+    text-align: left;
+}
+
+#data-cloud-items.list-view .data-item i {
+    font-size: 20px;
+    margin-right: 10px;
+}
+
+#data-cloud-items.list-view .data-item span {
+    -webkit-line-clamp: unset;
+    max-height: none;
+}
