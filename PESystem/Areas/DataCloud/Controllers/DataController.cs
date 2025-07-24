@@ -15,6 +15,7 @@ namespace PESystem.Areas.DataCloud.Controllers
     {
 
         private readonly string _basePath = "D:\\DataCloud";
+        private readonly string _recycleBinPath = Path.Combine("D:\\DataCloud", "RecycleBin");
 
         // Endpoint để render PPT/PPTX thành hình ảnh
         [HttpGet("render-pptx")]
@@ -252,23 +253,48 @@ namespace PESystem.Areas.DataCloud.Controllers
         {
             try
             {
+                Directory.CreateDirectory(_recycleBinPath);
+
                 foreach (var item in items)
                 {
+                    if (!item.Path.StartsWith(_basePath, StringComparison.OrdinalIgnoreCase))
+                        return BadRequest($"Đường dẫn không hợp lệ: {item.Path}");
+
+                    var relative = Path.GetRelativePath(_basePath, item.Path);
+                    var destination = Path.Combine(_recycleBinPath, relative);
+                    destination = GetUniquePath(destination);
+
                     if (item.Type == "File" && System.IO.File.Exists(item.Path))
                     {
-                        System.IO.File.Delete(item.Path);
+                        var destDir = Path.GetDirectoryName(destination);
+                        if (!Directory.Exists(destDir)) Directory.CreateDirectory(destDir!);
+                        System.IO.File.Move(item.Path, destination);
                     }
                     else if (item.Type == "Folder" && Directory.Exists(item.Path))
                     {
-                        Directory.Delete(item.Path, true);
+                        var destDir = Path.GetDirectoryName(destination);
+                        if (!Directory.Exists(destDir)) Directory.CreateDirectory(destDir!);
+                        Directory.Move(item.Path, destination);
                     }
                 }
-                return Ok(new { Message = "Đã xóa thành công!" });
+
+                return Ok(new { Message = "Đã chuyển vào thùng rác!" });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Lỗi: {ex.Message}");
             }
+        }
+
+        private string GetUniquePath(string path)
+        {
+            if (!System.IO.File.Exists(path) && !Directory.Exists(path))
+                return path;
+
+            var directory = Path.GetDirectoryName(path);
+            var fileName = Path.GetFileNameWithoutExtension(path);
+            var extension = Path.GetExtension(path);
+            return Path.Combine(directory!, $"{fileName}_{DateTime.Now:yyyyMMddHHmmss}{extension}");
         }
 
         // API tìm kiếm mới
