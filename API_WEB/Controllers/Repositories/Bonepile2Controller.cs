@@ -56,6 +56,10 @@ namespace API_WEB.Controllers.Repositories
 
                 //THuc thien truy van Oracle
                 var bonepileData = await ExecuteOracleQuery(request);
+                bonepileData = bonepileData
+                    .GroupBy(b => b.SN)
+                    .Select(g => g.First())
+                    .ToList();
 
                 if (!bonepileData.Any())
                 {
@@ -163,6 +167,10 @@ namespace API_WEB.Controllers.Repositories
 
                 // Thực hiện truy vấn Oracle
                 var bonepileData = await ExecuteOracleQuery(request);
+                bonepileData = bonepileData
+                    .GroupBy(b => b.SN)
+                    .Select(g => g.First())
+                    .ToList();
 
                 if (!bonepileData.Any())
                 {
@@ -403,7 +411,10 @@ namespace API_WEB.Controllers.Repositories
                     }
                 }
             }
-            return result;
+            return result
+                .GroupBy(r => r.SN)
+                .Select(g => g.First())
+                .ToList();
         }
 
 
@@ -427,6 +438,10 @@ namespace API_WEB.Controllers.Repositories
                 var statuses = filterByStatus ? request.Statuses.Where(s => !string.IsNullOrEmpty(s)).ToList() : null;
                 // Lấy data từ Oracle
                 var allData = await ExecuteAdapterRepairQuery();
+                allData = allData
+                    .GroupBy(d => d.SERIAL_NUMBER)
+                    .Select(g => g.First())
+                    .ToList();
 
                 // Lấy ApplyTaskStatus từ ScrapLists
                 var scrapCategories = await _sqlContext.ScrapLists
@@ -549,6 +564,10 @@ namespace API_WEB.Controllers.Repositories
             try
             {
                 var repairTaskData = await ExecuteAdapterRepairQuery();
+                repairTaskData = repairTaskData
+                    .GroupBy(d => d.SERIAL_NUMBER)
+                    .Select(g => g.First())
+                    .ToList();
                 var scrapCategories = await _sqlContext.ScrapLists
                 .Select(s => new { SN = s.SN, ApplyTaskStatus = s.ApplyTaskStatus, TaskNumber = s.TaskNumber })
                 .ToListAsync();
@@ -638,6 +657,10 @@ namespace API_WEB.Controllers.Repositories
             try
             {
                 var allData = await ExecuteAdapterRepairQuery();
+                allData = allData
+                    .GroupBy(d => d.SERIAL_NUMBER)
+                    .Select(g => g.First())
+                    .ToList();
 
                 var scrapCategories = await _sqlContext.ScrapLists
                     .Select(s => new { SN = s.SN, ApplyTaskStatus = s.ApplyTaskStatus, TaskNumber = s.TaskNumber })
@@ -954,7 +977,10 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                 }
             }
 
-            return result;
+            return result
+                .GroupBy(r => r.SERIAL_NUMBER)
+                .Select(g => g.First())
+                .ToList();
         }
         //===============END BONEPILE BEFORE==================
 
@@ -977,6 +1003,10 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                 bool filterByStatus = request.Statuses?.Any() == true;
                 var statuses = filterByStatus ? request.Statuses.Where(s => !string.IsNullOrEmpty(s)).ToList() : null;
                 var allData = await ExecuteBonepileAfterKanbanQuery();
+                allData = allData
+                    .GroupBy(d => d.SFG)
+                    .Select(g => g.First())
+                    .ToList();
 
                 var excludedSNs = GetExcludedSerialNumbers();
                 if (excludedSNs.Any())
@@ -1090,6 +1120,10 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
             try
             {
                 var allData = await ExecuteBonepileAfterKanbanQuery();
+                allData = allData
+                    .GroupBy(d => d.SFG)
+                    .Select(g => g.First())
+                    .ToList();
 
                 var excludedSNs = GetExcludedSerialNumbers();
                 if (excludedSNs.Any())
@@ -1153,6 +1187,10 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
             try
             {
                 var repairTaskData = await ExecuteBonepileAfterKanbanQuery();
+                repairTaskData = repairTaskData
+                    .GroupBy(d => d.SFG)
+                    .Select(g => g.First())
+                    .ToList();
 
                 var excludedSNs = GetExcludedSerialNumbers();
                 if (excludedSNs.Any())
@@ -1332,7 +1370,10 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                 };
             }).ToList();
 
-            return result;
+            return result
+                .GroupBy(r => r.SFG)
+                .Select(g => g.First())
+                .ToList();
         }
 
         private List<string> GetExcludedSerialNumbers()
