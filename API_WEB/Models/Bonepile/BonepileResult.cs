@@ -82,6 +82,7 @@
         public string ERROR_CODE { get; set; }
         public string STATUS { get; set; }
         public string FG_AGING { get; set; }
+        public string FG_MODEL_NAME { get; set; }
     }
     // Result model for bonepile after kanban query
     public class BonepileAfterKanbanRawResult
@@ -103,5 +104,6 @@
         public string FG_TEST_GROUP { get; set; }
         public string FG_ERROR_DESC { get; set; }
         public string FG_AGING { get; set; }
+        public string FG_MODEL_NAME { get; set; }
     }
 }

@@ -856,6 +856,7 @@ AND a.MODEL_NAME IN (
 )
 AND a.MODEL_NAME NOT LIKE '900%'
 AND a.MODEL_NAME NOT LIKE 'TB%'
+AND a.MODEL_NAME NOT LIKE '692%'
 AND b.ERROR_FLAG = 1
 AND a.MO_NUMBER NOT LIKE '8%'
 AND NOT EXISTS (
@@ -1045,6 +1046,7 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                             SN = b.SFG,
                             FG = b.FG,
                             ModelName = b.MODEL_NAME,
+                            fgModelName = b.FG_MODEL_NAME,
                             MoNumber = b.MO_NUMBER,
                             ProductLine = b.PRODUCT_LINE,
                             WipGroupSFC = b.WIP_GROUP_SFC,
@@ -1230,46 +1232,88 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
             await connection.OpenAsync();
 
             string query = @"
-                SELECT 
-                    a.SERIAL_NUMBER AS SFG,
-                    c.SERIAL_NUMBER AS FG,
-                    a.MO_NUMBER,
-                    a.MODEL_NAME,
-                    b.PRODUCT_LINE,
-                    a.WIP_GROUP AS WIP_GROUP_KANBAN,
-                    r107.WIP_GROUP AS WIP_GROUP_SFC,
-                    c.WORK_TIME,
-                    r109_sfg.test_time AS SFG_TEST_TIME,
-                    r109_sfg.test_code AS SFG_TEST_CODE,
-                    r109_sfg.test_group AS SFG_TEST_GROUP,
-                    ce_sfg.error_desc AS SFG_ERROR_DESC,
+               SELECT 
+    a.SERIAL_NUMBER AS SFG,
+    c.SERIAL_NUMBER AS FG,
+    a.MO_NUMBER,
+    a.MODEL_NAME,
+    b.PRODUCT_LINE,
+    a.WIP_GROUP AS WIP_GROUP_KANBAN,
+    r107.WIP_GROUP AS WIP_GROUP_SFC,
+    c.WORK_TIME,
+    r109_sfg.test_time AS SFG_TEST_TIME,
+    r109_sfg.test_code AS SFG_TEST_CODE,
+    r109_sfg.test_group AS SFG_TEST_GROUP,
+    ce_sfg.error_desc AS SFG_ERROR_DESC,
 
-                    r109_fg.test_time AS FG_TEST_TIME,
-                    r109_fg.test_code AS FG_TEST_CODE,
-                    r109_fg.test_group AS FG_TEST_GROUP,
-                    ce_fg.error_desc AS FG_ERROR_DESC,
-                    TRUNC(SYSDATE) - TRUNC(r109_fg.test_time) AS FG_AGING
+    r109_fg.test_time AS FG_TEST_TIME,
+    r109_fg.test_code AS FG_TEST_CODE,
+    r109_fg.test_group AS FG_TEST_GROUP,
+    ce_fg.error_desc AS FG_ERROR_DESC,
+    TRUNC(SYSDATE) - TRUNC(r109_fg.test_time) AS FG_AGING,
 
-                FROM SFISM4.Z_KANBAN_TRACKING_T a
-                INNER JOIN SFIS1.C_MODEL_DESC_T b ON a.MODEL_NAME = b.MODEL_NAME
-                LEFT JOIN (
-                    SELECT t.*, ROW_NUMBER() OVER (PARTITION BY t.KEY_PART_SN ORDER BY t.WORK_TIME DESC) AS rn
-                    FROM SFISM4.P_WIP_KEYPARTS_T t
-                ) c ON a.SERIAL_NUMBER = c.KEY_PART_SN AND c.rn = 1
-                LEFT JOIN (
-                    SELECT t.*, ROW_NUMBER() OVER (PARTITION BY t.serial_number ORDER BY t.test_time DESC) AS rn
-                    FROM SFISM4.R109 t
-                ) r109_sfg ON a.SERIAL_NUMBER = r109_sfg.serial_number AND r109_sfg.rn = 1
-                LEFT JOIN (
-                    SELECT t.*, ROW_NUMBER() OVER (PARTITION BY t.serial_number ORDER BY t.test_time DESC) AS rn
-                    FROM SFISM4.R109 t
-                ) r109_fg ON c.SERIAL_NUMBER = r109_fg.serial_number AND r109_fg.rn = 1
-                LEFT JOIN SFIS1.C_ERROR_CODE_T ce_sfg ON r109_sfg.test_code = ce_sfg.error_code
-                LEFT JOIN SFIS1.C_ERROR_CODE_T ce_fg ON r109_fg.test_code = ce_fg.error_code
-                LEFT JOIN SFISM4.R107 r107 ON r107.SERIAL_NUMBER = a.SERIAL_NUMBER
-                WHERE a.WIP_GROUP LIKE '%B36R%'
-                    AND b.model_serial != 'SWITCH'
-                    AND (r107.WIP_GROUP IS NULL OR r107.WIP_GROUP NOT LIKE '%BR2C%')";
+    r117_fg.MODEL_NAME AS FG_MODEL_NAME
+
+FROM SFISM4.Z_KANBAN_TRACKING_T a
+INNER JOIN SFIS1.C_MODEL_DESC_T b ON a.MODEL_NAME = b.MODEL_NAME
+
+LEFT JOIN (
+    SELECT *
+    FROM (
+        SELECT 
+            KEY_PART_SN,
+            SERIAL_NUMBER,
+            WORK_TIME,
+            ROW_NUMBER() OVER (
+                PARTITION BY KEY_PART_SN
+                ORDER BY WORK_TIME DESC
+            ) AS rn
+        FROM SFISM4.P_WIP_KEYPARTS_T
+        UNION ALL
+        SELECT 
+            KEY_PART_SN,
+            SERIAL_NUMBER,
+            WORK_TIME,
+            ROW_NUMBER() OVER (
+                PARTITION BY KEY_PART_SN
+                ORDER BY WORK_TIME DESC
+            ) AS rn
+        FROM SFISM4.R_WIP_KEYPARTS_T
+    )
+    WHERE rn = 1
+) c ON a.SERIAL_NUMBER = c.KEY_PART_SN
+
+LEFT JOIN (
+    SELECT t.*, ROW_NUMBER() OVER (PARTITION BY t.serial_number ORDER BY t.test_time DESC) AS rn
+    FROM SFISM4.R109 t
+) r109_sfg ON a.SERIAL_NUMBER = r109_sfg.serial_number AND r109_sfg.rn = 1
+
+LEFT JOIN (
+    SELECT t.*, ROW_NUMBER() OVER (PARTITION BY t.serial_number ORDER BY t.test_time DESC) AS rn
+    FROM SFISM4.R109 t
+) r109_fg ON c.SERIAL_NUMBER = r109_fg.serial_number AND r109_fg.rn = 1
+
+LEFT JOIN (
+    SELECT *
+    FROM (
+        SELECT
+            SERIAL_NUMBER,
+            MODEL_NAME,
+            ROW_NUMBER() OVER (PARTITION BY SERIAL_NUMBER ORDER BY ROWID) AS rn
+        FROM SFISM4.R117
+    )
+    WHERE rn = 1
+) r117_fg ON c.SERIAL_NUMBER = r117_fg.SERIAL_NUMBER
+
+
+LEFT JOIN SFIS1.C_ERROR_CODE_T ce_sfg ON r109_sfg.test_code = ce_sfg.error_code
+LEFT JOIN SFIS1.C_ERROR_CODE_T ce_fg ON r109_fg.test_code = ce_fg.error_code
+LEFT JOIN SFISM4.R107 r107 ON r107.SERIAL_NUMBER = a.SERIAL_NUMBER
+
+WHERE a.WIP_GROUP LIKE '%B36R%'
+  AND b.model_serial != 'SWITCH'
+  AND (r107.WIP_GROUP IS NULL OR r107.WIP_GROUP NOT LIKE '%BR2C%')
+";
 
             using (var command = new OracleCommand(query, connection))
             {
@@ -1295,6 +1339,7 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                             FG_TEST_CODE = reader["FG_TEST_CODE"]?.ToString(),
                             FG_TEST_GROUP = reader["FG_TEST_GROUP"]?.ToString(),
                             FG_ERROR_DESC = reader["FG_ERROR_DESC"]?.ToString(),
+                            FG_MODEL_NAME = reader["FG_MODEL_NAME"]?.ToString(),
                             FG_AGING = reader["FG_AGING"]?.ToString(),
                         };
                         rawResult.Add(item);
@@ -1315,6 +1360,7 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                     FG = b.FG,
                     MO_NUMBER = b.MO_NUMBER,
                     MODEL_NAME = b.MODEL_NAME,
+                    FG_MODEL_NAME = b.FG_MODEL_NAME,
                     PRODUCT_LINE = b.PRODUCT_LINE,
                     WIP_GROUP_KANBAN = b.WIP_GROUP_KANBAN,
                     WIP_GROUP_SFC = b.WIP_GROUP_SFC,

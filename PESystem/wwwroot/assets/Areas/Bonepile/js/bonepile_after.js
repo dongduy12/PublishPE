@@ -254,6 +254,7 @@
                         { data: "fg" },
                         { data: "productLine" },
                         { data: "modelName" },
+                        { data: "fgModelName" },
                         { data: "moNumber" },
                         { data: "wipGroupSFC" },
                         { data: "wipGroupKANBAN" },

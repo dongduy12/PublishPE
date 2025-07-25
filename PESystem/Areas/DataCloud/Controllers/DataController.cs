@@ -165,7 +165,6 @@ namespace PESystem.Areas.DataCloud.Controllers
         }
 
         [HttpPost("upload-file")]
-        [RequestSizeLimit(209715200)]
         public IActionResult UploadFile([FromForm] List<IFormFile> files, [FromForm] string path)
         {
             try
@@ -190,7 +189,6 @@ namespace PESystem.Areas.DataCloud.Controllers
         }
 
         [HttpPost("upload-folder")]
-        [RequestSizeLimit(209715200)]
         public IActionResult UploadFolder([FromForm] List<IFormFile> files, [FromForm] string path)
         {
             try
@@ -200,6 +198,8 @@ namespace PESystem.Areas.DataCloud.Controllers
 
                 foreach (var file in files)
                 {
+
+
                     var relativePath = file.FileName; // Sử dụng FileName tạm thời (cần webkitRelativePath từ client)
                     var fullPath = Path.Combine(path, relativePath);
                     var directory = Path.GetDirectoryName(fullPath);

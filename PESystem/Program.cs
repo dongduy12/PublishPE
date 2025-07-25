@@ -64,6 +64,7 @@ builder.Services.Configure<FormOptions>(options =>
     options.MultipartBodyLengthLimit = 209715200; // Giới hạn 200 MB
 });
 
+
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.Limits.MaxRequestBodySize = 209715200; // 200 MB
@@ -115,11 +116,11 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseStaticFiles();
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(Path.Combine("D:\\DataCloud", "Temp")),
-    RequestPath = "/Temp"
-});
+//app.UseStaticFiles(new StaticFileOptions
+//{
+//    FileProvider = new PhysicalFileProvider(Path.Combine("D:\\DataCloud", "Temp")),
+//    RequestPath = "/Temp"
+//});
 
 app.UseRouting();
 

@@ -803,12 +803,12 @@ namespace API_WEB.Controllers.Repositories
 
             var okRecords = await _sqlContext.KhoOks
                 .Where(p => remaining.Contains(p.SERIAL_NUMBER))
-                .Select(p => new { p.SERIAL_NUMBER, p.ShelfCode, p.ColumnNumber, p.LevelNumber, p.TrayNumber })
+                .Select(p => new { p.SERIAL_NUMBER, p.ShelfCode, p.ColumnNumber, p.LevelNumber })
                 .ToListAsync();
 
             foreach (var r in okRecords)
             {
-                locationMap[r.SERIAL_NUMBER] = BuildLocation(r.ShelfCode, r.ColumnNumber, r.LevelNumber, r.TrayNumber, null);
+                locationMap[r.SERIAL_NUMBER] = BuildLocation(r.ShelfCode, r.ColumnNumber, r.LevelNumber, null, null);
             }
 
             remaining = remaining.Except(okRecords.Select(o => o.SERIAL_NUMBER)).ToList();
