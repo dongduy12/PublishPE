@@ -56,6 +56,10 @@ namespace API_WEB.Controllers.Repositories
 
                 //THuc thien truy van Oracle
                 var bonepileData = await ExecuteOracleQuery(request);
+                bonepileData = bonepileData
+                    .GroupBy(b => b.SN)
+                    .Select(g => g.First())
+                    .ToList();
 
                 if (!bonepileData.Any())
                 {
@@ -63,20 +67,21 @@ namespace API_WEB.Controllers.Repositories
                 }
 
 
-                var scrapCategories = await _sqlContext.ScrapLists
+                var scrapCategoryDict = await _sqlContext.ScrapLists
+                    .AsNoTracking()
                     .Where(s => bonepileData.Select(b => b.SN).Contains(s.SN))
-                    .Select(s => new ScrapListCategory { SN = s.SN, Category = s.Category })
-                    .ToListAsync();
+                    .Select(s => new { s.SN, s.Category })
+                    .ToDictionaryAsync(s => s.SN, s => s.Category);
 
                 //var validStatuses = new HashSet<string> { "Repair", "CheckOut", "CheckIn", "WaitingLink", "Online", "WaitingApproveScrap", "Scrap" };
                 var validStatuses = new HashSet<string> { "Repair", "CheckOut", "CheckIn", "WaitingLink", "Online", "WaitingKanBanIn", "WaitingApproveScrap", "Scrap" };
                 var result = bonepileData.Select(b =>
                 {
-                    var scrapCategory = scrapCategories.FirstOrDefault(c => c.SN == b.SN);
+                    scrapCategoryDict.TryGetValue(b.SN, out var category);
                     string status;
-                    if (scrapCategory != null)
+                    if (!string.IsNullOrEmpty(category))
                     {
-                        status = scrapCategory.Category == "Scrap" ? "Scrap" : "WaitingApproveScrap";
+                        status = category == "Scrap" ? "Scrap" : "WaitingApproveScrap";
                     }
                     else
                     {
@@ -115,7 +120,7 @@ namespace API_WEB.Controllers.Repositories
                         CheckinRepairTime = b.CHECKIN_REPAIR_TIME?.ToString("yyyy-MM-dd HH:mm:ss") ?? "N/A",
                         CheckoutRepairTime = b.CHECKOUT_REPAIR_TIME?.ToString("yyyy-MM-dd HH:mm:ss") ?? "N/A",
                         ScrapStatus = b.SCRAP_STATUS,
-                        Category = scrapCategory?.Category ?? "N/A"
+                        Category = category ?? "N/A"
                     };
                 }).Where(r => validStatuses.Contains(r.Status) && request.Statuses.Contains(r.Status)).ToList();
                 if (!result.Any())
@@ -162,6 +167,10 @@ namespace API_WEB.Controllers.Repositories
 
                 // Thực hiện truy vấn Oracle
                 var bonepileData = await ExecuteOracleQuery(request);
+                bonepileData = bonepileData
+                    .GroupBy(b => b.SN)
+                    .Select(g => g.First())
+                    .ToList();
 
                 if (!bonepileData.Any())
                 {
@@ -169,10 +178,11 @@ namespace API_WEB.Controllers.Repositories
                 }
 
                 // Lấy Category từ ScrapLists (SQL Server)
-                var scrapCategories = await _sqlContext.ScrapLists
+                var scrapCategoryDict = await _sqlContext.ScrapLists
+                    .AsNoTracking()
                     .Where(s => bonepileData.Select(b => b.SN).Contains(s.SN))
-                    .Select(s => new ScrapListCategory { SN = s.SN, Category = s.Category })
-                    .ToListAsync();
+                    .Select(s => new { s.SN, s.Category })
+                    .ToDictionaryAsync(s => s.SN, s => s.Category);
 
                 // Xác định trạng thái và đếm số lượng
                 //var validStatuses = new HashSet<string> { "Repair", "CheckOut", "CheckIn", "WaitingLink", "Online", "WaitingApproveScrap", "Scrap" };
@@ -191,11 +201,11 @@ namespace API_WEB.Controllers.Repositories
 
                 foreach (var b in bonepileData)
                 {
-                    var scrapCategory = scrapCategories.FirstOrDefault(c => c.SN == b.SN);
+                    scrapCategoryDict.TryGetValue(b.SN, out var category);
                     string status;
-                    if (scrapCategory != null)
+                    if (!string.IsNullOrEmpty(category))
                     {
-                        status = scrapCategory.Category == "Scrap" ? "Scrap" : "WaitingApproveScrap";
+                        status = category == "Scrap" ? "Scrap" : "WaitingApproveScrap";
                     }
                     else
                     {
@@ -365,6 +375,7 @@ namespace API_WEB.Controllers.Repositories
 
             using (var command = new OracleCommand(query, connection))
             {
+                command.CommandTimeout = 300;
                 // Bind parameters
                 command.Parameters.Add("start_date", OracleDbType.Varchar2).Value = request.StartDate;
                 command.Parameters.Add("end_date", OracleDbType.Varchar2).Value = request.EndDate;
@@ -400,7 +411,10 @@ namespace API_WEB.Controllers.Repositories
                     }
                 }
             }
-            return result;
+            return result
+                .GroupBy(r => r.SN)
+                .Select(g => g.First())
+                .ToList();
         }
 
 
@@ -424,6 +438,10 @@ namespace API_WEB.Controllers.Repositories
                 var statuses = filterByStatus ? request.Statuses.Where(s => !string.IsNullOrEmpty(s)).ToList() : null;
                 // Lấy data từ Oracle
                 var allData = await ExecuteAdapterRepairQuery();
+                allData = allData
+                    .GroupBy(d => d.SERIAL_NUMBER)
+                    .Select(g => g.First())
+                    .ToList();
 
                 // Lấy ApplyTaskStatus từ ScrapLists
                 var scrapCategories = await _sqlContext.ScrapLists
@@ -546,6 +564,10 @@ namespace API_WEB.Controllers.Repositories
             try
             {
                 var repairTaskData = await ExecuteAdapterRepairQuery();
+                repairTaskData = repairTaskData
+                    .GroupBy(d => d.SERIAL_NUMBER)
+                    .Select(g => g.First())
+                    .ToList();
                 var scrapCategories = await _sqlContext.ScrapLists
                 .Select(s => new { SN = s.SN, ApplyTaskStatus = s.ApplyTaskStatus, TaskNumber = s.TaskNumber })
                 .ToListAsync();
@@ -635,6 +657,10 @@ namespace API_WEB.Controllers.Repositories
             try
             {
                 var allData = await ExecuteAdapterRepairQuery();
+                allData = allData
+                    .GroupBy(d => d.SERIAL_NUMBER)
+                    .Select(g => g.First())
+                    .ToList();
 
                 var scrapCategories = await _sqlContext.ScrapLists
                     .Select(s => new { SN = s.SN, ApplyTaskStatus = s.ApplyTaskStatus, TaskNumber = s.TaskNumber })
@@ -924,6 +950,7 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
 
             using (var command = new OracleCommand(query, connection))
             {
+                command.CommandTimeout = 300;
                 using (var reader = await command.ExecuteReaderAsync())
                 {
                     while (await reader.ReadAsync())
@@ -950,7 +977,10 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                 }
             }
 
-            return result;
+            return result
+                .GroupBy(r => r.SERIAL_NUMBER)
+                .Select(g => g.First())
+                .ToList();
         }
         //===============END BONEPILE BEFORE==================
 
@@ -973,6 +1003,10 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                 bool filterByStatus = request.Statuses?.Any() == true;
                 var statuses = filterByStatus ? request.Statuses.Where(s => !string.IsNullOrEmpty(s)).ToList() : null;
                 var allData = await ExecuteBonepileAfterKanbanQuery();
+                allData = allData
+                    .GroupBy(d => d.SFG)
+                    .Select(g => g.First())
+                    .ToList();
 
                 var excludedSNs = GetExcludedSerialNumbers();
                 if (excludedSNs.Any())
@@ -1086,6 +1120,10 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
             try
             {
                 var allData = await ExecuteBonepileAfterKanbanQuery();
+                allData = allData
+                    .GroupBy(d => d.SFG)
+                    .Select(g => g.First())
+                    .ToList();
 
                 var excludedSNs = GetExcludedSerialNumbers();
                 if (excludedSNs.Any())
@@ -1149,6 +1187,10 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
             try
             {
                 var repairTaskData = await ExecuteBonepileAfterKanbanQuery();
+                repairTaskData = repairTaskData
+                    .GroupBy(d => d.SFG)
+                    .Select(g => g.First())
+                    .ToList();
 
                 var excludedSNs = GetExcludedSerialNumbers();
                 if (excludedSNs.Any())
@@ -1273,6 +1315,7 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
 
             using (var command = new OracleCommand(query, connection))
             {
+                command.CommandTimeout = 300;
                 using (var reader = await command.ExecuteReaderAsync())
                 {
                     while (await reader.ReadAsync())
@@ -1327,7 +1370,10 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                 };
             }).ToList();
 
-            return result;
+            return result
+                .GroupBy(r => r.SFG)
+                .Select(g => g.First())
+                .ToList();
         }
 
         private List<string> GetExcludedSerialNumbers()

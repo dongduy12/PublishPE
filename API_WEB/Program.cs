@@ -52,7 +52,9 @@ builder.Services.AddDbContext<CSDL_NE>(opt =>
     }));
 
 builder.Services.AddDbContext<OracleDbContext>(options =>
-    options.UseOracle(builder.Configuration.GetConnectionString("OracleConnection"))
+    options.UseOracle(
+            builder.Configuration.GetConnectionString("OracleConnection"),
+            oracleOptions => oracleOptions.CommandTimeout(300))
            .EnableSensitiveDataLogging()
            .LogTo(Console.WriteLine));
 
