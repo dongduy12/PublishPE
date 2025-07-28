@@ -40,15 +40,16 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link d-flex align-items-center avatar-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <img src="~/assets/img/avatar.png" class="user-avatar" alt="User" style="width: 40px; height: 40px;">
-                            <span class="d-none d-md-block ps-2">@User.Identity.Name</span>
+                            <span class="d-none d-md-block ps-2">@User.FindFirst("FullName")?.Value</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                            <li class="dropdown-header text-center"><h6>@User.Identity.Name</h6></li>
+                            <li class="dropdown-header text-center">
+                                <h6>@User.FindFirst("FullName")?.Value</h6>
+                                <small>@User.FindFirst("Email")?.Value</small>
+                            </li>
                             <li><hr class="dropdown-divider"></li>
                             <li class="nav-item text-center">
-                                <a class="nav-link avatar-link" href="#">
-                                    <img src="~/assets/img/avatar.png" class="user-avatar mb-2" alt="User" style="width: 50px; height: 50px;">
-                                </a>
+                                <a class="dropdown-item" asp-action="ChangePassword" asp-controller="Account">Change Password</a>
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             <li class="nav-item text-center">

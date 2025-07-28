@@ -50,7 +50,10 @@ namespace PESystem.Controllers
                     {
                         new Claim(ClaimTypes.Name, apiUser.Username),
                         new Claim(ClaimTypes.Role, apiUser.Role),
-                        new Claim("AllowedAreas", apiUser.AllowedAreas ?? string.Empty)
+                        new Claim("AllowedAreas", apiUser.AllowedAreas ?? string.Empty),
+                        new Claim("FullName", apiUser.FullName),
+                        new Claim("Email", apiUser.Email),
+                        new Claim("Department", apiUser.Department)
                     };
 
                     var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -101,6 +104,86 @@ namespace PESystem.Controllers
             return View(model);
         }
 
+        [HttpGet]
+        public IActionResult ChangePassword()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ChangePassword(ChangePasswordModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+            var username = User.Identity?.Name;
+            if (username == null) return RedirectToAction("Login");
+
+            var client = _clientFactory.CreateClient("ApiClient");
+            var response = await client.PostAsJsonAsync("api/Auth/change-password", new ChangePasswordDto
+            {
+                Username = username,
+                OldPassword = model.OldPassword,
+                NewPassword = model.NewPassword
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                ViewBag.Message = "Password changed";
+                return View();
+            }
+
+            ModelState.AddModelError(string.Empty, "Failed to change password");
+            return View(model);
+        }
+
+        [HttpGet]
+        public IActionResult ForgotPassword()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            var client = _clientFactory.CreateClient("ApiClient");
+            var response = await client.PostAsJsonAsync("api/Auth/forgot-password", new ForgotPasswordDto { Email = model.Email });
+            if (response.IsSuccessStatusCode)
+            {
+                ViewBag.Message = "OTP sent";
+                return View();
+            }
+            ModelState.AddModelError(string.Empty, "Failed to send OTP");
+            return View(model);
+        }
+
+        [HttpGet]
+        public IActionResult ResetPassword()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ResetPassword(ResetPasswordModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            var client = _clientFactory.CreateClient("ApiClient");
+            var response = await client.PostAsJsonAsync("api/Auth/reset-password", new ResetPasswordDto
+            {
+                Email = model.Email,
+                Otp = model.Otp,
+                NewPassword = model.NewPassword
+            });
+            if (response.IsSuccessStatusCode)
+            {
+                ViewBag.Message = "Password reset successful";
+                return View();
+            }
+            ModelState.AddModelError(string.Empty, "Failed to reset password");
+            return View(model);
+        }
+
 
         //Khi username không có quyền truy cập, sẽ điều hướng đến đây!
         [HttpGet]
@@ -130,6 +213,9 @@ namespace PESystem.Controllers
     {
         public string Username { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Department { get; set; } = string.Empty;
         public string? AllowedAreas { get; set; }
     }
 }
