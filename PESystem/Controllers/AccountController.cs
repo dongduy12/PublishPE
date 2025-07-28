@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication.Cookies;
+using PESystem.Helpers;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -42,7 +43,10 @@ namespace PESystem.Controllers
                         {
                             new Claim(ClaimTypes.Name, user.Username),
                             new Claim(ClaimTypes.Role, user.Role),
-                            new Claim("AllowedAreas", string.Join(",", user.AllowedAreas))
+                            new Claim("AllowedAreas", string.Join(",", user.AllowedAreas)),
+                            new Claim("FullName", user.FullName),
+                            new Claim("Email", user.Email),
+                            new Claim("Department", user.Department)
                         };
 
                         var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -118,6 +122,85 @@ namespace PESystem.Controllers
 
             // Xóa cookie sau khi đăng xuất
             Response.Cookies.Delete(".AspNetCore.Cookies");
+            return RedirectToAction("Login");
+        }
+
+        [HttpGet]
+        public IActionResult ChangePassword()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ChangePassword(ChangePasswordModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+            var username = User.Identity?.Name;
+            if (username == null) return RedirectToAction("Login");
+            var user = await _context.Users.SingleOrDefaultAsync(u => u.Username == username);
+            if (user == null) return RedirectToAction("Login");
+            var hasher = new PasswordHasher<User>();
+            var result = hasher.VerifyHashedPassword(user, user.Password, model.OldPassword);
+            if (result != PasswordVerificationResult.Success)
+            {
+                ModelState.AddModelError("", "Mật khẩu cũ không đúng.");
+                return View(model);
+            }
+            user.Password = hasher.HashPassword(user, model.NewPassword);
+            await _context.SaveChangesAsync();
+            ViewBag.SuccessMessage = "Đổi mật khẩu thành công.";
+            return View();
+        }
+
+        [HttpGet]
+        public IActionResult ForgotPassword()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == model.Email);
+            if (user == null)
+            {
+                ModelState.AddModelError("", "Email không tồn tại.");
+                return View(model);
+            }
+            var otp = new Random().Next(100000, 999999).ToString();
+            Helpers.OtpStore.SetOtp(user.Email, otp);
+            await MailHelper.SendEmailAsync(user.Email, "OTP Reset Password", $"Your OTP is: {otp}");
+            TempData["Email"] = user.Email;
+            return RedirectToAction("ResetPassword");
+        }
+
+        [HttpGet]
+        public IActionResult ResetPassword()
+        {
+            var email = TempData["Email"] as string;
+            return View(new ResetPasswordModel { Email = email ?? string.Empty });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ResetPassword(ResetPasswordModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == model.Email);
+            if (user == null)
+            {
+                ModelState.AddModelError("", "User not found");
+                return View(model);
+            }
+            if (!Helpers.OtpStore.ValidateOtp(user.Email, model.Otp))
+            {
+                ModelState.AddModelError("", "OTP không hợp lệ hoặc đã hết hạn.");
+                return View(model);
+            }
+            var hasher = new PasswordHasher<User>();
+            user.Password = hasher.HashPassword(user, model.NewPassword);
+            await _context.SaveChangesAsync();
+            Helpers.OtpStore.RemoveOtp(user.Email);
             return RedirectToAction("Login");
         }
     }
