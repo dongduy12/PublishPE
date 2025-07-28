@@ -5,16 +5,20 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using PESystem.Models;
 using Microsoft.AspNetCore.Identity;
+using System.Net.Http.Json;
+using API_WEB.Dtos.Auth;
 
 namespace PESystem.Controllers
 {
     public class AccountController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IHttpClientFactory _clientFactory;
 
-        public AccountController(ApplicationDbContext context)
+        public AccountController(ApplicationDbContext context, IHttpClientFactory clientFactory)
         {
             _context = context;
+            _clientFactory = clientFactory;
         }
 
         [HttpGet]
@@ -25,37 +29,37 @@ namespace PESystem.Controllers
         [HttpPost]
         public async Task<IActionResult> Login(LoginModel model)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                var user = await _context.Users
-                    .SingleOrDefaultAsync(u => u.Username == model.Username);
-
-                if (user != null)
-                {
-                    var hasher = new PasswordHasher<User>();
-                    var result = hasher.VerifyHashedPassword(user, user.Password, model.Password);
-
-                    if (result == PasswordVerificationResult.Success)
-                    {
-                        // Tạo Claims cho người dùng
-                        var claims = new List<Claim>
-                        {
-                            new Claim(ClaimTypes.Name, user.Username),
-                            new Claim(ClaimTypes.Role, user.Role),
-                            new Claim("AllowedAreas", string.Join(",", user.AllowedAreas))
-                        };
-
-                        var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
-                        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
-
-                        return RedirectToAction("Home", "Home");
-                    }
-                }
-
-                ModelState.AddModelError("", "Username hoặc Password không đúng.");
+                return View(model);
             }
 
+            var client = _clientFactory.CreateClient("ApiClient");
+            var response = await client.PostAsJsonAsync("api/Auth/login", new LoginDto
+            {
+                Username = model.Username,
+                Password = model.Password
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                var apiUser = await response.Content.ReadFromJsonAsync<ApiUser>();
+                if (apiUser != null)
+                {
+                    var claims = new List<Claim>
+                    {
+                        new Claim(ClaimTypes.Name, apiUser.Username),
+                        new Claim(ClaimTypes.Role, apiUser.Role),
+                        new Claim("AllowedAreas", apiUser.AllowedAreas ?? string.Empty)
+                    };
+
+                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
+                    return RedirectToAction("Home", "Home");
+                }
+            }
+
+            ModelState.AddModelError("", "Username hoặc Password không đúng.");
             return View(model);
         }
 
@@ -120,5 +124,12 @@ namespace PESystem.Controllers
             Response.Cookies.Delete(".AspNetCore.Cookies");
             return RedirectToAction("Login");
         }
+    }
+
+    public class ApiUser
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+        public string? AllowedAreas { get; set; }
     }
 }

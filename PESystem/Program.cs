@@ -16,6 +16,10 @@ var configuration = new ConfigurationBuilder()
 builder.Services.AddHttpContextAccessor();
 // Đăng ký các dịch vụ
 builder.Services.AddControllersWithViews();
+builder.Services.AddHttpClient("ApiClient", client =>
+{
+    client.BaseAddress = new Uri(configuration["ApiBaseUrl"]!);
+});
 
 // Cấu hình chuỗi kết nối đến SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
