@@ -6,6 +6,7 @@ using System.Security.Claims;
 using PESystem.Models;
 using Microsoft.AspNetCore.Identity;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Authorization;
 using API_WEB.Dtos.Auth;
 
 namespace PESystem.Controllers
@@ -22,11 +23,13 @@ namespace PESystem.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public IActionResult Login()
         {
             return View();
         }
         [HttpPost]
+        [AllowAnonymous]
         public async Task<IActionResult> Login(LoginModel model)
         {
             if (!ModelState.IsValid)
@@ -67,7 +70,11 @@ namespace PESystem.Controllers
                     };
 
                     var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
+                    var authProps = new AuthenticationProperties { IsPersistent = model.RememberMe };
+                    await HttpContext.SignInAsync(
+                        CookieAuthenticationDefaults.AuthenticationScheme,
+                        new ClaimsPrincipal(claimsIdentity),
+                        authProps);
                     return RedirectToAction("Home", "Home");
                 }
             }
