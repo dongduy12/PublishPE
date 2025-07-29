@@ -173,108 +173,51 @@ namespace API_WEB.Controllers.Repositories
         {
             try
             {
-                var startDate = new DateTime(2025, 3, 1);
-
-                var products = await _sqlContext.Exports
-                    .Where(p => p.ExportDate >= startDate && p.ExportPerson != "Auto_Export" && p.ExportPerson != "Scrap")
-                    .Select(p => new { p.SerialNumber, p.ProductLine, p.ModelName, p.ExportDate })
+                var exports = await _sqlContext.Exports
+                    .Where(e => e.CheckingB36R)
+                    .Select(e => new { e.SerialNumber, e.ProductLine, e.ModelName, e.ExportDate })
                     .ToListAsync();
 
-                var serialNumbers = products.Select(p => p.SerialNumber).ToList();
-                if (!serialNumbers.Any())
+                if (!exports.Any())
                 {
-                    return Ok(new { success = false, message = "Không có Serial Number nào thỏa mãn điều kiện từ ngày 01/03/2025." });
+                    return Ok(new { success = false, message = "Không có Serial Number nào được đánh dấu B36R." });
                 }
 
-                var productStatuses = await _sqlContext.Products
-                    .Where(p => serialNumbers.Contains(p.SerialNumber))
-                    .Select(p => new { p.SerialNumber })
-                    .ToListAsync();
-
-                var existingSerialNumbers = productStatuses.Select(p => p.SerialNumber).ToHashSet();
-                var validSerialNumbers = serialNumbers
-                    .Where(sn => !existingSerialNumbers.Contains(sn))
-                    .ToList();
-
-                if (!validSerialNumbers.Any())
-                {
-                    return Ok(new { success = false, message = "Không có Serial Number nào thỏa mãn điều kiện sau khi kiểm tra tồn tại trong Products." });
-                }
+                var serialNumbers = exports.Select(e => e.SerialNumber).Distinct().ToList();
 
                 await using var oracleConnection = new OracleConnection(_oracleContext.Database.GetDbConnection().ConnectionString);
                 await oracleConnection.OpenAsync();
 
-                var wipGroups = await GetWipGroupsFromOracleAsync(oracleConnection, validSerialNumbers);
-
-                var errorFlags = new Dictionary<string, string>();
-                if (validSerialNumbers.Any())
-                {
-                    var batchSize = 1000;
-                    for (var i = 0; i < validSerialNumbers.Count; i += batchSize)
-                    {
-                        var batch = validSerialNumbers.Skip(i).Take(batchSize).ToList();
-                        var serialList = string.Join(",", batch.Select(sn => $"'{sn}'"));
-
-                        var query = $@"
-                    SELECT SERIAL_NUMBER, ERROR_FLAG 
-                    FROM SFISM4.R107
-                    WHERE SERIAL_NUMBER IN ({serialList})";
-
-                        using var command = new OracleCommand(query, oracleConnection);
-                        using var reader = await command.ExecuteReaderAsync();
-                        while (await reader.ReadAsync())
-                        {
-                            var serialNumber = reader["SERIAL_NUMBER"]?.ToString();
-                            var errorFlag = reader["ERROR_FLAG"]?.ToString();
-                            if (!string.IsNullOrEmpty(serialNumber) && !errorFlags.ContainsKey(serialNumber))
-                            {
-                                errorFlags.Add(serialNumber, errorFlag);
-                            }
-                        }
-                    }
-                }
+                var wipGroups = await GetWipGroupsFromOracleAsync(oracleConnection, serialNumbers);
 
                 var results = new List<object>();
                 int awaitingLinkCount = 0;
                 int linkCount = 0;
 
-                foreach (var product in products)
+                foreach (var exp in exports)
                 {
-                    var sn = product.SerialNumber;
-
-                    if (existingSerialNumbers.Contains(sn))
-                    {
-                        continue;
-                    }
-
+                    var sn = exp.SerialNumber;
                     var wipGroup = wipGroups.ContainsKey(sn) ? wipGroups[sn] : null;
-                    var errorFlag = errorFlags.ContainsKey(sn) ? errorFlags[sn] : null;
 
                     string status;
-                    if (errorFlag == "0" && wipGroup != null)
+                    if (!string.IsNullOrEmpty(wipGroup) &&
+                        (wipGroup == "B36R_TO_SFG" || wipGroup == "KANBAN_IN" || wipGroup == "KANBAN_OUT"))
                     {
-                        if (wipGroup == "B36R_TO_SFG" || wipGroup == "KANBAN_IN" || wipGroup == "KANBAN_OUT")
-                        {
-                            status = "Đã link MO";
-                            linkCount++;
-                        }
-                        else
-                        {
-                            status = "Chờ Link MO";
-                            awaitingLinkCount++;
-                        }
+                        status = "Đã link MO";
+                        linkCount++;
                     }
                     else
                     {
-                        continue;
+                        status = "Chờ Link MO";
+                        awaitingLinkCount++;
                     }
 
                     results.Add(new
                     {
                         SN = sn,
-                        ProductLine = product.ProductLine,
-                        ModelName = product.ModelName,
-                        ExportDate = product.ExportDate.HasValue ? product.ExportDate.Value.ToString("yyyy-MM-dd HH:mm:ss") : "",
+                        ProductLine = exp.ProductLine,
+                        ModelName = exp.ModelName,
+                        ExportDate = exp.ExportDate.HasValue ? exp.ExportDate.Value.ToString("yyyy-MM-dd HH:mm:ss") : "",
                         Status = status
                     });
                 }
@@ -283,9 +226,9 @@ namespace API_WEB.Controllers.Repositories
                 {
                     success = true,
                     data = results,
-                    awaitingLinkCount = awaitingLinkCount,
-                    linkCount = linkCount,
-                    message = "Trạng thái từ ngày 01/03/2025."
+                    awaitingLinkCount,
+                    linkCount,
+                    message = "Trạng thái B36R."
                 });
             }
             catch (Exception ex)
