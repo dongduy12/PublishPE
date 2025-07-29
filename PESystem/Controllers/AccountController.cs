@@ -41,7 +41,7 @@ namespace PESystem.Controllers
             HttpResponseMessage response;
             try
             {
-                response = await client.PostAsJsonAsync("api/Auth/login", new LoginDto
+                response = await client.PostAsJsonAsync("http://10.220.130.119:9090/api/Auth/login", new LoginDto
                 {
                     Username = model.Username,
                     Password = model.Password
