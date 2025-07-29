@@ -48,6 +48,7 @@ namespace API_WEB.ModelsDB
             modelBuilder.Entity<Export>(entity =>
             {
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
+                entity.Property(e => e.CheckingB36R).HasDefaultValue(false);
             });
 
             modelBuilder.Entity<Product>(entity =>

@@ -174,7 +174,7 @@ namespace API_WEB.Controllers.Repositories
             try
             {
                 var exports = await _sqlContext.Exports
-                    .Where(e => e.CheckingB36R)
+                    .Where(e => e.CheckingB36R == true)
                     .Select(e => new { e.SerialNumber, e.ProductLine, e.ModelName, e.ExportDate })
                     .ToListAsync();
 

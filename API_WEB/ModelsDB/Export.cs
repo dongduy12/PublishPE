@@ -30,6 +30,6 @@ namespace API_WEB.ModelsDB
         public string? ModelName { get; set; }
 
         [Column("CHECKING_B36R")]
-        public bool CheckingB36R { get; set; }
+        public bool? CheckingB36R { get; set; }
     }
 }
