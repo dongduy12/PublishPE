@@ -58,6 +58,7 @@ namespace API_WEB.Controllers.Repositories
                     export.ExportPerson = exportPersonValue;
                     export.EntryDate = now;
                     export.ExportDate = now;
+                    export.CheckingB36R = request.IsB36R;
                 }
 
                 var existingProductSerials = productsToExport.Select(p => p.SerialNumber).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -73,7 +74,8 @@ namespace API_WEB.Controllers.Repositories
                     ProductLine = p.ProductLine,
                     EntryDate = p.EntryDate,
                     EntryPerson = p.EntryPerson,
-                    ModelName = p.ModelName
+                    ModelName = p.ModelName,
+                    CheckingB36R = request.IsB36R
                 }));
 
                 if (nonExistingSerials.Any())
@@ -106,7 +108,8 @@ namespace API_WEB.Controllers.Repositories
                         ProductLine = info.ProductLine,
                         EntryDate = now,
                         EntryPerson = exportPersonValue,
-                        ModelName = info.ModelName
+                        ModelName = info.ModelName,
+                        CheckingB36R = request.IsB36R
                     }));
                 }
 
@@ -152,6 +155,7 @@ namespace API_WEB.Controllers.Repositories
             public string? ExportPerson { get; set; }
             public List<string>? SerialNumbers { get; set; }
             public bool IsScrap { get; set; }
+            public bool IsB36R { get; set; }
         }
 
         public class GetSNInfoResponse
