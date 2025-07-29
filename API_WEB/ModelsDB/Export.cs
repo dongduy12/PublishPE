@@ -28,5 +28,8 @@ namespace API_WEB.ModelsDB
         public string? EntryPerson { get; set; }
         [StringLength(100)]
         public string? ModelName { get; set; }
+
+        [Column("CHECKING_B36R")]
+        public bool? CheckingB36R { get; set; }
     }
 }

@@ -46,18 +46,37 @@ namespace API_WEB.Controllers.Repositories
                 var existingExports = await _sqlContext.Exports
                     .Where(e => serialNumbers.Contains(e.SerialNumber))
                     .ToListAsync();
-                var existingExportSerials = existingExports.Select(e => e.SerialNumber).ToHashSet(StringComparer.OrdinalIgnoreCase);
-                var newSerials = serialNumbers.Except(existingExportSerials, StringComparer.OrdinalIgnoreCase).ToList();
+                var existingExportSerials = existingExports
+                    .Select(e => e.SerialNumber)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var newSerials = serialNumbers
+                    .Except(existingExportSerials, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
 
                 var now = DateTime.Now;
                 var exportPersonValue = request.IsScrap ? "Scrap" : request.ExportPerson;
 
-                foreach (var export in existingExports)
+                var productDict = productsToExport
+                    .ToDictionary(p => p.SerialNumber, StringComparer.OrdinalIgnoreCase);
+
+                foreach (var group in existingExports
+                    .GroupBy(e => e.SerialNumber, StringComparer.OrdinalIgnoreCase))
                 {
-                    export.EntryPerson = exportPersonValue;
+                    var export = group.OrderBy(e => e.Id).First();
+                    if (group.Count() > 1)
+                    {
+                        _sqlContext.Exports.RemoveRange(group.Skip(1));
+                    }
+
                     export.ExportPerson = exportPersonValue;
-                    export.EntryDate = now;
                     export.ExportDate = now;
+                    export.CheckingB36R = request.IsB36R;
+
+                    if (productDict.TryGetValue(export.SerialNumber, out var prod))
+                    {
+                        export.ProductLine = prod.ProductLine;
+                        export.ModelName = prod.ModelName;
+                    }
                 }
 
                 var existingProductSerials = productsToExport.Select(p => p.SerialNumber).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -73,7 +92,8 @@ namespace API_WEB.Controllers.Repositories
                     ProductLine = p.ProductLine,
                     EntryDate = p.EntryDate,
                     EntryPerson = p.EntryPerson,
-                    ModelName = p.ModelName
+                    ModelName = p.ModelName,
+                    CheckingB36R = request.IsB36R
                 }));
 
                 if (nonExistingSerials.Any())
@@ -106,7 +126,8 @@ namespace API_WEB.Controllers.Repositories
                         ProductLine = info.ProductLine,
                         EntryDate = now,
                         EntryPerson = exportPersonValue,
-                        ModelName = info.ModelName
+                        ModelName = info.ModelName,
+                        CheckingB36R = request.IsB36R
                     }));
                 }
 
@@ -152,6 +173,7 @@ namespace API_WEB.Controllers.Repositories
             public string? ExportPerson { get; set; }
             public List<string>? SerialNumbers { get; set; }
             public bool IsScrap { get; set; }
+            public bool IsB36R { get; set; }
         }
 
         public class GetSNInfoResponse

@@ -6,6 +6,7 @@ using System.Security.Claims;
 using PESystem.Models;
 using Microsoft.AspNetCore.Identity;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Authorization;
 using API_WEB.Dtos.Auth;
 
 namespace PESystem.Controllers
@@ -22,11 +23,13 @@ namespace PESystem.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public IActionResult Login()
         {
             return View();
         }
         [HttpPost]
+        [AllowAnonymous]
         public async Task<IActionResult> Login(LoginModel model)
         {
             if (!ModelState.IsValid)
@@ -35,11 +38,20 @@ namespace PESystem.Controllers
             }
 
             var client = _clientFactory.CreateClient("ApiClient");
-            var response = await client.PostAsJsonAsync("api/Auth/login", new LoginDto
+            HttpResponseMessage response;
+            try
             {
-                Username = model.Username,
-                Password = model.Password
-            });
+                response = await client.PostAsJsonAsync("api/Auth/login", new LoginDto
+                {
+                    Username = model.Username,
+                    Password = model.Password
+                });
+            }
+            catch (Exception)
+            {
+                ModelState.AddModelError(string.Empty, "Không thể kết nối đến máy chủ.");
+                return View(model);
+            }
 
             if (response.IsSuccessStatusCode)
             {
@@ -48,6 +60,7 @@ namespace PESystem.Controllers
                 {
                     var claims = new List<Claim>
                     {
+                        new Claim(ClaimTypes.NameIdentifier, apiUser.UserId.ToString()),
                         new Claim(ClaimTypes.Name, apiUser.Username),
                         new Claim(ClaimTypes.Role, apiUser.Role),
                         new Claim("AllowedAreas", apiUser.AllowedAreas ?? string.Empty),
@@ -57,12 +70,23 @@ namespace PESystem.Controllers
                     };
 
                     var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
+                    var authProps = new AuthenticationProperties { IsPersistent = model.RememberMe };
+                    await HttpContext.SignInAsync(
+                        CookieAuthenticationDefaults.AuthenticationScheme,
+                        new ClaimsPrincipal(claimsIdentity),
+                        authProps);
                     return RedirectToAction("Home", "Home");
                 }
             }
+            else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                ModelState.AddModelError(string.Empty, "Username hoặc Password không đúng.");
+            }
+            else
+            {
+                ModelState.AddModelError(string.Empty, "Đăng nhập thất bại.");
+            }
 
-            ModelState.AddModelError("", "Username hoặc Password không đúng.");
             return View(model);
         }
 
@@ -211,6 +235,7 @@ namespace PESystem.Controllers
 
     public class ApiUser
     {
+        public int UserId { get; set; }
         public string Username { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
