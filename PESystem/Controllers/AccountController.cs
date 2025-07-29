@@ -35,11 +35,20 @@ namespace PESystem.Controllers
             }
 
             var client = _clientFactory.CreateClient("ApiClient");
-            var response = await client.PostAsJsonAsync("api/Auth/login", new LoginDto
+            HttpResponseMessage response;
+            try
             {
-                Username = model.Username,
-                Password = model.Password
-            });
+                response = await client.PostAsJsonAsync("api/Auth/login", new LoginDto
+                {
+                    Username = model.Username,
+                    Password = model.Password
+                });
+            }
+            catch (Exception)
+            {
+                ModelState.AddModelError(string.Empty, "Không thể kết nối đến máy chủ.");
+                return View(model);
+            }
 
             if (response.IsSuccessStatusCode)
             {
@@ -48,6 +57,7 @@ namespace PESystem.Controllers
                 {
                     var claims = new List<Claim>
                     {
+                        new Claim(ClaimTypes.NameIdentifier, apiUser.UserId.ToString()),
                         new Claim(ClaimTypes.Name, apiUser.Username),
                         new Claim(ClaimTypes.Role, apiUser.Role),
                         new Claim("AllowedAreas", apiUser.AllowedAreas ?? string.Empty),
@@ -61,8 +71,15 @@ namespace PESystem.Controllers
                     return RedirectToAction("Home", "Home");
                 }
             }
+            else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                ModelState.AddModelError(string.Empty, "Username hoặc Password không đúng.");
+            }
+            else
+            {
+                ModelState.AddModelError(string.Empty, "Đăng nhập thất bại.");
+            }
 
-            ModelState.AddModelError("", "Username hoặc Password không đúng.");
             return View(model);
         }
 
@@ -211,6 +228,7 @@ namespace PESystem.Controllers
 
     public class ApiUser
     {
+        public int UserId { get; set; }
         public string Username { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
