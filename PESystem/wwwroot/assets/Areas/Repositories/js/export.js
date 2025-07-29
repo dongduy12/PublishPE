@@ -7,7 +7,8 @@
         saveButton: document.getElementById("export-btn"),
         duplicateWarning: document.getElementById("duplicate-warning"),
         exportPerson: document.getElementById("exportPerson"),
-        scrapCheckbox: document.getElementById("scrapCheckbox")
+        scrapCheckbox: document.getElementById("scrapCheckbox"),
+        b36rCheckbox: document.getElementById("b36rCheckbox")
     };
 
     const parseSerialNumbers = () => elements.serialNumbersInput.value
@@ -60,7 +61,8 @@
         const payload = {
             ExportPerson: elements.scrapCheckbox.checked ? "Scrap" : elements.exportPerson.value,
             SerialNumbers: serials,
-            IsScrap: elements.scrapCheckbox.checked
+            IsScrap: elements.scrapCheckbox.checked,
+            IsB36R: elements.b36rCheckbox.checked
         };
         try {
             const response = await fetch(`${apiBaseUrl}/Export/ExportSN`, {
@@ -79,6 +81,7 @@
                 elements.productLineField.value = "";
                 elements.duplicateWarning.style.display = "none";
                 elements.scrapCheckbox.checked = false;
+                elements.b36rCheckbox.checked = false;
             } else if (!ignoreNonExisting && data.nonExistingSerials?.length) {
                 const confirmContinue = await Swal.fire({
                     title: "Serial Numbers Không Tồn Tại",
