@@ -29,7 +29,7 @@
                 <input class="form-check-input" type="checkbox" id="rememberMe" name="RememberMe">
                 <label class="form-check-label" for="rememberMe">Remember me</label>
             </div>
-            <a href="@Url.Action("ForgotPassword", "Account")">Forgot password?</a>
+            <a asp-action="ForgotPassword" asp-controller="Account">Forgot password?</a>
         </div>
         <button type="submit">Log In</button>
     </form>

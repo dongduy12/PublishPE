@@ -14,7 +14,7 @@ namespace PESystem.Models
 
         [Required]
         [DataType(DataType.Password)]
-        [Compare("NewPassword", ErrorMessage = "Mật khẩu không khớp!")]
+        [Compare("NewPassword")]
         public string ConfirmPassword { get; set; } = string.Empty;
     }
 }

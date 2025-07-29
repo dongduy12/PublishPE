@@ -37,7 +37,28 @@
             <ul class="d-flex align-items-center list-unstyled m-0">
                 @if (User.Identity.IsAuthenticated)
                 {
-                    @await Html.PartialAsync("_UserDropdown")
+                    <li class="nav-item dropdown">
+                        <a class="nav-link d-flex align-items-center avatar-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <img src="~/assets/img/avatar.png" class="user-avatar" alt="User" style="width: 40px; height: 40px;">
+                            <span class="d-none d-md-block ps-2">@User.FindFirst("FullName")?.Value</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                            <li class="dropdown-header text-center">
+                                <h6>@User.FindFirst("FullName")?.Value</h6>
+                                <small>@User.FindFirst("Email")?.Value</small>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li class="nav-item text-center">
+                                <a class="dropdown-item" asp-action="ChangePassword" asp-controller="Account">Change Password</a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li class="nav-item text-center">
+                                <form asp-action="Logout" asp-controller="Account" method="post" style="display:inline;">
+                                    <button type="submit" class="btn btn-ne">Đăng xuất</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
                 }
             </ul>
         </header>

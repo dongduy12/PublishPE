@@ -35,7 +35,8 @@ namespace API_WEB.Controllers
                 user.FullName,
                 user.Email,
                 user.Role,
-                user.Department
+                user.Department,
+                user.AllowedAreas
             });
         }
 
