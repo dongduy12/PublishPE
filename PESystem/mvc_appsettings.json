@@ -9,4 +9,5 @@
     }
   },
   "AllowedHosts": "*"
+  ,"ApiBaseUrl": "http://localhost:5025"
 }
