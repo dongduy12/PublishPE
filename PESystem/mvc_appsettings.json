@@ -9,5 +9,5 @@
     }
   },
   "AllowedHosts": "*"
-  ,"ApiBaseUrl": "http://localhost:5025"
+  ,"ApiBaseUrl": "http://10.220.130.119:9090"
 }
