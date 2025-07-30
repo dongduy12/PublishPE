@@ -130,12 +130,14 @@ namespace PESystem.Controllers
         }
 
         [HttpGet]
+        [Authorize]
         public IActionResult ChangePassword()
         {
             return View();
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> ChangePassword(ChangePasswordModel model)
         {
             if (!ModelState.IsValid) return View(model);
@@ -170,12 +172,14 @@ namespace PESystem.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public IActionResult ForgotPassword()
         {
             return View();
         }
 
         [HttpPost]
+        [AllowAnonymous]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordModel model)
         {
             if (!ModelState.IsValid) return View(model);
@@ -201,12 +205,14 @@ namespace PESystem.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public IActionResult ResetPassword()
         {
             return View();
         }
 
         [HttpPost]
+        [AllowAnonymous]
         public async Task<IActionResult> ResetPassword(ResetPasswordModel model)
         {
             if (!ModelState.IsValid) return View(model);
