@@ -6,6 +6,7 @@ using System.Security.Claims;
 using PESystem.Models;
 using Microsoft.AspNetCore.Identity;
 using System.Net.Http.Json;
+using System.Net.Http;
 using Microsoft.AspNetCore.Authorization;
 using API_WEB.Dtos.Auth;
 
@@ -142,12 +143,21 @@ namespace PESystem.Controllers
             if (username == null) return RedirectToAction("Login");
 
             var client = _clientFactory.CreateClient("ApiClient");
-            var response = await client.PostAsJsonAsync("api/Auth/change-password", new ChangePasswordDto
+            HttpResponseMessage response;
+            try
             {
-                Username = username,
-                OldPassword = model.OldPassword,
-                NewPassword = model.NewPassword
-            });
+                response = await client.PostAsJsonAsync("api/Auth/change-password", new ChangePasswordDto
+                {
+                    Username = username,
+                    OldPassword = model.OldPassword,
+                    NewPassword = model.NewPassword
+                });
+            }
+            catch (Exception)
+            {
+                ModelState.AddModelError(string.Empty, "Không thể kết nối đến máy chủ.");
+                return View(model);
+            }
 
             if (response.IsSuccessStatusCode)
             {
@@ -171,7 +181,16 @@ namespace PESystem.Controllers
             if (!ModelState.IsValid) return View(model);
 
             var client = _clientFactory.CreateClient("ApiClient");
-            var response = await client.PostAsJsonAsync("api/Auth/forgot-password", new ForgotPasswordDto { Email = model.Email });
+            HttpResponseMessage response;
+            try
+            {
+                response = await client.PostAsJsonAsync("api/Auth/forgot-password", new ForgotPasswordDto { Email = model.Email });
+            }
+            catch (Exception)
+            {
+                ModelState.AddModelError(string.Empty, "Không thể kết nối đến máy chủ.");
+                return View(model);
+            }
             if (response.IsSuccessStatusCode)
             {
                 ViewBag.Message = "OTP sent";
@@ -193,12 +212,21 @@ namespace PESystem.Controllers
             if (!ModelState.IsValid) return View(model);
 
             var client = _clientFactory.CreateClient("ApiClient");
-            var response = await client.PostAsJsonAsync("api/Auth/reset-password", new ResetPasswordDto
+            HttpResponseMessage response;
+            try
             {
-                Email = model.Email,
-                Otp = model.Otp,
-                NewPassword = model.NewPassword
-            });
+                response = await client.PostAsJsonAsync("api/Auth/reset-password", new ResetPasswordDto
+                {
+                    Email = model.Email,
+                    Otp = model.Otp,
+                    NewPassword = model.NewPassword
+                });
+            }
+            catch (Exception)
+            {
+                ModelState.AddModelError(string.Empty, "Không thể kết nối đến máy chủ.");
+                return View(model);
+            }
             if (response.IsSuccessStatusCode)
             {
                 ViewBag.Message = "Password reset successful";
