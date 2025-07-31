@@ -1713,6 +1713,26 @@ $(document).ready(function () {
     TesterInfoManager.setup();
     HandoverManager.setup();
     ChartManager.init();
+    const exportSnTableBtn = document.getElementById('exportSnTableExcelBtn');
+    if (exportSnTableBtn) {
+        exportSnTableBtn.addEventListener('click', () => {
+            showSpinner();
+            const table = $('#sn-table').DataTable();
+            const allData = table.rows().data().toArray();
+            if (!allData.length) {
+                showError('No data!');
+                hideSpinner();
+                return;
+            }
+            const headers = ['SERIAL_NUMBER', 'PRODUCT_LINE', 'MODEL_NAME', 'WIP', 'TEST_GROUP', 'TEST_CODE', 'ERROR_DESC', 'PRE_STATUS', 'STATUS', 'DATE', 'ID_NV', 'CHECK_POINT', 'HANDOVER', 'VỊ_TRÍ'];
+            const rows = allData.map(row => headers.map((_, i) => $('<div>').html(row[i]).text()));
+            const workbook = XLSX.utils.book_new();
+            const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'SNTable');
+            XLSX.writeFile(workbook, 'sn-table.xlsx');
+            hideSpinner();
+        });
+    }
     document.getElementById('exportExcelBtn').addEventListener('click', () => {
         showSpinner();
         const table = $('#modal-sn-table').DataTable();
