@@ -114,11 +114,11 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseStaticFiles();
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(Path.Combine("D:\\DataCloud", "Temp")),
-    RequestPath = "/Temp"
-});
+//app.UseStaticFiles(new StaticFileOptions
+//{
+//    FileProvider = new PhysicalFileProvider(Path.Combine("D:\\DataCloud", "Temp")),
+//    RequestPath = "/Temp"
+//});
 
 app.UseRouting();
 
