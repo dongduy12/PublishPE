@@ -3,6 +3,7 @@
     const apiCountUrl = `${apiBase}/adapter-repair-status-count`;
     const apiDetailUrl = `${apiBase}/adapter-repair-records`;
     const apiAgingUrl = `${apiBase}/adapter-repair-aging-count`;
+    const locationUrl = 'http://10.220.130.119:9090/api/Search/GetLocations';
 
     let agingData = [];
 
@@ -216,6 +217,16 @@
             });
             const tableData = response.data?.data || [];
 
+            const serials = Array.from(new Set(tableData.map(r => r.sn).filter(Boolean)));
+            let locationMap = {};
+            try {
+                const locRes = await axios.post(locationUrl, serials);
+                locationMap = locRes.data?.data || {};
+            } catch (err) {
+                console.error('Error fetching locations', err);
+            }
+            tableData.forEach(r => { r.location = locationMap[r.sn] || ''; });
+
             if (dataTable) {
                 dataTable.clear().rows.add(tableData).draw();
             } else {
@@ -236,6 +247,7 @@
                         { data: "errorFlag" },
                         { data: "checkInDate" },
                         { data: "agingDay" },
+                        { data: "location" },
                         { data: "status" },
                         { data: "note" }
                     ],
@@ -317,9 +329,18 @@
         }
     }
 
-    function loadTableFromRecords(records) {
+    async function loadTableFromRecords(records) {
         try {
             showSpinner();
+            const serials = Array.from(new Set(records.map(r => r.sn).filter(Boolean)));
+            let locationMap = {};
+            try {
+                const locRes = await axios.post(locationUrl, serials);
+                locationMap = locRes.data?.data || {};
+            } catch (err) {
+                console.error('Error fetching locations for modal', err);
+            }
+            records.forEach(r => { r.location = locationMap[r.sn] || ''; });
             if (modalTable) {
                 modalTable.clear().rows.add(records).draw();
             } else {
@@ -340,6 +361,7 @@
                         { data: "errorFlag" },
                         { data: "checkInDate" },
                         { data: "agingDay" },
+                        { data: "location" },
                         { data: "status" },
                         { data: "note" }
                     ],

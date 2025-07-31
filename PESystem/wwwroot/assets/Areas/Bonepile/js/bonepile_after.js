@@ -3,6 +3,7 @@
     const apiCountUrl = `${apiBase}/bonepile-after-kanban-count`;
     const apiAgingCountUrl = `${apiBase}/bonepile-after-kanban-aging-count`;
     const apiDetailUrl = `${apiBase}/bonepile-after-kanban`;
+    const locationUrl = 'http://10.220.130.119:9090/api/Search/GetLocations';
 
     // Định nghĩa tất cả trạng thái hợp lệ
     const validStatuses = [
@@ -239,6 +240,16 @@
             });
             const tableData = response.data?.data || [];
 
+            const serials = Array.from(new Set(tableData.map(r => r.sn).filter(Boolean)));
+            let locationMap = {};
+            try {
+                const locRes = await axios.post(locationUrl, serials);
+                locationMap = locRes.data?.data || {};
+            } catch (err) {
+                console.error('Error fetching locations', err);
+            }
+            tableData.forEach(r => { r.location = locationMap[r.sn] || ''; });
+
             if (dataTable) {
                 dataTable.clear().rows.add(tableData).draw();
             } else {
@@ -263,6 +274,7 @@
                         { data: "errorDesc" },
                         { data: "status" },
                         { data: "fgAging" },
+                        { data: "location" },
                     ],
                     dom: '<"top d-flex align-items-center"flB>rt<"bottom"ip>',
 
@@ -340,9 +352,18 @@
         }
     }
 
-    function loadTableFromRecords(records) {
+    async function loadTableFromRecords(records) {
         try {
             showSpinner();
+            const serials = Array.from(new Set(records.map(r => r.sn).filter(Boolean)));
+            let locationMap = {};
+            try {
+                const locRes = await axios.post(locationUrl, serials);
+                locationMap = locRes.data?.data || {};
+            } catch (err) {
+                console.error('Error fetching locations for modal', err);
+            }
+            records.forEach(r => { r.location = locationMap[r.sn] || ''; });
             if (modalTable) {
                 modalTable.clear().rows.add(records).draw();
                 attachTooltipEvents();
@@ -365,7 +386,8 @@
                         { data: "testTime" },
                         { data: "testCode" },
                         { data: "errorDesc" },
-                        { data: "fgAging" }
+                        { data: "fgAging" },
+                        { data: "location" }
                     ],
                     columnDefs: [
                         {
