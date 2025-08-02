@@ -13,7 +13,6 @@ namespace API_WEB.Controllers.SmartFA
             _oracleContext = oracleContext;
         }
 
-
         [HttpGet("getCountModelName")]
         public async Task<IActionResult> GetModelNameCount()
         {
@@ -43,11 +42,12 @@ namespace API_WEB.Controllers.SmartFA
             var locationData = await (
                 from task in _oracleContext.OracleDataRepairTask
                 where !string.IsNullOrEmpty(task.DATA18) && 
-                      task.DATA18 != "TRONG_KHO" &&
+                      task.DATA18 != "TRONG_KHO" && (
                       task.DATA17 != "Nhận(Nhập Kho Phế)" &&
                       task.DATA17 != "Nhận(Nhập Kho Ok)" &&
                       task.DATA17 != "Nhận(Nhập Kho)" &&
-                      task.DATA17 != "Giao(Cho mượn từ Kho)"
+                      task.DATA17 != "Nhận(Nhập kho)" &&
+                      task.DATA17 != "Giao(Cho mượn từ Kho)")
                 join err in _oracleContext.ErrorCodes
                     on task.TEST_CODE equals err.ERROR_CODE into errJoin
                 from err in errJoin.DefaultIfEmpty()
@@ -77,7 +77,6 @@ namespace API_WEB.Controllers.SmartFA
                 Locations = sortedLocations
             });
         }
-
         [HttpGet("get-aging-counts")]
         public async Task<IActionResult> GetAgingCounts()
         {
@@ -85,12 +84,12 @@ namespace API_WEB.Controllers.SmartFA
 
             var data = await (
                 from task in _oracleContext.OracleDataRepairTask
-                where task.DATE3 != null && task.DATA18 != null && 
-                      task.DATA18 != "TRONG_KHO" &&
-                      task.DATA17 != "Nhận(Nhập Kho Phế)" &&
-                      task.DATA17 != "Nhận(Nhập Kho Ok)" &&
-                      task.DATA17 != "Nhận(Nhập Kho)" &&
-                      task.DATA17 != "Giao(Cho mượn từ Kho)"
+                where task.DATE3 != null && task.DATA18 != null && task.DATA18 != "TRONG_KHO" &&
+                      (task.DATA17 != "Nhận(Nhập Kho Phế)" && 
+                      task.DATA17 != "Nhận(Nhập Kho Ok)" && 
+                      task.DATA17 != "Nhận(Nhập Kho)" && 
+                      task.DATA17 != "Nhận(Nhập kho)" && 
+                      task.DATA17 != "Giao(Cho mượn từ Kho)")
                 join err in _oracleContext.ErrorCodes
                     on task.TEST_CODE equals err.ERROR_CODE into errJoin
                 from err in errJoin.DefaultIfEmpty()

@@ -6,9 +6,6 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Oracle.ManagedDataAccess.Client;
-using System.Net.Http;
-using System.Text;
-using Newtonsoft.Json;
 
 namespace API_WEB.Controllers.Repositories
 {
@@ -18,13 +15,11 @@ namespace API_WEB.Controllers.Repositories
     {
         private readonly CSDL_NE _sqlContext;
         private readonly OracleDbContext _oracleContext;
-        private readonly IHttpClientFactory _httpClientFactory;
 
-        public KhoScrapController(CSDL_NE sqlContext, OracleDbContext oracleContext, IHttpClientFactory httpClientFactory)
+        public KhoScrapController(CSDL_NE sqlContext, OracleDbContext oracleContext)
         {
             _sqlContext = sqlContext;
             _oracleContext = oracleContext;
-            _httpClientFactory = httpClientFactory;
         }
 
         // API 1: Lấy tổng số lượng SN trong bảng Product
@@ -80,9 +75,9 @@ namespace API_WEB.Controllers.Repositories
                     .Select(p => p.Position.Value).ToListAsync();
 
                 //Kiem tra khay day
-                if (occupiedPositions.Count >= maxSlots) 
-                { 
-                    return BadRequest(new { success = false, message = "Khay đã đầy!" }); 
+                if (occupiedPositions.Count >= maxSlots)
+                {
+                    return BadRequest(new { success = false, message = "Khay đã đầy!" });
                 }
 
                 var existingProducts = await _sqlContext.KhoScraps
@@ -91,7 +86,6 @@ namespace API_WEB.Controllers.Repositories
 
 
                 var results = new List<object>();
-                var serialsToUpdateOracle = new List<string>();
                 foreach (var serialNumber in request.SerialNumbers)
                 {
                     //Kiem tra neu SerialNumber da ton tai
@@ -127,7 +121,6 @@ namespace API_WEB.Controllers.Repositories
                             // Lưu cập nhật vào database
                             _sqlContext.KhoScraps.Update(existingProduct);
                             await _sqlContext.SaveChangesAsync();
-                            serialsToUpdateOracle.Add(serialNumber);
 
                             results.Add(new { serialNumber, success = true, message = "Sản phẩm đã được cập nhật vị trí." });
                         }
@@ -139,11 +132,11 @@ namespace API_WEB.Controllers.Repositories
                     int positionIntray = Enumerable.Range(1, maxSlots).Except(occupiedPositions).FirstOrDefault();
                     if (positionIntray == 0)
                     {
-                        results.Add(new 
-                        { 
-                            serialNumber, 
-                            success = false, 
-                            message = "Khong tim duoc vi tri trong!" 
+                        results.Add(new
+                        {
+                            serialNumber,
+                            success = false,
+                            message = "Khong tim duoc vi tri trong!"
                         });
                         continue;
                     }
@@ -163,7 +156,6 @@ namespace API_WEB.Controllers.Repositories
                         entryPerson = request.EntryPerson
                     };
                     _sqlContext.KhoScraps.Add(newProduct);
-                    serialsToUpdateOracle.Add(serialNumber);
                     // Ghi log
                     await LogAction("IMPORT", serialNumber, request.EntryPerson, "");
                     results.Add(new
@@ -174,11 +166,6 @@ namespace API_WEB.Controllers.Repositories
                     });
                 }
                 await _sqlContext.SaveChangesAsync();
-
-                // Update Oracle location via RepairStatus API
-                string location = $"{request.Shelf}{request.Column}-{request.Level}-K{request.Tray}";
-                await SendReceivingStatusAsync(serialsToUpdateOracle, request.EntryPerson ?? string.Empty, location, "Nhập(Kho Phế)");
-
                 await transaction.CommitAsync();
                 return Ok(new { success = true, results });
             }
@@ -242,14 +229,14 @@ namespace API_WEB.Controllers.Repositories
         [HttpPost("ExportScrap")]
         public async Task<IActionResult> ExportScrap([FromBody] ExportScrapRequest request)
         {
-            if(request == null || request.SerialNumbers == null || !request.SerialNumbers.Any())
+            if (request == null || request.SerialNumbers == null || !request.SerialNumbers.Any())
             {
                 return BadRequest(new ExportScrapResponse
                 {
                     Success = false,
                     Message = "Danh sách Serial Number không hợp lệ.",
                     Results = new List<ExportScrapResult>()
-                }) ;
+                });
             }
 
             var response = new ExportScrapResponse
@@ -458,41 +445,6 @@ namespace API_WEB.Controllers.Repositories
             await _sqlContext.SaveChangesAsync();
         }
 
-        private async Task UpdateOracleData18Async(IEnumerable<string> serialNumbers, string location)
-        {
-            if (serialNumbers == null || !serialNumbers.Any()) return;
-
-            var parameters = serialNumbers
-                .Select((sn, index) => new OracleParameter($"p{index}", sn))
-                .ToList();
-            var inClause = string.Join(",", parameters.Select(p => ":" + p.ParameterName));
-
-            var sql = $"UPDATE SFISM4.R_REPAIR_TASK_T SET DATA18 = :location WHERE SERIAL_NUMBER IN ({inClause})";
-
-            parameters.Insert(0, new OracleParameter("location", location));
-
-            await _oracleContext.Database.ExecuteSqlRawAsync(sql, parameters);
-        }
-
-        private async Task SendReceivingStatusAsync(IEnumerable<string> serialNumbers, string owner, string location, string tag)
-        {
-            if (serialNumbers == null || !serialNumbers.Any()) return;
-
-            var client = _httpClientFactory.CreateClient();
-            var payload = new
-            {
-                serialnumbers = string.Join(",", serialNumbers),
-                owner,
-                location,
-                tag
-            };
-
-            var json = JsonConvert.SerializeObject(payload);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            await client.PostAsync("http://10.220.130.119:9090/api/RepairStatus/receiving-status", content);
-        }
-
         [HttpPost("BorrowKhoScrap")]
         public async Task<IActionResult> BorrowKhoScrapSN([FromBody] BorrowSNListRequest request)
         {
@@ -616,8 +568,6 @@ namespace API_WEB.Controllers.Repositories
                     .ToDictionaryAsync(p => p.SERIAL_NUMBER);
 
                 var results = new List<object>();
-                var serialsToUpdateOracle = new List<string>();
-
                 foreach (var serialNumber in request.SerialNumbers)
                 {
                     //Kiem tra neu SerialNumber da ton tai
@@ -657,7 +607,6 @@ namespace API_WEB.Controllers.Repositories
                         entryPerson = request.EntryPerson
                     };
                     _sqlContext.KhoOks.Add(newProduct);
-                    serialsToUpdateOracle.Add(serialNumber);
                     // Ghi log
                     await LogAction("IMPORT_KHO_OK", serialNumber, request.EntryPerson, "");
                     results.Add(new
@@ -668,10 +617,6 @@ namespace API_WEB.Controllers.Repositories
                     });
                 }
                 await _sqlContext.SaveChangesAsync();
-                // Update Oracle location via RepairStatus API
-                string location = $"{request.Shelf}{request.Column}-{request.Level}";
-                await SendReceivingStatusAsync(serialsToUpdateOracle, request.EntryPerson ?? string.Empty, location, "Nhập(Kho Ok)");
-
                 await transaction.CommitAsync();
                 return Ok(new { success = true, results });
             }

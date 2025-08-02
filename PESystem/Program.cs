@@ -1,12 +1,17 @@
 ﻿using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
 using PESystem.Models;
 using PESystem.Policies;
+using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = new ConfigurationBuilder()
@@ -49,6 +54,8 @@ builder.Services.AddAuthorization(options =>
         policy.Requirements.Add(new AreaAccessRequirement("Scrap")));
     options.AddPolicy("MaterialSystemAccess", policy =>
         policy.Requirements.Add(new AreaAccessRequirement("MaterialSystem")));
+    options.AddPolicy("MrbAccess", policy =>
+        policy.Requirements.Add(new AreaAccessRequirement("Mrb")));
 });
 
 
@@ -74,7 +81,6 @@ builder.Services.AddCors(options =>
 });
 
 
-
 var app = builder.Build();
 app.UseCors("AllowAll");
 
@@ -84,28 +90,7 @@ app.UseCors("AllowAll");
 //    var context = services.GetRequiredService<ApplicationDbContext>();
 //    context.Database.Migrate(); // Áp dụng migrations nếu có
 
-//    // Seed Data
-//    if (!context.Users.Any())
-//    {
-//        var hasher = new PasswordHasher<User>();
 
-//        context.Users.Add(new User
-//        {
-//            Username = "admin",
-//            Password = hasher.HashPassword(null, "123"), // Mã hóa mật khẩu
-//            Role = "Admin"
-//        });
-
-//        context.Users.Add(new User
-//        {
-//            Username = "user",
-//            Password = hasher.HashPassword(null, "userpass"), // Mã hóa mật khẩu
-//            Role = "User"
-//        });
-
-//        context.SaveChanges();
-//    }
-//}
 
 if (!app.Environment.IsDevelopment())
 {

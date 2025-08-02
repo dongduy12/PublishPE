@@ -471,6 +471,7 @@ namespace API_WEB.Controllers.SmartFA
             try
             {
                 IQueryable<dynamic> query;
+                var excludedStatuses = new[] { "PROCESS", "RETEST DDR TOOL", "TEST PROGRAM ISSUE", "VI" };
 
                 switch (type?.ToUpper())
                 {
@@ -484,6 +485,7 @@ namespace API_WEB.Controllers.SmartFA
                                 (task, modelDesc) => new { task, modelDesc }
                             )
                             .Where(joined => joined.modelDesc.MODEL_SERIAL != "SWITCH")
+                            .Where(joined => !excludedStatuses.Contains(joined.task.DATA11.ToUpper()))
                             .GroupBy(joined => joined.task.DATA11)
                             .Select(group => new
                             {
@@ -503,6 +505,7 @@ namespace API_WEB.Controllers.SmartFA
                                 (task, modelDesc) => new { task, modelDesc }
                             )
                             .Where(joined => joined.modelDesc.MODEL_SERIAL != "SWITCH")
+                            .Where(joined => !excludedStatuses.Contains(joined.task.DATA11.ToUpper()))
                             .GroupBy(joined => joined.task.DATA11)
                             .Select(group => new
                             {
@@ -522,6 +525,7 @@ namespace API_WEB.Controllers.SmartFA
                                 (task, modelDesc) => new { task, modelDesc }
                             )
                             .Where(joined => joined.modelDesc.MODEL_SERIAL != "SWITCH")
+                            .Where(joined => !excludedStatuses.Contains(joined.task.DATA11.ToUpper()))
                             .GroupBy(joined => joined.task.DATA11)
                             .Select(group => new
                             {
@@ -1269,90 +1273,5 @@ namespace API_WEB.Controllers.SmartFA
             }
         }
 
-        //[HttpGet("get-error-codes")]
-        //public async Task<IActionResult> GetErrorCodes()
-        //{
-        //    try
-        //    {
-        //        // Sử dụng truy vấn SQL thô
-        //        var sqlQuery = "SELECT ERROR_CODE, NVL(ERROR_DESC, '') AS ERROR_DESC FROM SFIS1.C_ERROR_CODE_T WHERE ROWNUM <= 1000";
-        //        var errorCodes = await _oracleContext.Set<ErrorCode>()
-        //            .FromSqlRaw(sqlQuery)
-        //            .ToListAsync();
-
-        //        // Log số lượng bản ghi để debug
-        //        Console.WriteLine($"Số lượng mã lỗi được lấy: {errorCodes.Count}");
-
-        //        return Ok(new
-        //        {
-        //            success = true,
-        //            errorCodes = errorCodes.Select(e => new
-        //            {
-        //                e.ERROR_CODE,
-        //                ERROR_DESC = e.ERROR_DESC
-        //            })
-        //        });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Console.WriteLine($"Lỗi khi lấy mã lỗi: {ex}");
-        //        return StatusCode(500, new
-        //        {
-        //            success = false,
-        //            message = "Lỗi khi lấy danh sách Error Codes",
-        //            error = ex.Message,
-        //            stackTrace = ex.StackTrace
-        //        });
-        //    }
-        //}
-
-        [HttpGet("get-error-codes")]
-        public async Task<IActionResult> GetErrorCodes([FromQuery] string term = "", [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-        {
-            try
-            {
-                var query = _oracleContext.Set<ErrorCode>().FromSqlRaw("SELECT ERROR_CODE, ERROR_DESC FROM SFIS1.C_ERROR_CODE_T");
-
-                // Tìm kiếm gần đúng nếu có term
-                if (!string.IsNullOrEmpty(term))
-                {
-                    query = (IQueryable<ErrorCode>)query.Where(e =>
-                        EF.Functions.Like(e.ERROR_CODE, $"%{term}%")
-                    );
-                }
-
-                var totalCount = await query.CountAsync();
-                var errorCodes = await query
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .ToListAsync();
-
-                Console.WriteLine($"Số lượng mã lỗi được lấy: {errorCodes.Count}");
-
-                return Ok(new
-                {
-                    success = true,
-                    errorCodes = errorCodes.Select(e => new
-                    {
-                        e.ERROR_CODE,
-                        ERROR_DESC = e.ERROR_DESC
-                    }),
-                    totalCount,
-                    page,
-                    pageSize
-                });
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Lỗi khi lấy mã lỗi: {ex}");
-                return StatusCode(500, new
-                {
-                    success = false,
-                    message = "Lỗi khi lấy danh sách Error Codes",
-                    error = ex.Message,
-                    stackTrace = ex.StackTrace
-                });
-            }
-        }
     }
 }

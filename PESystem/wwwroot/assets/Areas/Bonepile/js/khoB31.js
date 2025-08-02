@@ -1,71 +1,30 @@
 ﻿document.addEventListener("DOMContentLoaded", async function () {
     const apiBase = "http://10.220.130.119:9090/api/Bonepile2";
-    const apiCountUrl = `${apiBase}/bonepile-after-kanban-count`;
-    const apiAgingCountUrl = `${apiBase}/bonepile-after-kanban-aging-count`;
-    const apiDetailUrl = `${apiBase}/bonepile-after-kanban`;
-    const locationUrl = 'http://10.220.130.119:9090/api/Search/GetLocations';
+    const apiCountUrl = `${apiBase}/adapter-mo-status-count`;
+    const apiDetailUrl = `${apiBase}/adapter-mo-records`;
 
     // Định nghĩa tất cả trạng thái hợp lệ
     const validStatuses = [
-        "ScrapHasTask",
-        "ScrapLackTask",
-        "WatitingScrap",
-        "ApproveBGA",
-        "WaitingApproveBGA",
-        "RepairInRE",
-        "Online"
+        "Scrap Lacks Task",
+        "Scrap Has Scrap",
+        "Approved BGA",
+        "Waiting approve scrap",
+        "CHỜ LINK",
+        "Đã Mở MO",
+        "Waiting approve BGA"
     ];
 
     const statusColorMap = {
-        "ScrapHasTask": "#05b529",
-        "ScrapLackTask": "#ffc107",
-        "WatitingScrap": "#dc3545",
-        "RepairInRE": "#ff8307",
-        "ApproveBGA": "#17b86d",
-        "Online": "#28a745 ",
+        "Scrap Lacks Task": "#ffc107",
+        "Scrap Has Scrap": "#05b529",
+        "Approved BGA": "#17b86d",
+        "Waiting approve scrap": "#dc3545",
+        "Đã Link": "#6c757d",
+        "Đã Mở MO": "#ff8307"
     };
 
     let dataTable;
     let modalTable;
-    let agingData = [];
-
-    // Tạo nội dung ô có tooltip
-    function createTooltipCell(data) {
-        return `<span class="tooltip-trigger" data-tooltip="${data || ''}">${data || ''}</span>`;
-    }
-
-    // Gắn sự kiện tooltip
-    function attachTooltipEvents() {
-        $(document).on('mouseover', '.tooltip-trigger', function (e) {
-            const $this = $(this);
-            const tooltipText = $this.data('tooltip');
-            if (tooltipText) {
-                let tooltip = document.querySelector('.custom-tooltip');
-                if (!tooltip) {
-                    tooltip = document.createElement('div');
-                    tooltip.className = 'custom-tooltip';
-                    document.body.appendChild(tooltip);
-                }
-                tooltip.textContent = tooltipText;
-                tooltip.style.display = 'block';
-                tooltip.style.left = (e.pageX + 10) + 'px';
-                tooltip.style.top = (e.pageY - 20) + 'px';
-            }
-        }).on('mousemove', '.tooltip-trigger', function (e) {
-            const tooltip = document.querySelector('.custom-tooltip');
-            if (tooltip && tooltip.style.display === 'block') {
-                tooltip.style.left = (e.pageX + 10) + 'px';
-                tooltip.style.top = (e.pageY - 20) + 'px';
-            }
-        }).on('mouseout', '.tooltip-trigger', function () {
-            const tooltip = document.querySelector('.custom-tooltip');
-            if (tooltip) {
-                tooltip.style.display = 'none';
-            }
-        });
-    }
-
-
 
     // Load KPI + Donut chart
     async function loadDashboardData() {
@@ -73,18 +32,13 @@
             const res = await axios.get(apiCountUrl);
             const { totalCount, statusCounts } = res.data;
 
-            const agingRes = await axios.get(apiAgingCountUrl);
-            const { agingCounts } = agingRes.data;
-            agingData = agingCounts;
-
             // Gán KPI
             document.getElementById("totalCount").innerText = totalCount || 0;
-            document.getElementById("noTaskscrapCount").innerText = statusCounts.find(s => s.status === "ScrapLackTask")?.count || 0;
-            document.getElementById("scrapCount").innerText = statusCounts.find(s => s.status === "ScrapHasTask")?.count || 0;
-            document.getElementById("waitingScrapCount").innerText = statusCounts.find(s => s.status === "WatitingScrap")?.count || 0;
-            document.getElementById("repairInRE").innerText = statusCounts.find(s => s.status === "RepairInRE")?.count || 0;
-            document.getElementById("waitingBGA").innerText = statusCounts.find(s => s.status === "ApproveBGA")?.count || 0;
-            document.getElementById("online").innerText = statusCounts.find(s => s.status === "Online")?.count || 0;
+            document.getElementById("noTaskscrapCount").innerText = statusCounts.find(s => s.status === "Scrap Lacks Task")?.count || 0;
+            document.getElementById("scrapCount").innerText = statusCounts.find(s => s.status === "Scrap Has Scrap")?.count || 0;
+            document.getElementById("waitingScrapCount").innerText = statusCounts.find(s => s.status === "Waiting approve scrap")?.count || 0;
+            document.getElementById("linking").innerText = statusCounts.find(s => s.status === "CHỜ LINK")?.count || 0;
+            document.getElementById("linked").innerText = statusCounts.find(s => s.status === "Đã Mở MO")?.count || 0;
 
             // Tính phần trăm cho biểu đồ
             const total = statusCounts.reduce((sum, s) => sum + s.count, 0);
@@ -106,6 +60,8 @@
                     plugins: {
                         legend: {
                             position: "bottom",
+
+
                             labels: {
                                 boxWidth: 20,
                                 boxHeight: 20,
@@ -148,78 +104,6 @@
                 },
                 plugins: [ChartDataLabels]
             });
-
-            // Tính phần trăm cho biểu đồ aging
-            const agingTotal = agingCounts.reduce((sum, a) => sum + a.count, 0);
-            const agingPercentages = agingCounts.map(a => agingTotal > 0 ? ((a.count / agingTotal) * 100).toFixed(1) : 0);
-
-            // Vẽ biểu đồ Aging
-            const agingCtx = document.getElementById("agingPieChart").getContext("2d");
-            const agingChart = new Chart(agingCtx, {
-                type: "pie",
-                data: {
-                    labels: agingCounts.map(a => a.ageRange),
-                    datasets: [{
-                        data: agingCounts.map(a => a.count),
-                        backgroundColor: ["#4e73df", "#1cc88a", "#e74a3b"],
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: "bottom",
-                            labels: {
-                                boxWidth: 20,
-                                boxHeight: 20,
-                                generateLabels: (chart) => {
-                                    const data = chart.data;
-                                    return data.labels.map((label, i) => ({
-                                        text: `${label} (${agingPercentages[i]}%)`,
-                                        fillStyle: data.datasets[0].backgroundColor[i],
-                                        strokeStyle: data.datasets[0].backgroundColor[i],
-                                        lineWidth: 1,
-                                        hidden: isNaN(data.datasets[0].data[i]) || data.datasets[0].data[i] === 0,
-                                        index: i
-                                    }));
-                                }
-                            },
-                            align: "center"
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function (context) {
-                                    const label = context.label || '';
-                                    const value = context.raw || 0;
-                                    const percentage = agingPercentages[context.dataIndex];
-                                    return `${label}: ${value} (${percentage}%)`;
-                                }
-                            }
-                        },
-                        datalabels: {
-                            formatter: (value, ctx) => {
-                                const percentage = agingPercentages[ctx.dataIndex];
-                                return `${percentage}%`;
-                            },
-                            color: '#000',
-                            font: { weight: 'bold', size: 12 }
-                        }
-                    }
-                },
-                plugins: [ChartDataLabels]
-
-            });
-
-            agingChart.canvas.onclick = function (evt) {
-                const points = agingChart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
-                if (points.length) {
-                    const index = points[0].index;
-                    const label = agingChart.data.labels[index];
-                    const records = agingData.find(a => a.ageRange === label)?.records || [];
-                    loadTableFromRecords(records);
-                }
-            };
-
             // Load dữ liệu bảng ban đầu (Tất cả trạng thái)
             await loadTableData(validStatuses);
         } catch (error) {
@@ -241,41 +125,22 @@
             });
             const tableData = response.data?.data || [];
 
-            const serials = Array.from(new Set(tableData.map(r => r.sn).filter(Boolean)));
-            let locationMap = {};
-            try {
-                const locRes = await axios.post(locationUrl, serials);
-                locationMap = locRes.data?.data || {};
-            } catch (err) {
-                console.error('Error fetching locations', err);
-            }
-            tableData.forEach(r => { r.location = locationMap[r.sn] || ''; });
-
             if (dataTable) {
                 dataTable.clear().rows.add(tableData).draw();
             } else {
                 dataTable = $('#sumMaterialsTable').DataTable({
                     data: tableData,
                     scrollX: true,
-                    ordering: true,
-                    info: true,
-                    autoWidth: false,
-                    order: [[3, "desc"]],
                     columns: [
                         { data: "sn" },
-                        { data: "fg" },
                         { data: "productLine" },
                         { data: "modelName" },
                         { data: "moNumber" },
-                        { data: "wipGroupSFC" },
-                        { data: "wipGroupKANBAN" },
+                        { data: "wipGroup" },
                         { data: "testGroup" },
-                        { data: "testTime" },
                         { data: "testCode" },
-                        { data: "errorDesc" },
-                        { data: "status" },
-                        { data: "fgAging" },
-                        { data: "location" },
+                        { data: "testTime" },
+                        { data: "status" }
                     ],
                     dom: '<"top d-flex align-items-center"flB>rt<"bottom"ip>',
 
@@ -290,7 +155,7 @@
                                 const localDate = new Date(now.getTime() + offset * 60 * 1000);
                                 const dateStr = localDate.toISOString().slice(0, 10).replace(/-/g, '');
                                 const timeStr = localDate.toTimeString().slice(0, 8).replace(/:/g, '');
-                                return `Bonepile_after_${dateStr}_${timeStr}`;
+                                return `Bonepile_before_${dateStr}_${timeStr}`;
                             },
                             exportOptions: {
                                 columns: ':visible',
@@ -318,13 +183,13 @@
                                                                     <div class="form-group mb-0" style="min-width: 200px;">
                                                                         <select id="statusFilterDt" class="form-control">
                                                                             <option value="">Tất cả trạng thái</option>
-                                                                            <option value="ScrapHasTask">Scrap Has Task</option>
-                                                                            <option value="ScrapLackTask">Scrap Lacks Task</option>
-                                                                            <option value="ApproveBGA">SPE Approved BGA</option>
-                                                                            <option value="WaitingApproveBGA">Waiting Approve BGA</option>
-                                                                            <option value="WatitingScrap">Waiting SPE Approve Scrap</option>
-                                                                            <option value="RepairInRE">Under Repair in RE</option>
-                                                                            <option value="Online">Online</option>
+                                                                            <option value="Scrap Has Task">Scrap Has Task</option>
+                                                                            <option value="Scrap Lacks Task">Scrap Lacks Task</option>
+                                                                            <option value="Đã Mở MO">Đã Mở MO</option>
+                                                                            <option value="CHỜ LINK">CHỜ LINK</option>
+                                                                            <option value="Approved BGA">SPE Approve to BGA</option>
+                                                                            <option value="Waiting approve BGA">Waiting approve BGA</option>
+                                                                            <option value="Waiting approve scrap">Waiting SPE Approve Scrap</option>
                                                                         </select>
                                                                     </div>
                                                                 `;
@@ -368,35 +233,20 @@
             records.forEach(r => { r.location = locationMap[r.sn] || ''; });
             if (modalTable) {
                 modalTable.clear().rows.add(records).draw();
-                attachTooltipEvents();
             } else {
                 modalTable = $('#recordsTable').DataTable({
                     data: records,
                     scrollX: true,
-                    searching: true,
-                    ordering: false,
-                    info: true,
                     columns: [
                         { data: "sn" },
-                        { data: "fg" },
                         { data: "productLine" },
                         { data: "modelName" },
                         { data: "moNumber" },
-                        { data: "wipGroupSFC" },
-                        { data: "wipGroupKANBAN" },
+                        { data: "wipGroup" },
                         { data: "testGroup" },
-                        { data: "testTime" },
                         { data: "testCode" },
-                        { data: "errorDesc" },
-                        { data: "fgAging" },
-                        { data: "location" }
-                    ],
-                    columnDefs: [
-                        {
-                            targets: '_all',
-                            width: '120px',
-                            render: function (data) { return createTooltipCell(data); }
-                        }
+                        { data: "testTime" },
+                        { data: "status" },
                     ],
                     buttons: [
                         {
@@ -409,23 +259,22 @@
                                 const localDate = new Date(now.getTime() + offset * 60 * 1000);
                                 const dateStr = localDate.toISOString().slice(0, 10).replace(/-/g, '');
                                 const timeStr = localDate.toTimeString().slice(0, 8).replace(/:/g, '');
-                                return `Bonepile_after_aging_${dateStr}_${timeStr}`;
+                                return `B31M_${dateStr}_${timeStr}`;
                             },
                             exportOptions: { columns: ':visible' }
                         }
                     ],
                     destroy: true,
                     language: {
-                        search: '',
-                        emptyTable: 'Không có dữ liệu để hiển thị',
-                        zeroRecords: 'Không tìm thấy bản ghi phù hợp'
+                        search: "",
+                        emptyTable: "Không có dữ liệu để hiển thị",
+                        zeroRecords: "Không tìm thấy bản ghi phù hợp"
                     }
                 });
             }
             const modalEl = document.getElementById('recordsModal');
             const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
             modal.show();
-            attachTooltipEvents();
         } finally {
             hideSpinner();
         }

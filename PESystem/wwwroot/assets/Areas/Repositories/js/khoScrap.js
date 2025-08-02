@@ -215,7 +215,7 @@ const KhoScrapManager = (function () {
                 "COLUMN": result.columnNumber || "",
                 "LEVEL": result.levelNumber || "",
                 "TRAY": result.trayNumber || "",
-                "POSITION": result.position || "",
+                "POSITION": result.positionInTray || "",
                 "ENTRY_DATE": result.entryDate || "",
                 "ENTRY_PERSON": result.entryPerson || "",
                 "BORROW_STATUS": result.borrowStatus || "",

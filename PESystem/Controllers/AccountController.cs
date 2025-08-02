@@ -5,10 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using PESystem.Models;
 using Microsoft.AspNetCore.Identity;
-using System.Net.Http.Json;
 using System.Net.Http;
 using Microsoft.AspNetCore.Authorization;
-using API_WEB.Dtos.Auth;
 
 namespace PESystem.Controllers
 {
@@ -116,9 +114,9 @@ namespace PESystem.Controllers
                     Password = hasher.HashPassword(null, model.Password),
                     FullName = model.FullName,
                     Email = model.Email,
-                    Department = model.Department,  
+                    Department = model.Department,
                     Role = "User",
-                    AllowedAreas = new List<string> {""} // Giá trị mặc định
+                    AllowedAreas = new List<string> { "" } // Giá trị mặc định
                 };
                 _context.Users.Add(user);
                 await _context.SaveChangesAsync();

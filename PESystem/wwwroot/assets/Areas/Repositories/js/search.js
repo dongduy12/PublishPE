@@ -283,6 +283,7 @@ function exportToExcel(data, fileNamePrefix) {
         "LEVEL": result.levelNumber || "",
         "TRAY": result.trayNumber || "",
         "POSITION_IN_TRAY": result.positionInTray || "",
+        "KANBAN_WIP": result.kanBanWIP || "",
         "ENTRY_DATE": result.entryDate || "",
         "ENTRY_PERSON": result.entryPerson || "",
         "STATUS": result.borrowStatus || "",

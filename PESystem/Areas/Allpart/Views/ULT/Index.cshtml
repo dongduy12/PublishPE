@@ -5,6 +5,8 @@
     Layout = "~/Areas/Allpart/Views/Shared/layout_allpart.cshtml";
 }
 
+<link href="~/assets/css/yrdclc.css" rel="stylesheet" />
+
 <div class="card shadow-sm">
     <div class="card-header bg-nvidia-green text-white">
         <h1 class="h4 mb-0 text-center">Tìm Kiếm Thông Tin ULT</h1>
@@ -66,81 +68,6 @@
 </div>
 
 @section Scripts {
-    <style>
-        .bg-nvidia-green {
-            background-color: #76B900 !important;
-        }
-
-        .btn-nvidia-green {
-            background-color: #76B900 !important;
-            border-color: #76B900 !important;
-            color: #fff;
-            height: 100%;
-        }
-
-        .btn-nvidia-green:hover {
-            background-color: #639A00 !important;
-            border-color: #639A00 !important;
-        }
-
-        .custom-tooltip {
-            position: absolute;
-            background-color: #333;
-            color: #fff;
-            padding: 5px 10px;
-            border-radius: 3px;
-            font-size: 12px;
-            z-index: 1000;
-            display: none;
-            max-width: 200px;
-            word-wrap: break-word;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-        }
-
-        .datatable-table tbody tr:hover td,
-        .datatable-table tbody tr:hover th {
-            background-color: #76B900 !important;
-        }
-
-        .dataTables_wrapper .dataTables_filter,
-        .dataTables_wrapper .dataTables_paginate {
-            position: sticky;
-            top: 0;
-            background-color: #fff;
-            z-index: 1;
-            border-radius: 5px;
-            margin-bottom: 5px;
-            padding: 5px;
-            vertical-align: middle;
-        }
-
-        .dataTables_wrapper {
-            overflow-x: auto;
-        }
-
-        .table-responsive {
-            overflow-x: auto;
-        }
-
-        .row.align-items-center {
-            display: flex;
-            align-items: stretch;
-        }
-
-        .form-control, .form-select {
-            height: auto;
-            resize: vertical;
-        }
-
-        .datatable-table th, .datatable-table td {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 150px;
-            padding: 5px;
-        }
-    </style>
-
     <script>
         let tableData = []; // Lưu dữ liệu để xuất Excel
         let dataTable; // Lưu tham chiếu đến DataTable
@@ -247,38 +174,98 @@
                 return;
             }
 
+            // Hiển thị loading overlay
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.className = 'loading-overlay';
+            loadingOverlay.innerHTML = `
+                <div class="spinner"></div>
+                <div>Đang tải dữ liệu, vui lòng chờ...</div>
+            `;
+            document.body.appendChild(loadingOverlay);
+
             try {
+                let allResults = [];
                 let url;
+
                 if (typeOption === '1') {
-                    const sns = inputList.join(';');
-                    url = `http://10.220.130.117:2222/api/NVIDIA/ScanATestB/SearchData?SNS=${encodeURIComponent(sns)}`;
+                    // Chia batch cho tra cứu theo SN
+                    const batchSize = 50;
+                    for (let i = 0; i < inputList.length; i += batchSize) {
+                        const batch = inputList.slice(i, i + batchSize);
+                        const sns = batch.join(';');
+                        url = `http://10.220.130.117:2222/api/NVIDIA/ScanATestB/SearchData?SNS=${encodeURIComponent(sns)}`;
+
+                        const response = await fetch(url, {
+                            method: 'GET',
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            throw new Error(`Lỗi khi gọi API: ${response.status} - ${errorText}`);
+                        }
+
+                        const result = await response.json();
+                        if (result.StatusCode !== 200 || !result.Data) {
+                            throw new Error(result.Message || 'Dữ liệu trả về không hợp lệ.');
+                        }
+
+                        if (result.Data && result.Data.length > 0) {
+                            allResults = allResults.concat(result.Data);
+                        }
+                    }
                 } else if (typeOption === '2') {
                     const ults = inputList.join(';');
                     url = `http://10.220.130.117:2222/api/NVIDIA/ScanATestB/SearchData?ULTs=${encodeURIComponent(ults)}`;
+
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Lỗi khi gọi API: ${response.status} - ${errorText}`);
+                    }
+
+                    const result = await response.json();
+                    if (result.StatusCode !== 200 || !result.Data) {
+                        throw new Error(result.Message || 'Dữ liệu trả về không hợp lệ.');
+                    }
+
+                    allResults = result.Data;
                 } else if (typeOption === '3') {
                     const model = inputList[0]; // Lấy dòng đầu tiên làm model
                     const formattedStartDate = formatDateTime(startDate);
                     const formattedEndDate = formatDateTime(endDate);
                     url = `http://10.220.130.117:2222/api/NVIDIA/ScanATestB/SearchData?model=${encodeURIComponent(model)}&startTime=${encodeURIComponent(formattedStartDate)}&endTime=${encodeURIComponent(formattedEndDate)}`;
-                }
 
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Lỗi khi gọi API: ${response.status} - ${errorText}`);
                     }
-                });
 
-                if (!response.ok) {
-                    throw new Error(`Lỗi khi gọi API: ${response.status} - ${response.statusText}`);
+                    const result = await response.json();
+                    if (result.StatusCode !== 200 || !result.Data) {
+                        throw new Error(result.Message || 'Dữ liệu trả về không hợp lệ.');
+                    }
+
+                    allResults = result.Data;
                 }
 
-                const result = await response.json();
-                if (result.StatusCode !== 200 || !result.Data) {
-                    throw new Error(result.Message || 'Dữ liệu trả về không hợp lệ.');
-                }
-
-                tableData = result.Data; // Lưu dữ liệu để xuất Excel
+                // Cập nhật tableData để xuất Excel
+                tableData = allResults;
 
                 // Xóa dữ liệu cũ trong DataTable
                 dataTable.clear();
@@ -286,6 +273,7 @@
                 if (tableData.length === 0) {
                     alert('Không tìm thấy dữ liệu cho các thông tin đã nhập.');
                     dataTable.draw();
+                    document.body.removeChild(loadingOverlay);
                     return;
                 }
 
@@ -318,6 +306,9 @@
             } catch (error) {
                 console.error('Error:', error);
                 alert(`Đã xảy ra lỗi: ${error.message}`);
+            } finally {
+                // Xóa loading overlay
+                document.body.removeChild(loadingOverlay);
             }
         }
 

@@ -446,8 +446,9 @@ namespace API_WEB.Controllers.Repositories
                 {
                     "Scrap Lacks Task",
                     "Scrap Has Scrap",
-                    "SPE approve to BGA",
-                    "Waiting SPE approve scrap",
+                    "Approved BGA",
+                    "Waiting approve BGA",
+                    "Waiting approve scrap",
                     "Rework FG",
                     "Under repair in RE",
                     "Waiting Check Out",
@@ -467,7 +468,7 @@ namespace API_WEB.Controllers.Repositories
                             var applyTaskStatus = scrapInfo.ApplyTaskStatus;
                             var taskNumber = scrapInfo.TaskNumber;
 
-                            if (applyTaskStatus == 0 || applyTaskStatus == 1)
+                            if (applyTaskStatus == 0 || applyTaskStatus == 1 || applyTaskStatus == 5 || applyTaskStatus == 6 || applyTaskStatus == 7)
                             {
                                 status = string.IsNullOrEmpty(taskNumber) ? "Scrap Lacks Task" : "Scrap Has Scrap";
                             }
@@ -475,8 +476,9 @@ namespace API_WEB.Controllers.Repositories
                             {
                                 status = applyTaskStatus switch
                                 {
-                                    2 => "Waiting SPE approve scrap",
-                                    3 => "SPE approve to BGA",
+                                    2 => "Waiting approve scrap",
+                                    3 => "Approved BGA",
+                                    4 => "Waiting approve BGA",
                                     _ => "Under repair in PD"
                                 };
                             }
@@ -573,7 +575,7 @@ namespace API_WEB.Controllers.Repositories
                             var applyTaskStatus = scrapInfo.ApplyTaskStatus;
                             var taskNumber = scrapInfo.TaskNumber;
 
-                            if (applyTaskStatus == 0 || applyTaskStatus == 1)
+                            if (applyTaskStatus == 0 || applyTaskStatus == 1 || applyTaskStatus == 5 || applyTaskStatus == 6 || applyTaskStatus == 7)
                             {
                                 status = string.IsNullOrEmpty(taskNumber) ? "Scrap Lacks Task" : "Scrap Has Scrap";
                             }
@@ -581,8 +583,9 @@ namespace API_WEB.Controllers.Repositories
                             {
                                 status = applyTaskStatus switch
                                 {
-                                    2 => "Waiting SPE approve scrap",
-                                    3 => "SPE approve to BGA",
+                                    2 => "Waiting approve scrap",
+                                    3 => "Approved BGA",
+                                    4 => "Waiting approve BGA",
                                     _ => "Under repair in PD"
                                 };
                             }
@@ -650,8 +653,9 @@ namespace API_WEB.Controllers.Repositories
                 {
                     "Scrap Lacks Task",
                     "Scrap Has Scrap",
-                    "SPE approve to BGA",
-                    "Waiting SPE approve scrap",
+                    "Approved BGA",
+                    "Waiting approve BGA",
+                    "Waiting approve scrap",
                     "Rework FG",
                     "Under repair in RE",
                     "Waiting Check Out",
@@ -669,7 +673,7 @@ namespace API_WEB.Controllers.Repositories
                             var applyTaskStatus = scrapInfo.ApplyTaskStatus;
                             var taskNumber = scrapInfo.TaskNumber;
 
-                            if (applyTaskStatus == 0 || applyTaskStatus == 1)
+                            if (applyTaskStatus == 0 || applyTaskStatus == 1 || applyTaskStatus == 5 || applyTaskStatus == 6 || applyTaskStatus == 7)
                             {
                                 status = string.IsNullOrEmpty(taskNumber) ? "Scrap Lacks Task" : "Scrap Has Scrap";
                             }
@@ -677,8 +681,9 @@ namespace API_WEB.Controllers.Repositories
                             {
                                 status = applyTaskStatus switch
                                 {
-                                    2 => "Waiting SPE approve scrap",
-                                    3 => "SPE approve to BGA",
+                                    2 => "Waiting approve scrap",
+                                    3 => "Approved BGA",
+                                    4 => "Waiting approve BGA",
                                     _ => "Under repair in PD"
                                 };
                             }
@@ -856,6 +861,7 @@ AND a.MODEL_NAME IN (
 )
 AND a.MODEL_NAME NOT LIKE '900%'
 AND a.MODEL_NAME NOT LIKE 'TB%'
+AND a.MODEL_NAME NOT LIKE '692%'
 AND b.ERROR_FLAG = 1
 AND a.MO_NUMBER NOT LIKE '8%'
 AND NOT EXISTS (
@@ -1000,6 +1006,7 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                     "Online",
                     "WatitingScrap",
                     "ApproveBGA",
+                    "WaitingApproveBGA",
                     "RepairInRE",
                 };
                 // Phân loại status theo yêu cầu
@@ -1015,7 +1022,7 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                         {
                             var applyTaskStatus = scrapInfo.ApplyTaskStatus;
 
-                            if (applyTaskStatus == 0 || applyTaskStatus == 1)
+                            if (applyTaskStatus == 0 || applyTaskStatus == 1 || applyTaskStatus == 5 || applyTaskStatus == 6 || applyTaskStatus == 7)
                             {
                                 status = string.IsNullOrEmpty(scrapInfo.TaskNumber) ? "ScrapLackTask" : "ScrapHasTask";
                             }
@@ -1026,6 +1033,9 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                             else if (applyTaskStatus == 3)
                             {
                                 status = "ApproveBGA";
+                            }else if (applyTaskStatus == 4)
+                            {
+                                status = "WaitingApproveBGA";
                             }
                             else
                             {
@@ -1045,6 +1055,7 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                             SN = b.SFG,
                             FG = b.FG,
                             ModelName = b.MODEL_NAME,
+                            fgModelName = b.FG_MODEL_NAME,
                             MoNumber = b.MO_NUMBER,
                             ProductLine = b.PRODUCT_LINE,
                             WipGroupSFC = b.WIP_GROUP_SFC,
@@ -1175,7 +1186,7 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                     {
                         var applyTaskStatus = scrapInfo.ApplyTaskStatus;
 
-                        if (applyTaskStatus == 0 || applyTaskStatus == 1)
+                        if (applyTaskStatus == 0 || applyTaskStatus == 1 || applyTaskStatus == 5 || applyTaskStatus == 6 || applyTaskStatus == 7)
                         {
                             status = string.IsNullOrEmpty(scrapInfo.TaskNumber) ? "ScrapLackTask" : "ScrapHasTask";
                         }
@@ -1186,6 +1197,10 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                         else if (applyTaskStatus == 3)
                         {
                             status = "ApproveBGA";
+                        }
+                        else if (applyTaskStatus == 4)
+                        {
+                            status = "WaitingApproveBGA";
                         }
                         else
                         {
@@ -1230,46 +1245,88 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
             await connection.OpenAsync();
 
             string query = @"
-                SELECT 
-                    a.SERIAL_NUMBER AS SFG,
-                    c.SERIAL_NUMBER AS FG,
-                    a.MO_NUMBER,
-                    a.MODEL_NAME,
-                    b.PRODUCT_LINE,
-                    a.WIP_GROUP AS WIP_GROUP_KANBAN,
-                    r107.WIP_GROUP AS WIP_GROUP_SFC,
-                    c.WORK_TIME,
-                    r109_sfg.test_time AS SFG_TEST_TIME,
-                    r109_sfg.test_code AS SFG_TEST_CODE,
-                    r109_sfg.test_group AS SFG_TEST_GROUP,
-                    ce_sfg.error_desc AS SFG_ERROR_DESC,
+               SELECT 
+    a.SERIAL_NUMBER AS SFG,
+    c.SERIAL_NUMBER AS FG,
+    a.MO_NUMBER,
+    a.MODEL_NAME,
+    b.PRODUCT_LINE,
+    a.WIP_GROUP AS WIP_GROUP_KANBAN,
+    r107.WIP_GROUP AS WIP_GROUP_SFC,
+    c.WORK_TIME,
+    r109_sfg.test_time AS SFG_TEST_TIME,
+    r109_sfg.test_code AS SFG_TEST_CODE,
+    r109_sfg.test_group AS SFG_TEST_GROUP,
+    ce_sfg.error_desc AS SFG_ERROR_DESC,
 
-                    r109_fg.test_time AS FG_TEST_TIME,
-                    r109_fg.test_code AS FG_TEST_CODE,
-                    r109_fg.test_group AS FG_TEST_GROUP,
-                    ce_fg.error_desc AS FG_ERROR_DESC,
-                    TRUNC(SYSDATE) - TRUNC(r109_fg.test_time) AS FG_AGING
+    r109_fg.test_time AS FG_TEST_TIME,
+    r109_fg.test_code AS FG_TEST_CODE,
+    r109_fg.test_group AS FG_TEST_GROUP,
+    ce_fg.error_desc AS FG_ERROR_DESC,
+    TRUNC(SYSDATE) - TRUNC(r109_fg.test_time) AS FG_AGING,
 
-                FROM SFISM4.Z_KANBAN_TRACKING_T a
-                INNER JOIN SFIS1.C_MODEL_DESC_T b ON a.MODEL_NAME = b.MODEL_NAME
-                LEFT JOIN (
-                    SELECT t.*, ROW_NUMBER() OVER (PARTITION BY t.KEY_PART_SN ORDER BY t.WORK_TIME DESC) AS rn
-                    FROM SFISM4.P_WIP_KEYPARTS_T t
-                ) c ON a.SERIAL_NUMBER = c.KEY_PART_SN AND c.rn = 1
-                LEFT JOIN (
-                    SELECT t.*, ROW_NUMBER() OVER (PARTITION BY t.serial_number ORDER BY t.test_time DESC) AS rn
-                    FROM SFISM4.R109 t
-                ) r109_sfg ON a.SERIAL_NUMBER = r109_sfg.serial_number AND r109_sfg.rn = 1
-                LEFT JOIN (
-                    SELECT t.*, ROW_NUMBER() OVER (PARTITION BY t.serial_number ORDER BY t.test_time DESC) AS rn
-                    FROM SFISM4.R109 t
-                ) r109_fg ON c.SERIAL_NUMBER = r109_fg.serial_number AND r109_fg.rn = 1
-                LEFT JOIN SFIS1.C_ERROR_CODE_T ce_sfg ON r109_sfg.test_code = ce_sfg.error_code
-                LEFT JOIN SFIS1.C_ERROR_CODE_T ce_fg ON r109_fg.test_code = ce_fg.error_code
-                LEFT JOIN SFISM4.R107 r107 ON r107.SERIAL_NUMBER = a.SERIAL_NUMBER
-                WHERE a.WIP_GROUP LIKE '%B36R%'
-                    AND b.model_serial != 'SWITCH'
-                    AND (r107.WIP_GROUP IS NULL OR r107.WIP_GROUP NOT LIKE '%BR2C%')";
+    r117_fg.MODEL_NAME AS FG_MODEL_NAME
+
+FROM SFISM4.Z_KANBAN_TRACKING_T a
+INNER JOIN SFIS1.C_MODEL_DESC_T b ON a.MODEL_NAME = b.MODEL_NAME
+
+LEFT JOIN (
+    SELECT *
+    FROM (
+        SELECT 
+            KEY_PART_SN,
+            SERIAL_NUMBER,
+            WORK_TIME,
+            ROW_NUMBER() OVER (
+                PARTITION BY KEY_PART_SN
+                ORDER BY WORK_TIME DESC
+            ) AS rn
+        FROM SFISM4.P_WIP_KEYPARTS_T
+        UNION ALL
+        SELECT 
+            KEY_PART_SN,
+            SERIAL_NUMBER,
+            WORK_TIME,
+            ROW_NUMBER() OVER (
+                PARTITION BY KEY_PART_SN
+                ORDER BY WORK_TIME DESC
+            ) AS rn
+        FROM SFISM4.R_WIP_KEYPARTS_T
+    )
+    WHERE rn = 1
+) c ON a.SERIAL_NUMBER = c.KEY_PART_SN
+
+LEFT JOIN (
+    SELECT t.*, ROW_NUMBER() OVER (PARTITION BY t.serial_number ORDER BY t.test_time DESC) AS rn
+    FROM SFISM4.R109 t
+) r109_sfg ON a.SERIAL_NUMBER = r109_sfg.serial_number AND r109_sfg.rn = 1
+
+LEFT JOIN (
+    SELECT t.*, ROW_NUMBER() OVER (PARTITION BY t.serial_number ORDER BY t.test_time DESC) AS rn
+    FROM SFISM4.R109 t
+) r109_fg ON c.SERIAL_NUMBER = r109_fg.serial_number AND r109_fg.rn = 1
+
+LEFT JOIN (
+    SELECT *
+    FROM (
+        SELECT
+            SERIAL_NUMBER,
+            MODEL_NAME,
+            ROW_NUMBER() OVER (PARTITION BY SERIAL_NUMBER ORDER BY ROWID) AS rn
+        FROM SFISM4.R117
+    )
+    WHERE rn = 1
+) r117_fg ON c.SERIAL_NUMBER = r117_fg.SERIAL_NUMBER
+
+
+LEFT JOIN SFIS1.C_ERROR_CODE_T ce_sfg ON r109_sfg.test_code = ce_sfg.error_code
+LEFT JOIN SFIS1.C_ERROR_CODE_T ce_fg ON r109_fg.test_code = ce_fg.error_code
+LEFT JOIN SFISM4.R107 r107 ON r107.SERIAL_NUMBER = a.SERIAL_NUMBER
+
+WHERE a.WIP_GROUP LIKE '%B36R%'
+  AND b.model_serial != 'SWITCH'
+  AND (r107.WIP_GROUP IS NULL OR r107.WIP_GROUP NOT LIKE '%BR2C%')
+";
 
             using (var command = new OracleCommand(query, connection))
             {
@@ -1295,6 +1352,7 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                             FG_TEST_CODE = reader["FG_TEST_CODE"]?.ToString(),
                             FG_TEST_GROUP = reader["FG_TEST_GROUP"]?.ToString(),
                             FG_ERROR_DESC = reader["FG_ERROR_DESC"]?.ToString(),
+                            FG_MODEL_NAME = reader["FG_MODEL_NAME"]?.ToString(),
                             FG_AGING = reader["FG_AGING"]?.ToString(),
                         };
                         rawResult.Add(item);
@@ -1315,6 +1373,7 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
                     FG = b.FG,
                     MO_NUMBER = b.MO_NUMBER,
                     MODEL_NAME = b.MODEL_NAME,
+                    FG_MODEL_NAME = b.FG_MODEL_NAME,
                     PRODUCT_LINE = b.PRODUCT_LINE,
                     WIP_GROUP_KANBAN = b.WIP_GROUP_KANBAN,
                     WIP_GROUP_SFC = b.WIP_GROUP_SFC,
@@ -1358,5 +1417,334 @@ AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' 10:59:59', 'YYYY-MM-DD HH24:MI:S
 
             return snList;
         }
+
+
+        [HttpPost("adapter-mo-records")]
+        public async Task<IActionResult> AdapterMoRecords([FromBody] StatusRequestBonepile request)
+        {
+            try
+            {
+                if (request == null)
+                {
+                    return BadRequest(new { message = "Yêu cầu không hợp lệ!" });
+                }
+
+                bool filterByStatus = request.Statuses?.Any() == true;
+                var statuses = filterByStatus ? request.Statuses.Where(s => !string.IsNullOrEmpty(s)).ToList() : null;
+
+                // Lấy data từ Oracle
+                var allData = await ExecuteAdapterMoQuery();
+
+                // Lấy ApplyTaskStatus từ ScrapLists
+                var scrapCategories = await _sqlContext.ScrapLists
+                    .Select(s => new { SN = s.SN, ApplyTaskStatus = s.ApplyTaskStatus, TaskNumber = s.TaskNumber })
+                    .ToListAsync();
+
+                var scrapDict = scrapCategories.ToDictionary(
+                    c => c.SN?.Trim().ToUpper() ?? "",
+                    c => (ApplyTaskStatus: c.ApplyTaskStatus, TaskNumber: c.TaskNumber),
+                    StringComparer.OrdinalIgnoreCase
+                );
+
+                // Định nghĩa validStatuses
+                var validStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "Scrap Lacks Task",
+                    "Scrap Has Scrap",
+                    "Approved BGA",
+                    "Waiting approve BGA",
+                    "Waiting approve scrap",
+                    "Chờ Link",
+                    "Đã Mở MO"
+                };
+
+                // Phân loại status
+                var result = allData
+                    .Select(b =>
+                    {
+                        var sn = b.SERIAL_NUMBER?.Trim().ToUpper() ?? "";
+                        string status;
+
+                        // Kiểm tra thông tin trong scrapDict
+                        if (scrapDict.TryGetValue(sn, out var scrapInfo))
+                        {
+                            var applyTaskStatus = scrapInfo.ApplyTaskStatus;
+                            var taskNumber = scrapInfo.TaskNumber;
+
+                            if (applyTaskStatus == 0 || applyTaskStatus == 1 || applyTaskStatus == 5 || applyTaskStatus == 6 || applyTaskStatus == 7)
+                            {
+                                status = string.IsNullOrEmpty(taskNumber) ? "Scrap Lacks Task" : "Scrap Has Scrap";
+                            }
+                            else
+                            {
+                                status = applyTaskStatus switch
+                                {
+                                    2 => "Waiting approve scrap",
+                                    3 => "Approved BGA",
+                                    4 => "Waiting approve BGA",
+                                    _ => b.MO_STATUS
+                                };
+                            }
+                        }
+                        else
+                        {
+                            status = b.MO_STATUS;
+                        }
+
+                        return new
+                        {
+                            SN = b.SERIAL_NUMBER,
+                            ModelName = b.MODEL_NAME,
+                            MoNumber = b.MO_NUMBER,
+                            ProductLine = b.PRODUCT_LINE,
+                            WipGroup = b.WIP_GROUP,
+                            TestGroup = b.TEST_GROUP,
+                            TestCode = b.TEST_CODE,
+                            TestTime = b.TEST_TIME,
+                            Status = status
+                        };
+                    })
+                    .Where(r => validStatuses.Contains(r.Status, StringComparer.OrdinalIgnoreCase) &&
+                                (!filterByStatus || statuses.Contains(r.Status, StringComparer.OrdinalIgnoreCase)))
+                    .ToList();
+
+                Console.WriteLine($"Result Count: {result?.Count}");
+
+                if (!result.Any())
+                {
+                    return NotFound(new { message = "Không tìm thấy dữ liệu!", count = 0 });
+                }
+
+                return Ok(new
+                {
+                    count = result?.Count,
+                    data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
+            }
+        }
+
+        [HttpGet("adapter-mo-status-count")]
+        public async Task<IActionResult> AdapterMoStatusCount()
+        {
+            try
+            {
+                var moData = await ExecuteAdapterMoQuery();
+                var scrapCategories = await _sqlContext.ScrapLists
+                    .Select(s => new { SN = s.SN, ApplyTaskStatus = s.ApplyTaskStatus, TaskNumber = s.TaskNumber })
+                    .ToListAsync();
+
+                var scrapDict = scrapCategories.ToDictionary(
+                    c => c.SN?.Trim().ToUpper() ?? "",
+                    c => (ApplyTaskStatus: c.ApplyTaskStatus, TaskNumber: c.TaskNumber),
+                    StringComparer.OrdinalIgnoreCase
+                );
+
+                // Phân loại trạng thái
+                var result = moData
+                    .Select(b =>
+                    {
+                        var sn = b.SERIAL_NUMBER?.Trim().ToUpper() ?? "";
+                        string status;
+
+                        if (scrapDict.TryGetValue(sn, out var scrapInfo))
+                        {
+                            var applyTaskStatus = scrapInfo.ApplyTaskStatus;
+                            var taskNumber = scrapInfo.TaskNumber;
+
+                            if (applyTaskStatus == 0 || applyTaskStatus == 1 || applyTaskStatus == 5 || applyTaskStatus == 6 || applyTaskStatus == 7)
+                            {
+                                status = string.IsNullOrEmpty(taskNumber) ? "Scrap Lacks Task" : "Scrap Has Scrap";
+                            }
+                            else
+                            {
+                                status = applyTaskStatus switch
+                                {
+                                    2 => "Waiting approve scrap",
+                                    3 => "Approved BGA",
+                                    4 => "Waiting approve BGA",
+                                    _ => b.MO_STATUS
+                                };
+                            }
+                        }
+                        else
+                        {
+                            status = b.MO_STATUS;
+                        }
+
+                        return status;
+                    })
+                    .ToList();
+
+                var statusCounts = result
+                    .GroupBy(status => status)
+                    .Select(g => new
+                    {
+                        Status = g.Key,
+                        Count = g.Count()
+                    })
+                    .ToList();
+
+                return Ok(new
+                {
+                    totalCount = result.Count,
+                    statusCounts = statusCounts
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Xảy ra lỗi", error = ex.Message });
+            }
+        }
+
+        private async Task<List<MoTaskResult>> ExecuteAdapterMoQuery()
+        {
+            var result = new List<MoTaskResult>();
+
+            await using var connection = new OracleConnection(_oracleContext.Database.GetDbConnection().ConnectionString);
+            await connection.OpenAsync();
+
+            string query = @"
+                SELECT 
+                    r107.SERIAL_NUMBER,
+                    r107.MODEL_NAME,
+                    model_desc.PRODUCT_LINE,
+                    r107.WIP_GROUP,
+                    r107.MO_NUMBER,
+                    R109.TEST_GROUP,
+                    R109.TEST_CODE,
+                    R109.TEST_TIME,
+                    'CHỜ LINK' AS MO_STATUS
+                FROM 
+                    SFISM4.R107 r107
+                INNER JOIN 
+                    SFIS1.C_MODEL_DESC_T model_desc
+                    ON r107.MODEL_NAME = model_desc.MODEL_NAME
+                LEFT JOIN (
+                    SELECT 
+                        SERIAL_NUMBER,
+                        TEST_CODE,
+                        TEST_TIME,
+                        TEST_GROUP,
+                        ROW_NUMBER() OVER (PARTITION BY SERIAL_NUMBER ORDER BY TEST_TIME DESC) AS rn
+                    FROM SFISM4.R109
+                ) R109
+                    ON r107.SERIAL_NUMBER = R109.SERIAL_NUMBER AND R109.rn = 1
+                WHERE 
+                    r107.WIP_GROUP LIKE '%B31M%'
+                    AND model_desc.MODEL_SERIAL = 'ADAPTER'
+                    AND r107.MODEL_NAME NOT LIKE '900%'
+                    AND r107.MODEL_NAME NOT LIKE '699%'
+                    AND r107.MODEL_NAME NOT LIKE '692%'
+
+                UNION ALL
+
+                SELECT 
+                    r107.SERIAL_NUMBER,
+                    r107.MO_NUMBER,
+                    r107.MODEL_NAME,
+                    r107.WIP_GROUP,
+                    model_desc.PRODUCT_LINE,
+                    R109.TEST_GROUP,
+                    R109.TEST_CODE,
+                    R109.TEST_TIME,
+                    'Đã Mở MO' AS MO_STATUS
+                FROM 
+                    SFISM4.R107 r107
+                INNER JOIN 
+                    SFISM4.R105 r105
+                    ON r107.MO_NUMBER = r105.MO_NUMBER
+                INNER JOIN 
+                    SFIS1.C_MODEL_DESC_T model_desc
+                    ON r107.MODEL_NAME = model_desc.MODEL_NAME
+                LEFT JOIN (
+                    SELECT 
+                        SERIAL_NUMBER,
+                        TEST_CODE,
+                        TEST_TIME,
+                        TEST_GROUP,
+                        ROW_NUMBER() OVER (PARTITION BY SERIAL_NUMBER ORDER BY TEST_TIME DESC) AS rn
+                    FROM SFISM4.R109
+                ) R109
+                    ON r107.SERIAL_NUMBER = R109.SERIAL_NUMBER AND R109.rn = 1
+                INNER JOIN (
+                    SELECT SERIAL_NUMBER
+                    FROM (
+                        SELECT 
+                            SERIAL_NUMBER,
+                            GROUP_NAME,
+                            ROW_NUMBER() OVER (PARTITION BY SERIAL_NUMBER ORDER BY IN_STATION_TIME DESC) AS rn
+                        FROM SFISM4.R117
+                    ) t
+                    WHERE rn = 1 AND GROUP_NAME = 'LINK_MO'
+                ) r117_latest
+                    ON r107.SERIAL_NUMBER = r117_latest.SERIAL_NUMBER
+                INNER JOIN (
+                    SELECT SERIAL_NUMBER
+                    FROM (
+                        SELECT 
+                            SERIAL_NUMBER,
+                            WIP_GROUP,
+                            ROW_NUMBER() OVER (PARTITION BY SERIAL_NUMBER ORDER BY IN_STATION_TIME DESC) AS rn
+                        FROM SFISM4.R117
+                    ) t
+                    WHERE rn = 2 AND WIP_GROUP LIKE '%B31M%'
+                ) r117_second
+                    ON r107.SERIAL_NUMBER = r117_second.SERIAL_NUMBER
+                WHERE 
+                    r107.WIP_GROUP NOT IN ('KANBAN_IN', 'STOCKIN')
+                    AND r107.WIP_GROUP NOT LIKE '%B28M%'
+                    AND r107.WIP_GROUP NOT LIKE '%B30M%'
+                    AND r107.WIP_GROUP NOT LIKE '%BR2C%'
+                    AND r107.WIP_GROUP NOT LIKE '%B31M%'
+                    AND r107.MO_NUMBER LIKE '3%'
+                    AND r107.MODEL_NAME NOT LIKE '900%'
+                    AND r107.MODEL_NAME NOT LIKE '699%'
+                    AND r107.MODEL_NAME NOT LIKE '692%'
+                    AND r105.CLOSE_FLAG = 2
+                    AND model_desc.MODEL_SERIAL = 'ADAPTER'
+            ";
+
+            using (var command = new OracleCommand(query, connection))
+            {
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        result.Add(new MoTaskResult
+                        {
+                            SERIAL_NUMBER = reader["SERIAL_NUMBER"].ToString(),
+                            MODEL_NAME = reader["MODEL_NAME"].ToString(),
+                            PRODUCT_LINE = reader["PRODUCT_LINE"].ToString(),
+                            WIP_GROUP = reader["WIP_GROUP"].ToString(),
+                            MO_NUMBER = reader["MO_NUMBER"].ToString(),
+                            TEST_GROUP = reader["TEST_GROUP"] != DBNull.Value ? reader["TEST_GROUP"].ToString() : null,
+                            TEST_CODE = reader["TEST_CODE"] != DBNull.Value ? reader["TEST_CODE"].ToString() : null,
+                            TEST_TIME = reader["TEST_TIME"] != DBNull.Value ? Convert.ToDateTime(reader["TEST_TIME"]) : (DateTime?)null,
+                            MO_STATUS = reader["MO_STATUS"].ToString()
+                        });
+                    }
+                }
+            }
+
+            return result;
+        }
     }
+
+    public class MoTaskResult
+    {
+        public string SERIAL_NUMBER { get; set; }
+        public string MODEL_NAME { get; set; }
+        public string PRODUCT_LINE { get; set; }
+        public string WIP_GROUP { get; set; }
+        public string MO_NUMBER { get; set; }
+        public string TEST_GROUP { get; set; }
+        public string TEST_CODE { get; set; }
+        public DateTime? TEST_TIME { get; set; }
+        public string MO_STATUS { get; set; }
+    }
+
 }

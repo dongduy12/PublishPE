@@ -3,6 +3,8 @@
 	<PropertyGroup>
 		<TargetFramework>net6.0</TargetFramework>
 		<Nullable>enable</Nullable>
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+		<SelfContained>true</SelfContained>
 		<ImplicitUsings>enable</ImplicitUsings>
 	</PropertyGroup>
 
@@ -27,15 +29,11 @@
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="Oracle.EntityFrameworkCore" Version="6.21.140" />
 		<PackageReference Include="Oracle.ManagedDataAccess" Version="23.6.1" />
-		<PackageReference Include="Oracle.ManagedDataAccess.Core" Version="23.6.1" />
+		<PackageReference Include="Oracle.ManagedDataAccess.Core" Version="23.8.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Content Update="api_appsettings.json">
-	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-	  </Content>
+	  <Folder Include="Uploads\" />
 	</ItemGroup>
-
-	<ProjectExtensions><VisualStudio><UserProperties api_3appsettings_1json__JsonSchema="https://api.app-prg1.zerops.io/api/rest/public/settings/import-project-yml-json-schema.json" /></VisualStudio></ProjectExtensions>
 </Project>

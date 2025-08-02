@@ -282,8 +282,8 @@
                     text: "Hành động này không thể hoàn tác!",
                     icon: "warning",
                     showCancelButton: true,
-                    confirmButtonText: "Vâng, xóa nó!",
-                    cancelButtonText: "Không, hủy!",
+                    confirmButtonText: "XÁC NHẬN",
+                    cancelButtonText: "HỦY",
                     reverseButtons: true
                 }).then((result) => {
                     if (result.isConfirmed) {

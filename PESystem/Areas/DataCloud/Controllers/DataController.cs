@@ -6,6 +6,8 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Drawing.Imaging;
+using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
 
 namespace PESystem.Areas.DataCloud.Controllers
 {
@@ -43,28 +45,63 @@ namespace PESystem.Areas.DataCloud.Controllers
 
                 // Tạo thư mục tạm để lưu hình ảnh
                 string tempDir = Path.Combine(_basePath, "Temp", Guid.NewGuid().ToString());
-                Directory.CreateDirectory(tempDir);
+                if (!Directory.Exists(tempDir))
+                {
+                    Directory.CreateDirectory(tempDir);
+                }
 
                 // Load file PPT/PPTX bằng Aspose.Slides
                 using (var presentation = new Presentation(filePath))
                 {
+                    // Kiểm tra xem file có slide không
+                    if (presentation.Slides.Count == 0)
+                    {
+                        return BadRequest("File PPT/PPTX không chứa slide nào.");
+                    }
+
                     // Cấu hình kích thước hình ảnh
                     int width = 960; // Chiều rộng hình ảnh
                     int height = 720; // Chiều cao hình ảnh (tỷ lệ 4:3)
 
+                    // Kiểm tra kích thước hợp lệ
+                    if (width <= 0 || height <= 0)
+                    {
+                        return BadRequest("Kích thước hình ảnh không hợp lệ.");
+                    }
+
                     var slides = presentation.Slides;
                     var imageUrls = new List<string>();
 
-                    for (int i = 0; i < slides.Count; i++)
+                    // Chỉ render tối đa 10 slide để tránh lỗi với file lớn
+                    int maxSlidesToRender = 10;
+                    for (int i = 0; i < Math.Min(slides.Count, maxSlidesToRender); i++)
                     {
                         string imagePath = Path.Combine(tempDir, $"slide-{i + 1}.png");
-                        using (var image = slides[i].GetThumbnail(width, height))
+                        try
                         {
-                            image.Save(imagePath, System.Drawing.Imaging.ImageFormat.Png);
+                            using (var image = slides[i].GetThumbnail(width, height))
+                            {
+                                if (image == null)
+                                {
+                                    continue; // Bỏ qua slide nếu không thể render
+                                }
+                                image.Save(imagePath, System.Drawing.Imaging.ImageFormat.Png);
+                            }
+                            // Tạo URL để client truy cập hình ảnh
+                            string imageUrl = $"/Temp/{Path.GetFileName(tempDir)}/slide-{i + 1}.png";
+                            imageUrls.Add(imageUrl);
                         }
-                        // Tạo URL để client truy cập hình ảnh
-                        string imageUrl = $"/Temp/{Path.GetFileName(tempDir)}/slide-{i + 1}.png";
-                        imageUrls.Add(imageUrl);
+                        catch (Exception ex)
+                        {
+                            // Log lỗi chi tiết cho slide cụ thể
+                            Console.WriteLine($"Lỗi khi render slide {i + 1}: {ex.Message}");
+                            continue; // Bỏ qua slide lỗi và tiếp tục với slide tiếp theo
+                        }
+                    }
+
+                    if (imageUrls.Count == 0)
+                    {
+                        return BadRequest("Không thể render bất kỳ slide nào từ file PPT/PPTX.");
                     }
 
                     return Ok(new { slides = imageUrls });
@@ -72,12 +109,12 @@ namespace PESystem.Areas.DataCloud.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Lỗi khi render PPTX: {ex}");
+                // Log lỗi chi tiết
+                Console.WriteLine($"Lỗi tổng quát khi render PPT/PPTX: {ex.Message}\nStackTrace: {ex.StackTrace}");
                 return StatusCode(500, $"Lỗi khi render PPT/PPTX: {ex.Message}");
             }
         }
-
-        // Endpoint để truy cập file download (đã có trong hệ thống của bạn)
+        // Endpoint để truy cập file download
         [HttpGet("download-file")]
         public IActionResult DownloadFile(string path)
         {

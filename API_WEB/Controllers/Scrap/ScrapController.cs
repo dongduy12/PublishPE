@@ -95,9 +95,25 @@ namespace API_WEB.Controllers.Scrap
                     }
                     else if (sn.ApplyTaskStatus == 1)
                     {
-                        rejectedSNs.Add($"{sn.SN} (đã có task)");
+                        rejectedSNs.Add($"{sn.SN} (đang xin task, chờ NV gửi task)");
                     }
-                    else if (sn.ApplyTaskStatus == 2 || sn.ApplyTaskStatus == 3 )
+                    else if (sn.ApplyTaskStatus == 3)
+                    {
+                        rejectedSNs.Add($"{sn.SN} (NV đã approved thay BGA)");
+                    }
+                    else if (sn.ApplyTaskStatus == 5)
+                    {
+                        rejectedSNs.Add($"{sn.SN} (Đã có task, chờ chuyển MRB)");
+                    }
+                    else if (sn.ApplyTaskStatus == 6)
+                    {
+                        rejectedSNs.Add($"{sn.SN} (Đã chuyển kho phế, chờ MRB xác nhận)");
+                    }
+                    else if (sn.ApplyTaskStatus == 7)
+                    {
+                        rejectedSNs.Add($"{sn.SN} (Đã chuyển kho phế thành công)");
+                    }
+                    else if (sn.ApplyTaskStatus == 2 || sn.ApplyTaskStatus == 4 )
                     {
                         validSNs.Add(sn); // SN hợp lệ để cập nhật
                     }
@@ -114,7 +130,7 @@ namespace API_WEB.Controllers.Scrap
 
                 if (!validSNs.Any())
                 {
-                    return BadRequest(new { message = "Không có SN nào hợp lệ để cập nhật (yêu cầu ApplyTaskStatus = 2)." });
+                    return BadRequest(new { message = "Không có SN nào hợp lệ để cập nhật (yêu cầu ApplyTaskStatus = 2 & 4)." });
                 }
 
                 // kiểm tra xem có lẫn lộn bản giữa Bonepile 1.0 và SN 2.0 không
@@ -806,6 +822,8 @@ namespace API_WEB.Controllers.Scrap
                 {
                     record.TaskNumber = request.Task;
                     record.PO = request.PO;
+                    record.ApplyTaskStatus = 5;
+                    record.ApplyTime = DateTime.Now;
                 }
 
                 await _sqlContext.SaveChangesAsync();
@@ -1000,7 +1018,7 @@ namespace API_WEB.Controllers.Scrap
 
 
 
-        // API: Lấy chi tiết dữ liệu từ ScrapList dựa trên InternalTasks hoặc SNs
+        // API: Lấy chi tiết dữ liệu từ ScrapList dựa trên InternalTasks hoặc SNs hoặc TaskNumber
         [HttpPost("detail-task-status")]
         public async Task<IActionResult> DetailTaskStatus([FromBody] DetailTaskStatusRequest request)
         {
@@ -1012,13 +1030,14 @@ namespace API_WEB.Controllers.Scrap
                     return BadRequest(new { message = "Yêu cầu không hợp lệ. Vui lòng kiểm tra dữ liệu đầu vào." });
                 }
 
-                // Kiểm tra xem cả hai danh sách có trống không
+                // Kiểm tra xem cả ba danh sách có trống không
                 bool internalTasksEmpty = request.InternalTasks == null || !request.InternalTasks.Any();
                 bool sNsEmpty = request.SNs == null || !request.SNs.Any();
+                bool taskNumberEmpty = request.TaskNumber == null || !request.TaskNumber.Any();
 
-                if (internalTasksEmpty && sNsEmpty)
+                if (internalTasksEmpty && sNsEmpty && taskNumberEmpty)
                 {
-                    return BadRequest(new { message = "Cần cung cấp ít nhất một InternalTask hoặc một SN." });
+                    return BadRequest(new { message = "Cần cung cấp ít nhất một InternalTask hoặc một TaskNumber hoặc một SN." });
                 }
 
                 // Lấy dữ liệu từ bảng ScrapList
@@ -1036,11 +1055,17 @@ namespace API_WEB.Controllers.Scrap
                     query = query.Where(s => request.SNs.Contains(s.SN));
                 }
 
+                // Nếu TaskNumber không trống, lọc theo TaskNumber
+                if (!taskNumberEmpty)
+                {
+                    query = query.Where(s => request.TaskNumber.Contains(s.TaskNumber));
+                }
+
                 var scrapData = await query.ToListAsync();
 
                 if (!scrapData.Any())
                 {
-                    return NotFound(new { message = "Không tìm thấy dữ liệu cho các InternalTasks hoặc SNs được cung cấp." });
+                    return NotFound(new { message = "Không tìm thấy dữ liệu cho các InternalTasks hoặc SNs hoặc TaskNumber được cung cấp." });
                 }
 
                 // Chuyển dữ liệu thành định dạng trả về
@@ -1078,6 +1103,7 @@ namespace API_WEB.Controllers.Scrap
         {
             public List<string> InternalTasks { get; set; } = new List<string>();
             public List<string> SNs { get; set; } = new List<string>();
+            public List<string> TaskNumber { get; set; } = new List<string>();
         }
 
 
@@ -1163,6 +1189,16 @@ namespace API_WEB.Controllers.Scrap
                     return BadRequest(new { message = "CreatedBy không được để trống." });
                 }
 
+                if (string.IsNullOrEmpty(request.Remark))
+                {
+                    return BadRequest(new { message = "Remark không được để trống." });
+                }
+
+                if (string.IsNullOrEmpty(request.Approve))
+                {
+                    return BadRequest(new { message = "Approve không được để trống." });
+                }
+
                 // Kiểm tra độ dài các trường
                 if (request.SNs.Any(sn => sn.Length > 50))
                 {
@@ -1174,6 +1210,7 @@ namespace API_WEB.Controllers.Scrap
                     return BadRequest(new { message = "CreatedBy và Description không được dài quá 50 ký tự." });
                 }
 
+                
 
                 // Kiểm tra SN trong bảng R117
                 string connectionString = "User Id=TE;Password=B05te;Data Source=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=10.220.130.220)(PORT=1521)))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=vnsfc)))";
@@ -1191,8 +1228,9 @@ namespace API_WEB.Controllers.Scrap
                         AND GROUP_NAME = 'SMTLOADING' 
                         AND MO_NUMBER LIKE '5%'";
 
-                    // Chỉ kiểm tra điều kiện MO_NUMBER nếu Description không chứa "BGA"
-                    if (request.Description == null || !request.Description.Contains("BGA", StringComparison.OrdinalIgnoreCase))
+
+                    // Chỉ kiểm tra điều kiện MO_NUMBER nếu Approve = 2 (những bản cần xin báo phế)
+                    if (request.Approve == "2")
                     {
                         
                         using (var command = new OracleCommand(sqlQuery, connection))
@@ -1216,7 +1254,7 @@ namespace API_WEB.Controllers.Scrap
                     }
 
                     // kiểm tra điều kiện Bonepile
-                    /*if (request.Remark == "BP-10" || request.Remark == "BP-20")
+                    if (request.Remark == "BP-10" || request.Remark == "BP-20")
                     {
                         string sqlQueryBonepile = $@"
                             SELECT SERIAL_NUMBER 
@@ -1253,10 +1291,12 @@ namespace API_WEB.Controllers.Scrap
                                 }
                             }
                         }
-                    }*/
+                    }
+
                 }
 
-                
+
+
                 // Kiểm tra trùng lặp SN trong bảng ScrapList
                 var existingSNs = await _sqlContext.ScrapLists
                     .Where(s => request.SNs.Contains(s.SN))
@@ -1270,15 +1310,31 @@ namespace API_WEB.Controllers.Scrap
                 {
                     if (sn.ApplyTaskStatus == 0)
                     {
-                        rejectedSNs.Add($"{sn.SN} (SN đang chờ xin Task/PO)");
+                        rejectedSNs.Add($"{sn.SN} (SN SPE đã approved phế, đang chờ xin Task/PO)");
                     }
                     else if (sn.ApplyTaskStatus == 1)
                     {
-                        rejectedSNs.Add($"{sn.SN} (SN đã có Task/PO)");
+                        rejectedSNs.Add($"{sn.SN} (SN đã gửi NV xin Task/PO)");
                     }
                     else if (sn.ApplyTaskStatus == 2)
                     {
                         rejectedSNs.Add($"{sn.SN} (SN đang chờ SPE approve scrap)");
+                    }
+                    else if (sn.ApplyTaskStatus == 4)
+                    {
+                        rejectedSNs.Add($"{sn.SN} (SN đang chờ SPE approve BGA)");
+                    }
+                    else if (sn.ApplyTaskStatus == 5)
+                    {
+                        rejectedSNs.Add($"{sn.SN} (Đã có task, chờ chuyển MRB)");
+                    }
+                    else if (sn.ApplyTaskStatus == 6)
+                    {
+                        rejectedSNs.Add($"{sn.SN} (Đã chuyển kho phế, chờ MRB xác nhận)");
+                    }
+                    else if (sn.ApplyTaskStatus == 7)
+                    {
+                        rejectedSNs.Add($"{sn.SN} (Đã chuyển kho phế thành công)");
                     }
                     else if (sn.ApplyTaskStatus == 3)
                     {
@@ -1294,6 +1350,18 @@ namespace API_WEB.Controllers.Scrap
                 if (rejectedSNs.Any())
                 {
                     return BadRequest(new { message = $"Các SN sau đã có trong scrap list: {string.Join(", ", rejectedSNs)}" });
+                }
+
+                // Tạo biến phụ cho Approve chuyen xang dang int
+                int ApproveTag = 0;
+
+                if (request.Approve == "2")
+                {
+                    ApproveTag = 2;
+                }
+                else if (request.Approve == "4")
+                {
+                    ApproveTag = 4;
                 }
 
                 // Tạo danh sách ScrapList để lưu vào bảng (cho các SN mới)
@@ -1314,7 +1382,7 @@ namespace API_WEB.Controllers.Scrap
                         CreateTime = DateTime.Now,
                         ApplyTime = null,
                         ApproveScrapperson = "N/A",
-                        ApplyTaskStatus = 2, // Mặc định là 2 (đang chờ SPE approve scrap)
+                        ApplyTaskStatus = ApproveTag,
                         FindBoardStatus = "N/A",
                         InternalTask = "N/A",
                         Purpose = "N/A",
@@ -1338,7 +1406,7 @@ namespace API_WEB.Controllers.Scrap
                     sn.CreateTime = DateTime.Now;
                     sn.ApplyTime = null;
                     sn.ApproveScrapperson = "N/A";
-                    sn.ApplyTaskStatus = 2; // Cập nhật về trạng thái 2 (đang chờ SPE approve scrap)
+                    sn.ApplyTaskStatus = ApproveTag;
                     sn.FindBoardStatus = "N/A";
                     sn.InternalTask = "N/A";
                     sn.Purpose = "N/A";
@@ -1371,15 +1439,15 @@ namespace API_WEB.Controllers.Scrap
         }
 
 
-        // API: Lấy dữ liệu từ ScrapList với ApplyTaskStatus = 2
-        [HttpGet("get-scrap-status-two")]
+        // API: Lấy dữ liệu từ ScrapList với ApplyTaskStatus = 2 & 4
+        [HttpGet("get-scrap-status-two-and-four")]
         public async Task<IActionResult> GetScrapStatusTwo()
         {
             try
             {
-                // Lấy dữ liệu từ bảng ScrapList với ApplyTaskStatus = 2
+                // Lấy dữ liệu từ bảng ScrapList với ApplyTaskStatus = 2 & 4
                 var scrapData = await _sqlContext.ScrapLists
-                    .Where(s => s.ApplyTaskStatus == 2) // Lọc theo ApplyTaskStatus = 2
+                    .Where(s => s.ApplyTaskStatus == 2 || s.ApplyTaskStatus == 4) // Lọc theo ApplyTaskStatus = 2 & 4
                     .Select(s => new
                     {
                         SN = s.SN,
@@ -1403,6 +1471,153 @@ namespace API_WEB.Controllers.Scrap
                 return StatusCode(500, new { message = "Đã xảy ra lỗi khi lấy dữ liệu.", error = ex.Message });
             }
         }
+
+        // API: Lấy danh sách TaskNumber và tổng số lượng SN theo ApplyTaskStatus
+        [HttpGet("get-task-by-status")]
+        public async Task<IActionResult> GetTaskByStatus([FromQuery] int status)
+        {
+            try
+            {
+                var result = await _sqlContext.ScrapLists
+                    .Where(s => s.ApplyTaskStatus == status && !string.IsNullOrEmpty(s.TaskNumber))
+                    .GroupBy(s => s.TaskNumber)
+                    .Select(g => new
+                    {
+                        TaskNumber = g.Key,
+                        ApplyTime = g.Min(s => s.ApplyTime) != null ? g.Min(s => s.ApplyTime).Value.ToString("yyyy-MM-dd") : "N/A",
+                        TotalQty = g.Count()
+                    })
+                    .ToListAsync();
+
+                if (!result.Any())
+                {
+                    return NotFound(new { message = $"Không tìm thấy TaskNumber với ApplyTaskStatus = {status}." });
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi lấy dữ liệu.", error = ex.Message });
+            }
+        }
+
+        // API: Xác nhận chuyển MRB
+        [HttpPost("confirm-move-mrb")]
+        public async Task<IActionResult> ConfirmMoveMRB([FromBody] ConfirmMoveMRBRequest request)
+        {
+            try
+            {
+                // Kiểm tra dữ liệu đầu vào
+                if (request == null)
+                {
+                    return BadRequest(new { message = "Yêu cầu không hợp lệ. Vui lòng kiểm tra dữ liệu đầu vào." });
+                }
+
+                var snList = request.SNs ?? new List<string>();
+                var taskNumberList = request.TaskNumbers ?? new List<string>();
+
+                if (!snList.Any() || !taskNumberList.Any())
+                {
+                    return BadRequest(new { message = "Danh sách SNs và TaskNumbers không được để trống." });
+                }
+
+                // Kiểm tra độ dài của SN và TaskNumber
+                if (snList.Any(sn => sn?.Length > 50) || taskNumberList.Any(task => task?.Length > 50))
+                {
+                    return BadRequest(new { message = "SN hoặc TaskNumber không được dài quá 50 ký tự." });
+                }
+
+                // Lấy tất cả các bản ghi từ ScrapList dựa trên TaskNumbers
+                var scrapRecords = await _sqlContext.ScrapLists
+                    .Where(s => taskNumberList.Contains(s.TaskNumber))
+                    .ToListAsync();
+
+                if (!scrapRecords.Any())
+                {
+                    return NotFound(new { message = "Không tìm thấy dữ liệu trong ScrapList cho các TaskNumbers được cung cấp." });
+                }
+
+                // Lấy danh sách SN từ ScrapList dựa trên TaskNumbers
+                var scrapSNs = scrapRecords.Select(s => s.SN).ToList();
+
+                // So sánh SNs từ đầu vào với SNs từ ScrapList
+                var unmatchedSNs = snList.Except(scrapSNs).ToList();
+                var matchedSNs = snList.Intersect(scrapSNs).ToList();
+
+                // Nếu có bất kỳ SN nào không khớp, không thực hiện cập nhật
+                if (unmatchedSNs.Any())
+                {
+                    return BadRequest(new { message = $"Các SN sau không khớp với dữ liệu từ TaskNumbers: {string.Join(", ", unmatchedSNs)}. Không thực hiện cập nhật." });
+                }
+
+                // Nếu tất cả SN khớp, thực hiện cập nhật
+                var updatedRecords = new List<ScrapList>();
+                foreach (var sn in matchedSNs)
+                {
+                    var record = scrapRecords.FirstOrDefault(r => r.SN == sn);
+                    if (record != null)
+                    {
+                        if (record.ApplyTaskStatus == 5)
+                        {
+                            record.ApplyTaskStatus = 6;
+                            record.ApplyTime = DateTime.Now;
+                            updatedRecords.Add(record);
+                        }
+                        else if (record.ApplyTaskStatus == 6)
+                        {
+                            record.ApplyTaskStatus = 7;
+                            record.ApplyTime = DateTime.Now;
+                            updatedRecords.Add(record);
+                        }
+                        // Nếu ApplyTaskStatus không phải 5 hoặc 6, giữ nguyên (không cập nhật)
+                    }
+                }
+
+                if (!updatedRecords.Any())
+                {
+                    return Ok(new { message = "Không có bản ghi nào được cập nhật do trạng thái không hợp lệ." });
+                }
+
+                // Lưu thay đổi vào cơ sở dữ liệu
+                await _sqlContext.SaveChangesAsync();
+
+                // Chuẩn bị dữ liệu để gọi API bên thứ ba
+                var snListString = string.Join(",", matchedSNs);
+                var status = updatedRecords[0].ApplyTaskStatus.ToString(); // Lấy trạng thái cuối cùng sau khi cập nhật
+
+                var externalRequest = new
+                {
+                    type = "update",
+                    sn_list = snListString,
+                    type_bp = (string)null,
+                    status = status,
+                    task = (string)null
+                };
+
+                // Gọi API bên thứ ba
+                var externalResponse = await _httpClient.PostAsJsonAsync("https://sfc-portal.cns.myfiinet.com/SfcSmartRepair/api/repair_scrap", externalRequest);
+                externalResponse.EnsureSuccessStatusCode();
+                var externalResult = await externalResponse.Content.ReadAsStringAsync();
+                Console.WriteLine($"External API response: {externalResult}");
+
+                string message = "Cập nhật trạng thái ApplyTaskStatus thành công.";
+                return Ok(new { message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi xác nhận chuyển MRB.", error = ex.Message });
+            }
+        }
+
+        // Class để nhận dữ liệu đầu vào cho API confirm-move-mrb
+        public class ConfirmMoveMRBRequest
+        {
+            public List<string> SNs { get; set; } = new List<string>();
+            public List<string> TaskNumbers { get; set; } = new List<string>();
+        }
+
+
 
     }
 
@@ -1472,6 +1687,7 @@ namespace API_WEB.Controllers.Scrap
         public List<string> SNs { get; set; } = new List<string>();
         public string Description { get; set; } = string.Empty;
         public string Remark { get; set; } = string.Empty;
+        public string Approve { get; set; } = string.Empty;
         public string CreatedBy { get; set; } = string.Empty;
     }
 

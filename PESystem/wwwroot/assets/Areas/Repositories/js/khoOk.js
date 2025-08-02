@@ -240,7 +240,7 @@ const KhoScrapManager = (function () {
                 exportButton.disabled = true;
                 exportButton.textContent = "Đang xuất...";
 
-                const response = await fetch(`http://10.220.130.119:9090/api/Search/ExportExcelScrap`, {
+                const response = await fetch(`http://10.220.130.119:9090/api/Search/ExportExcelKhoOk`, {
                     method: 'GET',
                     headers: { 'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
                 });

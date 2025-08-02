@@ -1400,15 +1400,15 @@ const ChartManager = (function () {
             chart: {
                 height: 350,
                 type: 'bar',
-                events: {
-                    dataPointSelection: function (event, chartContext, config) {
-                        const idx = config.dataPointIndex;
-                        const status = labels[idx];
-                        handleStatusChartClick(status, 'handover');
-                    }
-                }
+                //events: {
+                //    dataPointSelection: function (event, chartContext, config) {
+                //        const idx = config.dataPointIndex;
+                //        const status = labels[idx];
+                //        handleStatusChartClick(status, 'handover');
+                //    }
+                //}
             },
-            title: { text: 'Số lượng SN Giao/Nhận', align: 'center' },
+            title: { text: 'Số lượng SN chờ nhận', align: 'center' },
             plotOptions: {
                 bar: {
                     borderRadius: 10,

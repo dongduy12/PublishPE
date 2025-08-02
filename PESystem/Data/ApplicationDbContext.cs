@@ -1,6 +1,9 @@
 ﻿#nullable disable
 using Microsoft.EntityFrameworkCore;
 using PESystem.Models;
+using System;
+using System.Linq;
+
 public class ApplicationDbContext : DbContext
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }

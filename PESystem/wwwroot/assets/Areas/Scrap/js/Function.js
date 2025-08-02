@@ -297,31 +297,51 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        const requestData = { sNs, createdBy: currentUsername, description, approveScrapPerson, purpose };
+        const ApproveStatus = purpose === "4" ? "3" : "0";
+        const snListString = sNs.join(",");
+        const repairScrapData = {
+            type: "update",
+            sn_list: snListString,
+            type_bp: null,
+            status: ApproveStatus,
+            task: null
+        };
+
         const resultDiv = document.getElementById("input-sn-result");
         resultDiv.innerHTML = `<div class="alert alert-info"><strong>Thông báo:</strong> Đang chờ xử lý...</div>`;
 
         try {
-            const response = await fetch("http://10.220.130.119:9090/api/Scrap/input-sn", {
+            // Gọi API input-sn trước
+            const requestData = { sNs, createdBy: currentUsername, description, approveScrapPerson, purpose };
+            const inputSnResponse = await fetch("http://10.220.130.119:9090/api/Scrap/input-sn", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(requestData)
             });
 
-            const result = await response.json();
-            if (response.ok) {
-                let scrapStatus;
-                switch (purpose) {
-                    case "0": scrapStatus = "SPE approve to scrap"; break;
-                    case "1": scrapStatus = "Scrap to quarterly"; break;
-                    case "2": scrapStatus = "Approved to engineer sample"; break;
-                    case "3": scrapStatus = "Approved to master board"; break;
-                    case "4": scrapStatus = "SPE approve to BGA"; break;
-                    default: scrapStatus = "Unknown"; break;
-                }
+            const inputSnResult = await inputSnResponse.json();
+            if (inputSnResponse.ok) {
+                // Gọi API repair_scrap sau khi input-sn thành công
+                const repairScrapResponse = await fetch("https://sfc-portal.cns.myfiinet.com/SfcSmartRepair/api/repair_scrap", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(repairScrapData)
+                });
 
-                const updateProductRequest = { serialNumbers: sNs, scrapStatus };
-                try {
+                const repairScrapResult = await repairScrapResponse.text();
+                if (repairScrapResponse.ok && repairScrapResult === "\"OK\"") {
+                    // Gọi API UpdateScrap nếu repair_scrap thành công
+                    let scrapStatus;
+                    switch (purpose) {
+                        case "0": scrapStatus = "SPE approve to scrap"; break;
+                        case "1": scrapStatus = "Scrap to quarterly"; break;
+                        case "2": scrapStatus = "Approved to engineer sample"; break;
+                        case "3": scrapStatus = "Approved to master board"; break;
+                        case "4": scrapStatus = "SPE approve to BGA"; break;
+                        default: scrapStatus = "Unknown"; break;
+                    }
+
+                    const updateProductRequest = { serialNumbers: sNs, scrapStatus };
                     const updateProductResponse = await fetch("http://10.220.130.119:9090/api/Product/UpdateScrap", {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
@@ -330,14 +350,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     const updateProductResult = await updateProductResponse.json();
                     resultDiv.innerHTML = updateProductResponse.ok && updateProductResult.success
-                        ? `<div class="alert alert-success"><strong>${result.message}</strong><br>Internal Task: ${result.internalTask}<br>Update Product: ${updateProductResult.message}</div>`
-                        : `<div class="alert alert-warning"><strong>${result.message}</strong><br>Internal Task: ${result.internalTask}<br><strong>Lỗi khi cập nhật Product:</strong> ${updateProductResult.message || "Không có thông tin lỗi"}</div>`;
-                } catch (updateError) {
-                    resultDiv.innerHTML = `<div class="alert alert-warning"><strong>${result.message}</strong><br>Internal Task: ${result.internalTask}<br><strong>Lỗi khi gọi API UpdateProduct:</strong> Không thể kết nối đến API.</div>`;
-                    console.error("UpdateProduct Error:", updateError);
+                        ? `<div class="alert alert-success"><strong>${inputSnResult.message}</strong><br>Internal Task: ${inputSnResult.internalTask}<br>Update Product: ${updateProductResult.message}</div>`
+                        : `<div class="alert alert-warning"><strong>${inputSnResult.message}</strong><br>Internal Task: ${inputSnResult.internalTask}<br><strong>Lỗi khi cập nhật Product:</strong> ${updateProductResult.message || "Không có thông tin lỗi"}</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="alert alert-warning"><strong>Cảnh báo:</strong> Gọi API repair_scrap thất bại: ${repairScrapResult}</div>`;
                 }
             } else {
-                resultDiv.innerHTML = `<div class="alert alert-danger"><strong>Lỗi:</strong> ${result.message}</div>`;
+                resultDiv.innerHTML = `<div class="alert alert-danger"><strong>Lỗi:</strong> ${inputSnResult.message}</div>`;
             }
         } catch (error) {
             resultDiv.innerHTML = `<div class="alert alert-danger"><strong>Lỗi:</strong> Không thể kết nối đến API. Vui lòng kiểm tra lại.</div>`;
@@ -420,11 +439,15 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // Xử lý nút "Cập nhật Task PO"
+    // Xử lý nút "Cập nhật Task PO"
     document.getElementById("update-task-btn").addEventListener("click", async function () {
         const snInput = document.getElementById("sn-input-update").value.trim();
         const task = document.getElementById("task-input").value.trim();
         const po = document.getElementById("po-input").value.trim();
         const snList = snInput.split(/\r?\n/).map(sn => sn.trim()).filter(sn => sn);
+
+        const resultDiv = document.getElementById("update-data-result");
+        resultDiv.innerHTML = `<div class="alert alert-info"><strong>Thông báo:</strong> Đang chờ xử lý...</div>`;
 
         if (!snList.length) {
             alert("Vui lòng nhập ít nhất một Serial Number hợp lệ.");
@@ -439,26 +462,49 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        const requestData = { snList, task, po };
-        const resultDiv = document.getElementById("update-data-result");
-        resultDiv.innerHTML = `<div class="alert alert-info"><strong>Thông báo:</strong> Đang chờ xử lý...</div>`;
+        const updateTaskRequest = { snList, task, po };
 
         try {
-            const response = await fetch("http://10.220.130.119:9090/api/Scrap/update-task-po", {
+            const updateResponse = await fetch("http://10.220.130.119:9090/api/Scrap/update-task-po", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(requestData)
+                body: JSON.stringify(updateTaskRequest)
             });
 
-            const result = await response.json();
-            resultDiv.innerHTML = response.ok
-                ? `<div class="alert alert-success"><strong>${result.message}</strong></div>`
-                : `<div class="alert alert-danger"><strong>Lỗi:</strong> ${result.message}</div>`;
+            const updateResult = await updateResponse.json();
+
+            if (updateResponse.ok) {
+                // Nếu update-task-po thành công, gọi tiếp API repair_scrap
+                const repairScrapData = {
+                    type: "update",
+                    sn_list: snList.join(","),
+                    type_bp: null,
+                    status: "5",
+                    task: task
+                };
+
+                const repairResponse = await fetch("https://sfc-portal.cns.myfiinet.com/SfcSmartRepair/api/repair_scrap", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(repairScrapData)
+                });
+
+                const repairText = await repairResponse.text();
+
+                if (repairResponse.ok && repairText === "\"OK\"") {
+                    resultDiv.innerHTML = `<div class="alert alert-success"><strong>Thành công:</strong> ${updateResult.message} <br>Repair Scrap cập nhật thành công.</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="alert alert-warning"><strong>${updateResult.message}</strong><br><strong>Lỗi khi gọi API repair_scrap:</strong> ${repairText}</div>`;
+                }
+            } else {
+                resultDiv.innerHTML = `<div class="alert alert-danger"><strong>Lỗi:</strong> ${updateResult.message}</div>`;
+            }
         } catch (error) {
             resultDiv.innerHTML = `<div class="alert alert-danger"><strong>Lỗi:</strong> Không thể kết nối đến API. Vui lòng kiểm tra lại.</div>`;
             console.error("Error:", error);
         }
     });
+
 
     // Xử lý nút "Cập nhật Chi phí"
     document.getElementById("update-cost-btn").addEventListener("click", async function () {

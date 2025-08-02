@@ -61,7 +61,10 @@
                         @if (Scrap)
                         {
                             <button id="update-status-btn" class="md-2 btn btn-ne" type="button">Update</button>
-                        }  
+                        }else
+                        {
+                            <button id="update-status-btn" class="md-2 btn btn-ne hidden" type="button">Update</button>
+                        }
                     </div>
                 </div>
             </div>
@@ -80,6 +83,7 @@
                             <option selected disabled>SELECT STATUS</option>
                             <option value="1">Tìm kiếm theo SN</option>
                             <option value="2">Tìm kiếm theo Internal Task</option>
+                            <option value="3">Tìm kiếm theo Task NV</option>
                         </select>
                     </div>
                     <button id="search-status-btn" class="md-2 btn btn-ne" type="button">Search</button>

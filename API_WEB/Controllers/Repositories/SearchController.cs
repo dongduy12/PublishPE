@@ -568,7 +568,7 @@ namespace API_WEB.Controllers.Repositories
                         EntryDate = product?.entryDate,
                         EntryPerson = product?.entryPerson ?? "",
                         Note = product?.Note ?? "",
-                        ProductLine = oracleInfo?.ProductLine?? "",
+                        ProductLine = oracleInfo?.ProductLine ?? "",
                         MoNumber = oracleInfo?.MoNumber ?? "",
                         Data1 = oracleInfo?.Data1 ?? "",
                         ModelName = oracleInfo?.ModelName ?? "",
@@ -735,7 +735,7 @@ namespace API_WEB.Controllers.Repositories
                     worksheet.Cell(currentRow, 22).Value = "NOTE";
                     worksheet.Cell(currentRow, 23).Value = "TYPE";
                     // Điền dữ liệu
-                    foreach (var data in excelData) 
+                    foreach (var data in excelData)
                     {
                         currentRow++;
                         worksheet.Cell(currentRow, 1).Value = data.SerialNumber;

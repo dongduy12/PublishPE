@@ -227,54 +227,70 @@ document.addEventListener("DOMContentLoaded", function () {
         // Lấy thông tin loại Bonepile
         const typeBonepile = document.getElementById("bp-options").value;
 
+        // Lấy thông tin loại Approve
+        const typeApprove = document.getElementById("approve-options").value;
+
         // Lấy thông tin người dùng hiện tại
         const createdBy = getCurrentUsername();
 
         // Kiểm tra dữ liệu đầu vào
         if (!sNs.length) {
             resultDiv.innerHTML = `
-                <div class="alert alert-warning">
-                    <strong>Cảnh báo:</strong> Vui lòng nhập ít nhất một Serial Number hợp lệ!
-                </div>
-            `;
+            <div class="alert alert-warning">
+                <strong>Cảnh báo:</strong> Vui lòng nhập ít nhất một Serial Number hợp lệ!
+            </div>
+        `;
             return;
         }
 
         if (!description) {
             resultDiv.innerHTML = `
-                <div class="alert alert-warning">
-                    <strong>Cảnh báo:</strong> Vui lòng nhập mô tả!
-                </div>
-            `;
+            <div class="alert alert-warning">
+                <strong>Cảnh báo:</strong> Vui lòng nhập mô tả!
+            </div>
+        `;
             return;
         }
 
         if (!["BP-10", "BP-20"].includes(typeBonepile)) {
             resultDiv.innerHTML = `
-                <div class="alert alert-warning">
-                    <strong>Cảnh báo:</strong> Vui lòng chọn loại BonePile!
-                </div>
-            `;
+            <div class="alert alert-warning">
+                <strong>Cảnh báo:</strong> Vui lòng chọn loại BonePile!
+            </div>
+        `;
+            return;
+        }
+
+        if (!["2", "4"].includes(typeApprove)) {
+            resultDiv.innerHTML = `
+            <div class="alert alert-warning">
+                <strong>Cảnh báo:</strong> Vui lòng chọn loại Approve!
+            </div>
+        `;
             return;
         }
 
         // Hiển thị thông báo "đang xử lý"
         resultDiv.innerHTML = `
-            <div class="alert alert-info">
-                <strong>Thông báo:</strong> Đang lưu danh sách SN...
-            </div>
-        `;
+        <div class="alert alert-info">
+            <strong>Thông báo:</strong> Đang lưu danh sách SN...
+        </div>
+    `;
 
-        const requestData = {
-            sNs: sNs,
-            description: description,
-            remark: typeBonepile,
-            createdBy: createdBy
-        };
+        // Định dạng sn_list thành chuỗi cách nhau bởi dấu phẩy
+        const snListString = sNs.join(",");
 
         try {
-            // Gọi API /api/Scrap/input-sn-wait-spe-approve
-            const response = await fetch("http://10.220.130.119:9090/api/Scrap/input-sn-wait-spe-approve", {
+            // Gọi API /api/Scrap/input-sn-wait-spe-approve trước
+            const requestData = {
+                sNs: sNs,
+                description: description,
+                remark: typeBonepile,
+                approve: typeApprove,
+                createdBy: createdBy
+            };
+
+            const inputSnResponse = await fetch("http://10.220.130.119:9090/api/Scrap/input-sn-wait-spe-approve", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -282,11 +298,30 @@ document.addEventListener("DOMContentLoaded", function () {
                 body: JSON.stringify(requestData)
             });
 
-            const result = await response.json();
+            const inputSnResult = await inputSnResponse.json();
 
-            if (response.ok) {
-                // Gọi API /api/Product/UpdateScrap sau khi API đầu tiên thành công
-                try {
+            if (inputSnResponse.ok) {
+                // Gọi API https://sfc-portal.cns.myfiinet.com/SfcSmartRepair/api/repair_scrap
+                const repairScrapData = {
+                    type: "insert",
+                    sn_list: snListString,
+                    type_bp: typeBonepile,
+                    status: typeApprove,
+                    task: null
+                };
+
+                const repairScrapResponse = await fetch("https://sfc-portal.cns.myfiinet.com/SfcSmartRepair/api/repair_scrap", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(repairScrapData)
+                });
+
+                const repairScrapResult = await repairScrapResponse.text();
+
+                if (repairScrapResponse.ok && repairScrapResult === "\"OK\"") {
+                    // Gọi API /api/Product/UpdateScrap
                     const updateResponse = await fetch("http://10.220.130.119:9090/api/Product/UpdateScrap", {
                         method: "PUT",
                         headers: {
@@ -300,53 +335,56 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     const updateResult = await updateResponse.json();
 
-                    if (!updateResponse.ok) {
+                    if (updateResponse.ok) {
+                        // Nếu cả ba API đều thành công
+                        resultDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <strong>Thành công:</strong> ${inputSnResult.message}
+                        </div>
+                    `;
+                    } else {
                         console.warn("UpdateProduct API failed:", updateResult.message);
                         resultDiv.innerHTML = `
-                            <div class="alert alert-warning">
-                                <strong>Cảnh báo:</strong> Lưu SN thành công nhưng cập nhật sản phẩm thất bại: ${updateResult.message}
-                            </div>
-                        `;
+                        <div class="alert alert-warning">
+                            <strong>Cảnh báo:</strong> Lưu SN và repair_scrap thành công nhưng cập nhật sản phẩm trong kho thất bại: ${updateResult.message}
+                        </div>
+                    `;
                         return;
                     }
-
-                    // Nếu cả hai API đều thành công
+                } else {
+                    console.warn("repair_scrap API failed:", repairScrapResult);
                     resultDiv.innerHTML = `
-                        <div class="alert alert-success">
-                            <strong>Thành công:</strong> ${result.message}
-                        </div>
-                    `;
-                } catch (updateError) {
-                    console.error("UpdateProduct API error:", updateError);
-                    resultDiv.innerHTML = `
-                        <div class="alert alert-warning">
-                            <strong>Cảnh báo:</strong> Lưu SN thành công nhưng không thể kết nối đến API cập nhật sản phẩm.
-                        </div>
-                    `;
+                    <div class="alert alert-warning">
+                        <strong>Cảnh báo:</strong> Gọi API repair_scrap thất bại: ${repairScrapResult}
+                    </div>
+                `;
                     return;
                 }
             } else {
                 resultDiv.innerHTML = `
-                    <div class="alert alert-danger">
-                        <strong>Lỗi:</strong> ${result.message}
-                    </div>
-                `;
+                <div class="alert alert-danger">
+                    <strong>Lỗi:</strong> ${inputSnResult.message}
+                </div>
+            `;
+                return;
             }
         } catch (error) {
             resultDiv.innerHTML = `
-                <div class="alert alert-danger">
-                    <strong>Lỗi:</strong> Không thể kết nối đến API. Vui lòng kiểm tra lại.
-                </div>
-            `;
+            <div class="alert alert-danger">
+                <strong>Lỗi:</strong> Không thể kết nối đến API. Vui lòng kiểm tra lại.
+            </div>
+        `;
             console.error("Error:", error);
+            return;
         }
     });
+
 
     // Xử lý sự kiện khi nhấn nút "Download Excel" trong form SN_WAIT_SPE_APPROVE
     document.getElementById("sn-wait-list-btn").addEventListener("click", async function () {
         try {
             // Gọi API để lấy toàn bộ dữ liệu
-            const response = await fetch("http://10.220.130.119:9090/api/Scrap/get-scrap-status-two", {
+            const response = await fetch("http://10.220.130.119:9090/api/Scrap/get-scrap-status-two-and-four", {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json"

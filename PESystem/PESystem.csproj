@@ -3,6 +3,8 @@
 		<TargetFramework>net6.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+		<SelfContained>false</SelfContained>
 	</PropertyGroup>
 	<ItemGroup>
 		<Folder Include="Areas\CheckList\Views\Home\" />
@@ -43,16 +45,11 @@
 		<PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="6.0.6" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
 	</ItemGroup>
-
 	<ItemGroup>
-		<ProjectReference Include="..\API_WEB\API_WEB.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Content Update="wwwroot\assets\vendor\bootstrap\js\bootstrap.bundle.min.js">
-	    <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-	    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-	  </Content>
+		<Content Update="wwwroot\assets\vendor\bootstrap\js\bootstrap.bundle.min.js">
+			<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</Content>
 	</ItemGroup>
 
 </Project>
