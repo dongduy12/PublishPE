@@ -33,7 +33,10 @@
         <div class="col-md-3">
             <div class="info-card">
                 <div class="card-body text-center">
-                    <h4 class="card-title fw-bold">B36R STATUS</h4>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h4 class="card-title fw-bold mb-0">B36R STATUS</h4>
+                        <i class="bi bi-gear" id="b36r-settings" style="cursor: pointer;"></i>
+                    </div>
                     <div class="d-flex align-items-center justify-content-between gap-2">
                         <div>
                             <span class="mb-0 text-primary fw-bold">Đã link</span><br />
@@ -66,6 +69,37 @@
                                 <th>MODEL_NAME</th>
                                 <th>EXPORT_DATE</th>
                                 <th>STATUS</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal quản lý Export -->
+    <div class="modal fade" id="exportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Quản lý B36R Export</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" id="export-search-input" placeholder="Serial Number">
+                        <button class="btn btn-outline-secondary" id="export-search-btn" type="button">Search</button>
+                        <button class="btn btn-primary" id="export-add-btn" type="button">Add</button>
+                    </div>
+                    <table id="exportTable" class="table table-bordered table-striped" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Serial Number</th>
+                                <th>Product Line</th>
+                                <th>Model Name</th>
+                                <th>Export Date</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody></tbody>

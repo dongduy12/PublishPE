@@ -168,6 +168,78 @@ namespace API_WEB.Controllers.Repositories
             }
         }
 
+        [HttpGet]
+        public async Task<IActionResult> Get([FromQuery] string? serialNumber)
+        {
+            var query = _sqlContext.Exports.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(serialNumber))
+            {
+                query = query.Where(e => EF.Functions.Like(e.SerialNumber, $"%{serialNumber}%"));
+            }
+
+            var data = await query
+                .OrderByDescending(e => e.Id)
+                .Take(100)
+                .ToListAsync();
+
+            return Ok(new { success = true, data });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] Export export)
+        {
+            if (export == null || string.IsNullOrWhiteSpace(export.SerialNumber))
+            {
+                return BadRequest(new { success = false, message = "SerialNumber is required" });
+            }
+
+            export.ExportDate ??= DateTime.Now;
+            _sqlContext.Exports.Add(export);
+            await _sqlContext.SaveChangesAsync();
+
+            return Ok(new { success = true, data = export });
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] Export update)
+        {
+            var export = await _sqlContext.Exports.FindAsync(id);
+            if (export == null)
+            {
+                return NotFound(new { success = false, message = "Export not found" });
+            }
+
+            if (!string.IsNullOrWhiteSpace(update.SerialNumber))
+            {
+                export.SerialNumber = update.SerialNumber;
+            }
+
+            export.ExportDate = update.ExportDate ?? export.ExportDate;
+            export.ExportPerson = update.ExportPerson ?? export.ExportPerson;
+            export.ProductLine = update.ProductLine ?? export.ProductLine;
+            export.EntryDate = update.EntryDate ?? export.EntryDate;
+            export.EntryPerson = update.EntryPerson ?? export.EntryPerson;
+            export.ModelName = update.ModelName ?? export.ModelName;
+            export.CheckingB36R = update.CheckingB36R ?? export.CheckingB36R;
+
+            await _sqlContext.SaveChangesAsync();
+            return Ok(new { success = true, data = export });
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var export = await _sqlContext.Exports.FindAsync(id);
+            if (export == null)
+            {
+                return NotFound(new { success = false, message = "Export not found" });
+            }
+
+            _sqlContext.Exports.Remove(export);
+            await _sqlContext.SaveChangesAsync();
+            return Ok(new { success = true });
+        }
+
         public class RequestExport
         {
             public string? ExportPerson { get; set; }

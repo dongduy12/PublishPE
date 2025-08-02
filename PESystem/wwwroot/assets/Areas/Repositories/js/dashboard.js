@@ -446,3 +446,88 @@ document.addEventListener("DOMContentLoaded", function () {
             .catch(error => console.error("Fetch Error:", error));
     });
 });
+
+// Quản lý Export B36R
+document.addEventListener("DOMContentLoaded", function () {
+    const settingsBtn = document.getElementById('b36r-settings');
+    if (!settingsBtn) return;
+
+    const searchInput = document.getElementById('export-search-input');
+    const searchBtn = document.getElementById('export-search-btn');
+    const addBtn = document.getElementById('export-add-btn');
+
+    const table = $('#exportTable').DataTable({
+        destroy: true,
+        data: [],
+        columns: [
+            { data: 'serialNumber' },
+            { data: 'productLine' },
+            { data: 'modelName' },
+            {
+                data: 'exportDate',
+                render: function (data) {
+                    return data ? new Date(data).toLocaleString() : '';
+                }
+            },
+            {
+                data: null,
+                orderable: false,
+                render: function () {
+                    return `<button class="btn btn-sm btn-primary btn-edit">Edit</button>
+                            <button class="btn btn-sm btn-danger btn-delete">Delete</button>`;
+                }
+            }
+        ]
+    });
+
+    async function loadData(query) {
+        const url = query ? `${API_BASE_URL}/api/Export?serialNumber=${encodeURIComponent(query)}` : `${API_BASE_URL}/api/Export`;
+        const res = await fetch(url);
+        const json = await res.json();
+        if (json.success) {
+            table.clear();
+            table.rows.add(json.data);
+            table.draw();
+        }
+    }
+
+    settingsBtn.addEventListener('click', function () {
+        searchInput.value = '';
+        loadData('');
+        $('#exportModal').modal('show');
+    });
+
+    searchBtn.addEventListener('click', function () {
+        loadData(searchInput.value.trim());
+    });
+
+    addBtn.addEventListener('click', async function () {
+        const sn = prompt('Nhập Serial Number mới');
+        if (!sn) return;
+        await fetch(`${API_BASE_URL}/api/Export`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ serialNumber: sn })
+        });
+        loadData(searchInput.value.trim());
+    });
+
+    $('#exportTable').on('click', '.btn-edit', async function () {
+        const data = table.row($(this).parents('tr')).data();
+        const newSn = prompt('Chỉnh sửa Serial Number', data.serialNumber);
+        if (!newSn) return;
+        await fetch(`${API_BASE_URL}/api/Export/${data.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ serialNumber: newSn })
+        });
+        loadData(searchInput.value.trim());
+    });
+
+    $('#exportTable').on('click', '.btn-delete', async function () {
+        const data = table.row($(this).parents('tr')).data();
+        if (!confirm('Xóa Serial Number này?')) return;
+        await fetch(`${API_BASE_URL}/api/Export/${data.id}`, { method: 'DELETE' });
+        loadData(searchInput.value.trim());
+    });
+});
