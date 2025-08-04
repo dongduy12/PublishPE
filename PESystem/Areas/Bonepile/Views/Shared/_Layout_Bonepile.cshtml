@@ -19,23 +19,23 @@
             if (isSidebarFixed) {
                 document.documentElement.classList.add('sidebar-expanded');
                 document.write(`
-                                                                    <style>
-                                                                        #sidebar { width: 260px; }
-                                                                        #sidebar .nav-link span, #sidebar .dashboard-container span { opacity: 1; }
-                                                                        #mainContent { margin-left: 260px; }
-                                                                        .header { left: 260px; width: calc(100% - 260px); }
-                                                                    </style>
-                                                                `);
+                                                                            <style>
+                                                                                #sidebar { width: 260px; }
+                                                                                #sidebar .nav-link span, #sidebar .dashboard-container span { opacity: 1; }
+                                                                                #mainContent { margin-left: 260px; }
+                                                                                .header { left: 260px; width: calc(100% - 260px); }
+                                                                            </style>
+                                                                        `);
             } else {
                 document.documentElement.classList.remove('sidebar-expanded');
                 document.write(`
-                                                                    <style>
-                                                                         #sidebar { width: 70px; }
-                                                                        #sidebar .nav-link span, #sidebar .dashboard-container span { opacity: 0; }
-                                                                        #mainContent { margin-left: 70px; }
-                                                                        .header { left: 70px; width: calc(100% - 70px); }
-                                                                    </style>
-                                                                `);
+                                                                            <style>
+                                                                                 #sidebar { width: 70px; }
+                                                                                #sidebar .nav-link span, #sidebar .dashboard-container span { opacity: 0; }
+                                                                                #mainContent { margin-left: 70px; }
+                                                                                .header { left: 70px; width: calc(100% - 70px); }
+                                                                            </style>
+                                                                        `);
             }
         })();
     </script>
@@ -78,6 +78,7 @@
             <a href="@Url.Action("Index", "BonepileAfter", new { area = "Bonepile" })" class="nav-link @ViewContext.IsActive("BonepileAfter", "Index")"><i class=" fas fa-dashboard"></i> <span>BonepileAfter</span></a>
             <a href="@Url.Action("Index", "Bonepile2", new { area = "Bonepile" })" class="nav-link @ViewContext.IsActive("Bonepile2", "Index")"><i class="fas fa-list"></i> <span>Bonepile 2.0</span></a>
             <a href="@Url.Action("Index", "BonepileSummary", new { area = "Bonepile" })" class="nav-link @ViewContext.IsActive("BonepileSummary", "Index")"><i class="fas fa-chart-pie"></i> <span>Summary</span></a>
+            <a href="@Url.Action("Index", "KhoB31", new { area = "Bonepile" })" class="nav-link @ViewContext.IsActive("KhoB31", "Index")"><i class="fas fa-chart-pie"></i> <span>Kho B31M</span></a>
 
         </nav>
     </div>

@@ -168,6 +168,41 @@ namespace API_WEB.Controllers.Repositories
             return null;
         }
 
+        // Lấy thông tin MO_NUMBER và WIP_GROUP từ bảng R107
+        private async Task<Dictionary<string, (string? MoNumber, string? WipGroup)>> GetR107InfoAsync(OracleConnection connection, List<string> serialNumbers)
+        {
+            var infos = new Dictionary<string, (string?, string?)>();
+
+            if (!serialNumbers.Any()) return infos;
+
+            var batchSize = 1000; // Tránh lỗi ORA-01795
+            for (var i = 0; i < serialNumbers.Count; i += batchSize)
+            {
+                var batch = serialNumbers.Skip(i).Take(batchSize).ToList();
+                var serialList = string.Join(",", batch.Select(sn => $"'{sn}'"));
+
+                var query = $@"
+            SELECT SERIAL_NUMBER, MO_NUMBER, WIP_GROUP
+            FROM SFISM4.R107
+            WHERE SERIAL_NUMBER IN ({serialList})";
+
+                using var command = new OracleCommand(query, connection);
+                using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    var serialNumber = reader["SERIAL_NUMBER"]?.ToString();
+                    var moNumber = reader["MO_NUMBER"]?.ToString();
+                    var wipGroup = reader["WIP_GROUP"]?.ToString();
+                    if (!string.IsNullOrEmpty(serialNumber) && !infos.ContainsKey(serialNumber))
+                    {
+                        infos.Add(serialNumber, (moNumber, wipGroup));
+                    }
+                }
+            }
+
+            return infos;
+        }
+
         [HttpGet("checking-b36r")]
         public async Task<IActionResult> CheckingB36R()
         {
@@ -189,6 +224,7 @@ namespace API_WEB.Controllers.Repositories
                 await oracleConnection.OpenAsync();
 
                 var wipGroups = await GetWipGroupsFromOracleAsync(oracleConnection, serialNumbers);
+                var r107Infos = await GetR107InfoAsync(oracleConnection, serialNumbers);
 
                 var results = new List<object>();
                 int awaitingLinkCount = 0;
@@ -198,17 +234,28 @@ namespace API_WEB.Controllers.Repositories
                 {
                     var sn = exp.SerialNumber;
                     var wipGroup = wipGroups.ContainsKey(sn) ? wipGroups[sn] : null;
+                    var r107Info = r107Infos.ContainsKey(sn) ? r107Infos[sn] : (null, null);
+                    var moNumber = r107Info.MoNumber;
+                    var wipGroupR107 = r107Info.WipGroup;
 
-                    string status;
+                    string status = "Chờ Link MO";
                     if (!string.IsNullOrEmpty(wipGroup) &&
                         (wipGroup == "B36R_TO_SFG" || wipGroup == "KANBAN_IN" || wipGroup == "KANBAN_OUT"))
                     {
-                        status = "Đã link MO";
-                        linkCount++;
+                        if (!string.IsNullOrEmpty(moNumber) && moNumber.StartsWith("8") &&
+                            !string.IsNullOrEmpty(wipGroup) && wipGroup.Contains("B36R") &&
+                            !string.IsNullOrEmpty(wipGroupR107) && wipGroupR107.Contains("B36R"))
+                        {
+                            awaitingLinkCount++;
+                        }
+                        else
+                        {
+                            status = "Đã link MO";
+                            linkCount++;
+                        }
                     }
                     else
                     {
-                        status = "Chờ Link MO";
                         awaitingLinkCount++;
                     }
 

@@ -21,10 +21,10 @@
         <!-- Form input SN -->
         <form id="input-sn-1-form" method="post" class="hidden" data-search-type="INPUT_SN">
             <div class="row" style="display: flex; align-items:flex-start; gap: 10px;">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <textarea name="serialNumbers" id="sn-input-1" class="form-control" rows="9" placeholder="Nhập Serial Number (mỗi dòng 1 SN)"></textarea>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="mb-2">
                         <label for="description-input" class="form-label">Description</label>
                         <input type="text" id="description-input-1" name="description" class="form-control" placeholder="Nhập mô tả">
@@ -38,6 +38,16 @@
                         </select>
                     </div>
                     <button id="input-sn-btn" class="btn btn-ne" type="button">INPUT SN</button>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-2">
+                        <label for="tpye-approve-input" class="form-label">Type approve input</label>
+                        <select id="approve-options" class="form-select">
+                            <option selected disabled>SELECT TYPE APPROVE</option>
+                            <option value="2">Waiting SPE Approve Scrap</option>
+                            <option value="4">Waiting SPE Approve BGA</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </form>
