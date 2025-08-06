@@ -293,14 +293,12 @@ const KhoScrapManager = (function () {
 
             if (!borrower) return;
 
-            const note = prompt('Ghi chú khi mượn (không bắt buộc):') || '';
-
             try {
                 Utils.showSpinner();
                 const response = await fetch(`${API_BASE_URL}/BorrowKhoOk`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ serialNumbers: Borrow.selectedSNs, borrower, note })
+                    body: JSON.stringify({ serialNumbers: Borrow.selectedSNs, borrower})
                 });
 
                 if (!response.ok) throw new Error('Không thể cho mượn kho phế!');
