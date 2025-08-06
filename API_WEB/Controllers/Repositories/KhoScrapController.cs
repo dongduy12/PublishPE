@@ -522,6 +522,7 @@ namespace API_WEB.Controllers.Repositories
                         product.borrowStatus = "Borrowed";
                         product.borrowDate = DateTime.Now;
                         product.borrowPerson = request.Borrower;
+                        product.Note = request.Note;
                         // Xóa thông tin vị trí
                         product.ShelfCode = null;
                         product.TrayNumber = null;
@@ -806,6 +807,7 @@ namespace API_WEB.Controllers.Repositories
                         product.borrowStatus = "Borrowed";
                         product.borrowDate = DateTime.Now;
                         product.borrowPerson = request.Borrower;
+                        product.Note = request.Note;
                         // Xóa thông tin vị trí
                         product.ShelfCode = null;
                         product.LevelNumber = null;

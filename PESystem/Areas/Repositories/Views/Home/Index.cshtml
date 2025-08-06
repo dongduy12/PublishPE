@@ -33,6 +33,14 @@
         <div class="col-md-3">
             <div class="info-card">
                 <div class="card-body text-center">
+                    <h4 class="card-title fw-bold">ĐANG MƯỢN</h4>
+                    <h4 id="borrowed-count" class="mb-0 text-primary fw-bold">Loading...</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-card">
+                <div class="card-body text-center">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h4 class="card-title fw-bold mb-0">B36R STATUS</h4>
                         <i class="fa fa-cogs" id="b36r-settings" style="cursor: pointer;"></i>
@@ -219,6 +227,24 @@
             </div>
         </div>
     </div>
+    <div class="row d-flex flex-wrap mt-4">
+        <div class="col-md-6">
+            <div class="card shadow-lg rounded-lg border-0">
+                <div class="card-body p-4">
+                    <h5 class="card-title text-center font-weight-bold">MƯỢN/TRẢ TRONG NGÀY</h5>
+                    <div id="borrow-return-chart" style="width: 100%; height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-lg rounded-lg border-0">
+                <div class="card-body p-4">
+                    <h5 class="card-title text-center font-weight-bold">AGING MƯỢN</h5>
+                    <div id="borrow-aging-chart" style="width: 100%; height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 </section>
 <style>
     .modal-dialog {
@@ -275,6 +301,7 @@
 >
     <script src="~/assets/areas/repositories/js/dashboard.js?v=@DateTime.Now.Ticks"></script>
     <script src="~/assets/areas/repositories/js/reportschart.js?v=@DateTime.Now.Ticks"></script>
+    <script src="~/assets/areas/repositories/js/borrowChart.js?v=@DateTime.Now.Ticks"></script>
     <script src="~/assets/vendor/echarts/echarts.min.js"></script>
     <!-- Thêm các thư viện DataTable và Buttons -->
     <link href="~/lib/datatables.bootstrap5.min.css" rel="stylesheet" />
