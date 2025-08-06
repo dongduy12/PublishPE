@@ -241,7 +241,8 @@ async function searchStatus(searchType, searchValues) {
 
     const requestData = {
         internalTasks: searchType === "2" ? searchValues : [],
-        sNs: searchType === "1" ? searchValues : []
+        sNs: searchType === "1" ? searchValues : [],
+        taskNumber: searchType === "3" ? searchValues : []
     };
 
     try {
@@ -626,7 +627,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        if (!searchType || (searchType !== "1" && searchType !== "2")) {
+        if (!searchType || (searchType !== "1" && searchType !== "2" && searchType !== "3")) {
             resultDiv.innerHTML = `
                 <div class="alert alert-warning">
                     <strong>Cảnh báo:</strong> Vui lòng chọn loại tìm kiếm hợp lệ (Tìm kiếm theo SN hoặc Internal Task).

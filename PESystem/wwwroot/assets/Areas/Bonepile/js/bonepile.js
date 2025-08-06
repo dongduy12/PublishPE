@@ -11,8 +11,8 @@
     const validStatuses = [
         "Scrap Lacks Task",
         "Scrap Has Scrap",
-        "SPE approve to BGA",
-        "Waiting SPE approve scrap",
+        "ApprovedBGA",
+        "Waiting approve scrap",
         "Rework FG",
         "Under repair in RE",
         "Waiting Check Out",
@@ -22,7 +22,7 @@
     const statusColorMap = {
         "Scrap Lacks Task": "#ffc107",
         "Scrap Has Scrap": "#05b529",
-        "SPE approve to BGA": "#17b86d",
+        "ApprovedBGA": "#17b86d",
         "Waiting SPE approve scrap": "#dc3545",
         "Rework FG": "#6c757d",
         "Under repair in RE": "#ff8307",
@@ -54,7 +54,7 @@
             document.getElementById("totalCount").innerText = totalCount || 0;
             document.getElementById("noTaskscrapCount").innerText = statusCounts.find(s => s.status === "Scrap Lacks Task")?.count || 0;
             document.getElementById("scrapCount").innerText = statusCounts.find(s => s.status === "Scrap Has Scrap")?.count || 0;
-            document.getElementById("waitingScrapCount").innerText = statusCounts.find(s => s.status === "Waiting SPE approve scrap")?.count || 0;
+            document.getElementById("waitingScrapCount").innerText = statusCounts.find(s => s.status === "Waiting approve scrap")?.count || 0;
             document.getElementById("reworkFG").innerText = statusCounts.find(s => s.status === "Rework FG")?.count || 0;
             document.getElementById("underRepairRE").innerText = statusCounts.find(s => s.status === "Under repair in RE")?.count || 0;
             document.getElementById("waitingCheckOut").innerText = statusCounts.find(s => s.status === "Waiting Check Out")?.count || 0;
@@ -294,8 +294,8 @@
                                                                             <option value="">Tất cả trạng thái</option>
                                                                             <option value="Scrap Has Task">Scrap Has Task</option>
                                                                             <option value="Scrap Lacks Task">Scrap Lacks Task</option>
-                                                                            <option value="SPE approve to BGA">SPE Approve to BGA</option>
-                                                                            <option value="Waiting SPE approve scrap">Waiting SPE Approve Scrap</option>
+                                                                            <option value="ApprovedBGA">SPE Approve to BGA</option>
+                                                                            <option value="Waiting approve scrap">Waiting SPE Approve Scrap</option>
                                                                             <option value="Rework FG">Rework FG</option>
                                                                             <option value="Under repair in RE">Under repair in RE</option>
                                                                             <option value="Waiting Check Out">Waiting Check Out</option>

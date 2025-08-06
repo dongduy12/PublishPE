@@ -70,13 +70,14 @@
             <a href="@Url.Action("Home", "Home", new { area = "" })">
                 <img src="~/assets/img/Allpart.png" style="width:48px; height:48px;" class="logo" />
             </a>
-            <span class="spanTitle" style="font-size: 1.0rem; font-weight: bold;">Allpart</span>
+            <span class="spanTitle" style="font-size: 1.0rem; font-weight: bold;">Check Data</span>
             <span><input type="checkbox" id="toggleSidebarFixed" title="Giữ cố định" /></span>
         </div>
         <nav class="nav flex-column">
             <!-- Menu Items -->
             <a href="@Url.Action("Home", "Home", new { area = "" })" class="nav-link"><i class="fas fa-home"></i> <span>Trang chủ</span></a>
             <a href="@Url.Action("Index", "DCLC", new { area = "Allpart" })" class="nav-link @ViewContext.IsActive("DCLC", "Index")"><i class=" fas fa-dashboard"></i> <span>DC-LC</span></a>
+            <a href="@Url.Action("Index", "YRDCLC", new { area = "Allpart" })" class="nav-link @ViewContext.IsActive("YRDCLC", "Index")"><i class=" fas fa-dashboard"></i> <span>YR follow DC-LC</span></a>
             <a href="@Url.Action("Index", "ULT", new { area = "Allpart" })" class="nav-link @ViewContext.IsActive("ULT", "Index")"><i class=" fas fa-dashboard"></i> <span>ULT</span></a>
             <a href="@Url.Action("Index", "HE", new { area = "Allpart" })" class="nav-link @ViewContext.IsActive("HE", "Index")"><i class=" fas fa-dashboard"></i> <span>History Error</span></a>
 

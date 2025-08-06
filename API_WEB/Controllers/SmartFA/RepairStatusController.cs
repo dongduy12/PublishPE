@@ -237,6 +237,120 @@ public class RepairStatusController : ControllerBase
             return StatusCode(500, new { success = false, message = ex.Message });
         }
     }
+
+    // API để kiểm tra Yr by DCLC
+    [HttpPost("check-yr-by-dclc")]
+    public async Task<IActionResult> CheckYrByDclc([FromBody] CheckYrByDclcRequest request)
+    {
+        try
+        {
+            // Kiểm tra dữ liệu đầu vào
+            if (request == null ||
+                string.IsNullOrEmpty(request.type) ||
+                string.IsNullOrEmpty(request.item) ||
+                string.IsNullOrEmpty(request.var_1) ||
+                string.IsNullOrEmpty(request.var_2) ||
+                string.IsNullOrEmpty(request.var_3) ||
+                string.IsNullOrEmpty(request.var_4) ||
+                string.IsNullOrEmpty(request.var_5) ||
+                string.IsNullOrEmpty(request.var_6) ||
+                string.IsNullOrEmpty(request.var_7))
+            {
+                return BadRequest(new { success = false, message = "Yêu cầu không hợp lệ: Tất cả các trường type, item, var_1, var_2, var_3, var_4, var_5, var_6 và var_7 là bắt buộc." });
+            }
+
+            var apiUrl = "https://vnmbd-apapi-cns.myfiinet.com/all_api/api/public/table";
+            var payload = new
+            {
+                TYPE = request.type,
+                ITEM = request.item,
+                VAR_1 = request.var_1,
+                VAR_2 = request.var_2,
+                VAR_3 = request.var_3,
+                VAR_4 = request.var_4,
+                VAR_5 = request.var_5,
+                VAR_6 = request.var_6,
+                VAR_7 = request.var_7
+            };
+
+            var jsonPayload = JsonConvert.SerializeObject(payload);
+            var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+
+            // Gửi yêu cầu POST tới API gốc
+            var response = await _httpClient.PostAsync(apiUrl, content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var responseData = await response.Content.ReadAsStringAsync();
+                // Phân tích JSON và ánh xạ dữ liệu
+                var jsonResponse = JObject.Parse(responseData);
+                var resultArray = jsonResponse["result"] as JArray;
+
+                if (resultArray != null && resultArray.Count > 0)
+                {
+                    if (request.item == "BY-FAIL-SN")
+                    {
+                        var mappedResponse = resultArray.Select(result => new
+                        {
+                            p_sn = result["P_SN"]?.ToString(),
+                            wo = result["WO"]?.ToString(),
+                            p_no = result["P_NO"]?.ToString(),
+                            tr_sn = result["TR_SN"]?.ToString(),
+                            kp_no = result["KP_NO"]?.ToString(),
+                            mfr_kp_no = result["MFR_KP_NO"]?.ToString(),
+                            date_code = result["DATE_CODE"]?.ToString(),
+                            lot_code = result["LOT_CODE"]?.ToString(),
+                            mfr_name = result["MFR_NAME"]?.ToString(),
+                            process_flag = result["PROCESS_FLAG"]?.ToString(),
+                            station = result["STATION"]?.ToString(),
+                            group_name = result["GROUP_NAME"]?.ToString(),
+                            work_time = result["WORK_TIME"]?.ToString(),
+                            ref_des = result["REF_DES"]?.ToString(),
+                            test_code = result["TEST_CODE"]?.ToString(),
+                            test_group = result["TEST_GROUP"]?.ToString()
+                        }).ToList();
+
+                        return Ok(new { result = mappedResponse });
+                    }
+                    else if (request.item == "BY-FAIL-TOTAL")
+                    {
+                        var mappedResponse = resultArray.Select(result => new
+                        {
+                            p_no = result["P_NO"]?.ToString(),
+                            kp_no = result["KP_NO"]?.ToString(),
+                            date_code = result["DATE_CODE"]?.ToString(),
+                            lot_code = result["LOT_CODE"]?.ToString(),
+                            mfr_name = result["MFR_NAME"]?.ToString(),
+                            input_qty = result["INPUT_QTY"]?.ToString(),
+                            fail_qty = result["FAIL_QTY"]?.ToString(),
+                            pass_qty = result["PASS_QTY"]?.ToString(),
+                            dfr = result["DFR"]?.ToString()
+                        }).ToList();
+
+                        return Ok(new { result = mappedResponse });
+                    }
+                    else
+                    {
+                        return BadRequest(new { success = false, message = "Giá trị ITEM không hợp lệ. Chỉ hỗ trợ 'BY-FAIL-SN' hoặc 'BY-FAIL-TOTAL'." });
+                    }
+                }
+                else
+                {
+                    return NotFound(new { success = false, message = "Không tìm thấy dữ liệu cho các tham số đã cung cấp." });
+                }
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                return BadRequest(new { success = false, message = error });
+            }
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { success = false, message = ex.Message });
+        }
+    }
+
 }
 
 // Các lớp dữ liệu cho yêu cầu API
@@ -307,4 +421,34 @@ public class InfoAllPartRequest
 
     [JsonProperty("var_2")]
     public string? var_2 { get; set; }
+}
+
+public class CheckYrByDclcRequest
+{
+    [JsonProperty("type")]
+    public string? type { get; set; }
+
+    [JsonProperty("item")]
+    public string? item { get; set; }
+
+    [JsonProperty("var_1")]
+    public string? var_1 { get; set; }
+
+    [JsonProperty("var_2")]
+    public string? var_2 { get; set; }
+
+    [JsonProperty("var_3")]
+    public string? var_3 { get; set; }
+
+    [JsonProperty("var_4")]
+    public string? var_4 { get; set; }
+
+    [JsonProperty("var_5")]
+    public string? var_5 { get; set; }
+
+    [JsonProperty("var_6")]
+    public string? var_6 { get; set; }
+
+    [JsonProperty("var_7")]
+    public string? var_7 { get; set; }
 }
