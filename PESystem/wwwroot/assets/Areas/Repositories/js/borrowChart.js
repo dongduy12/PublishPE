@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     const modalEl = document.getElementById("borrowDetailModal");
     const modal = modalEl ? new bootstrap.Modal(modalEl) : null;
+    let currentDetails = [];
 
     async function showDetails(url) {
         if (!modal) return;
@@ -13,12 +14,13 @@ document.addEventListener("DOMContentLoaded", async function () {
             const res = await fetch(url);
             const json = await res.json();
             if (json.success) {
+                currentDetails = json.data || [];
                 const tbody = document.querySelector('#borrow-detail-table tbody');
                 if ($.fn.DataTable.isDataTable('#borrow-detail-table')) {
                     $('#borrow-detail-table').DataTable().clear().destroy();
                 }
                 tbody.innerHTML = '';
-                json.data.forEach(item => {
+                currentDetails.forEach(item => {
                     const row = `<tr>
                         <td>${item.serialNumber || ''}</td>
                         <td>${item.borrower || ''}</td>
@@ -28,7 +30,21 @@ document.addEventListener("DOMContentLoaded", async function () {
                     </tr>`;
                     tbody.insertAdjacentHTML('beforeend', row);
                 });
-                $('#borrow-detail-table').DataTable();
+                $('#borrow-detail-table').DataTable({
+                    dom: 'Bfrtip',
+                    buttons: [
+                        {
+                            extend: 'excelHtml5',
+                            text: '<img src="/assets/img/excel.png" class="excel-icon"/>',
+                            className: 'excel-button',
+                            title: '',
+                            filename: function () {
+                                const d = new Date();
+                                return `BorrowDetails_${d.toISOString().slice(0,10)}`;
+                            }
+                        }
+                    ]
+                });
                 modal.show();
             }
         } catch (err) {
