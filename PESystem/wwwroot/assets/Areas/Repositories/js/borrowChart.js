@@ -4,6 +4,38 @@ document.addEventListener("DOMContentLoaded", async function () {
     const borrowReturnEl = document.getElementById("borrow-return-chart");
     const borrowAgingEl = document.getElementById("borrow-aging-chart");
 
+    const modalEl = document.getElementById("borrowDetailModal");
+    const modal = modalEl ? new bootstrap.Modal(modalEl) : null;
+
+    async function showDetails(url) {
+        if (!modal) return;
+        try {
+            const res = await fetch(url);
+            const json = await res.json();
+            if (json.success) {
+                const tbody = document.querySelector('#borrow-detail-table tbody');
+                if ($.fn.DataTable.isDataTable('#borrow-detail-table')) {
+                    $('#borrow-detail-table').DataTable().clear().destroy();
+                }
+                tbody.innerHTML = '';
+                json.data.forEach(item => {
+                    const row = `<tr>
+                        <td>${item.serialNumber || ''}</td>
+                        <td>${item.borrower || ''}</td>
+                        <td>${item.borrowDate ? new Date(item.borrowDate).toLocaleString() : ''}</td>
+                        <td>${item.returnDate ? new Date(item.returnDate).toLocaleString() : ''}</td>
+                        <td>${item.location || ''}</td>
+                    </tr>`;
+                    tbody.insertAdjacentHTML('beforeend', row);
+                });
+                $('#borrow-detail-table').DataTable();
+                modal.show();
+            }
+        } catch (err) {
+            console.error('detail fetch error', err);
+        }
+    }
+
     if (borrowReturnEl) {
         try {
             const res = await fetch("http://10.220.130.119:9090/api/product/borrowed/daily");
@@ -19,6 +51,13 @@ document.addEventListener("DOMContentLoaded", async function () {
                         data: [json.borrowedToday, json.returnedToday],
                         itemStyle: { color: '#2eca6a' }
                     }]
+                });
+                chart.on('click', function (params) {
+                    if (params.name === 'Borrowed') {
+                        showDetails('http://10.220.130.119:9090/api/product/borrowed/daily/details?type=borrowed');
+                    } else if (params.name === 'Returned') {
+                        showDetails('http://10.220.130.119:9090/api/product/borrowed/daily/details?type=returned');
+                    }
                 });
                 window.addEventListener('resize', () => chart.resize());
             }
@@ -40,6 +79,9 @@ document.addEventListener("DOMContentLoaded", async function () {
                     xAxis: { type: 'category', data: labels },
                     yAxis: { type: 'value' },
                     series: [{ type: 'line', data: values, smooth: true, color: '#ff771d' }]
+                });
+                chart.on('click', function (params) {
+                    showDetails(`http://10.220.130.119:9090/api/product/borrowed/aging/details?days=${params.name}`);
                 });
                 window.addEventListener('resize', () => chart.resize());
             }

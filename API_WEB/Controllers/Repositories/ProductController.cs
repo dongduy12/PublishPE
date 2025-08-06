@@ -108,6 +108,105 @@ namespace API_WEB.Controllers
             }
         }
 
+        // Chi tiết mượn/trả trong ngày
+        [HttpGet("borrowed/daily/details")]
+        public async Task<IActionResult> GetBorrowReturnDetails([FromQuery] string type)
+        {
+            try
+            {
+                var today = DateTime.Today;
+                var tomorrow = today.AddDays(1);
+
+                if (type == "borrowed")
+                {
+                    var borrowDetails = await _sqlContext.BorrowHistories
+                        .Where(b => b.BorrowDate >= today && b.BorrowDate < tomorrow)
+                        .Select(b => new
+                        {
+                            serialNumber = b.SerialNumber,
+                            borrower = b.BorrowPerson,
+                            borrowDate = b.BorrowDate,
+                            returnDate = (DateTime?)null,
+                            location = string.Empty
+                        })
+                        .ToListAsync();
+
+                    return Ok(new { success = true, data = borrowDetails });
+                }
+                else if (type == "returned")
+                {
+                    var returnedProducts = await _sqlContext.Products
+                        .Include(p => p.Shelf)
+                        .Where(p => p.EntryDate >= today && p.EntryDate < tomorrow && p.BorrowStatus == "Available")
+                        .Select(p => new
+                        {
+                            p.SerialNumber,
+                            p.EntryDate,
+                            p.Shelf,
+                            p.ColumnNumber,
+                            p.LevelNumber,
+                            p.TrayNumber
+                        })
+                        .ToListAsync();
+
+                    var result = returnedProducts.Select(p =>
+                    {
+                        var lastBorrow = _sqlContext.BorrowHistories
+                            .Where(bh => bh.SerialNumber == p.SerialNumber)
+                            .OrderByDescending(bh => bh.BorrowDate)
+                            .FirstOrDefault();
+
+                        return new
+                        {
+                            serialNumber = p.SerialNumber,
+                            borrower = lastBorrow?.BorrowPerson,
+                            borrowDate = lastBorrow?.BorrowDate,
+                            returnDate = p.EntryDate,
+                            location = p.Shelf != null
+                                ? $"{p.Shelf.ShelfCode}{p.ColumnNumber}-{p.LevelNumber}-K({p.TrayNumber})"
+                                : string.Empty
+                        };
+                    }).ToList();
+
+                    return Ok(new { success = true, data = result });
+                }
+
+                return BadRequest(new { success = false, message = "Invalid type" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        // Chi tiết aging mượn
+        [HttpGet("borrowed/aging/details")]
+        public async Task<IActionResult> GetBorrowAgingDetails([FromQuery] int days)
+        {
+            try
+            {
+                var today = DateTime.Today;
+                var data = await _sqlContext.Products
+                    .Where(p => p.BorrowStatus == "Borrowed" && p.BorrowDate != null &&
+                                EF.Functions.DateDiffDay(p.BorrowDate.Value, today) == days)
+                    .Select(p => new
+                    {
+                        serialNumber = p.SerialNumber,
+                        borrower = p.BorrowPerson,
+                        borrowDate = p.BorrowDate,
+                        returnDate = (DateTime?)null,
+                        location = string.Empty
+                    })
+                    .ToListAsync();
+
+                return Ok(new { success = true, data });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
         [HttpPost("report")]
         public async Task<IActionResult> GetProductReportByTime([FromBody] TimeRangeRequest request)
         {

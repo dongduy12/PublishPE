@@ -297,8 +297,33 @@
     </div>
 </div>
 
+<!-- Modal hiển thị chi tiết mượn/trả -->
+<div class="modal fade" id="borrowDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">CHI TIẾT MƯỢN/TRẢ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body table-responsive">
+                <table id="borrow-detail-table" class="table table-bordered table-striped" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>Serial Number</th>
+                            <th>Người mượn</th>
+                            <th>Thời gian mượn</th>
+                            <th>Thời gian trả</th>
+                            <th>Vị trí</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
->
     <script src="~/assets/areas/repositories/js/dashboard.js?v=@DateTime.Now.Ticks"></script>
     <script src="~/assets/areas/repositories/js/reportschart.js?v=@DateTime.Now.Ticks"></script>
     <script src="~/assets/areas/repositories/js/borrowChart.js?v=@DateTime.Now.Ticks"></script>
