@@ -24,7 +24,8 @@ namespace API_WEB.Controllers.SmartFA
             }
 
             var data = await _oracleContext.OracleDataRepairTaskDetail
-                .Where(r => r.SERIAL_NUMBER == serialNumber && r.DATA17 != null)
+                .Where(r => r.SERIAL_NUMBER == serialNumber &&
+                            (r.DATA17 == "Confirm" || r.DATA17 == "Save"))
                 .Select(r => r.DATA19)
                 .ToListAsync();
 
