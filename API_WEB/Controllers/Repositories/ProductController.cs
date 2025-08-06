@@ -43,6 +43,170 @@ namespace API_WEB.Controllers
             }
         }
 
+        // Thống kê số lượng SN đang được mượn
+        [HttpGet("borrowed/count")]
+        public async Task<IActionResult> GetBorrowedCount()
+        {
+            try
+            {
+                var borrowedCount = await _sqlContext.Products
+                    .CountAsync(p => p.BorrowStatus == "Borrowed");
+                return Ok(new { success = true, borrowedCount });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        // Thống kê số lượng mượn/trả trong ngày
+        [HttpGet("borrowed/daily")]
+        public async Task<IActionResult> GetBorrowReturnToday()
+        {
+            try
+            {
+                var today = DateTime.Today;
+                var tomorrow = today.AddDays(1);
+
+                var borrowedToday = await _sqlContext.BorrowHistories
+                    .CountAsync(b => b.BorrowDate >= today && b.BorrowDate < tomorrow);
+
+                var returnedToday = await _sqlContext.Products
+                    .CountAsync(p => p.EntryDate >= today && p.EntryDate < tomorrow);
+
+                return Ok(new { success = true, borrowedToday, returnedToday });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        // Thống kê số lượng SN đang mượn theo số ngày (aging)
+        [HttpGet("borrowed/aging")]
+        public async Task<IActionResult> GetBorrowAging()
+        {
+            try
+            {
+                var today = DateTime.Today;
+                var agingData = await _sqlContext.Products
+                    .Where(p => p.BorrowStatus == "Borrowed" && p.BorrowDate != null)
+                    .Select(p => new
+                    {
+                        days = EF.Functions.DateDiffDay(p.BorrowDate.Value, today)
+                    })
+                    .GroupBy(x => x.days)
+                    .Select(g => new { days = g.Key, count = g.Count() })
+                    .OrderBy(g => g.days)
+                    .ToListAsync();
+
+                return Ok(new { success = true, aging = agingData });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        // Chi tiết mượn/trả trong ngày
+        [HttpGet("borrowed/daily/details")]
+        public async Task<IActionResult> GetBorrowReturnDetails([FromQuery] string type)
+        {
+            try
+            {
+                var today = DateTime.Today;
+                var tomorrow = today.AddDays(1);
+
+                if (type == "borrowed")
+                {
+                    var borrowDetails = await _sqlContext.BorrowHistories
+                        .Where(b => b.BorrowDate >= today && b.BorrowDate < tomorrow)
+                        .Select(b => new
+                        {
+                            serialNumber = b.SerialNumber,
+                            borrower = b.BorrowPerson,
+                            borrowDate = b.BorrowDate,
+                            returnDate = (DateTime?)null,
+                            location = string.Empty
+                        })
+                        .ToListAsync();
+
+                    return Ok(new { success = true, data = borrowDetails });
+                }
+                else if (type == "returned")
+                {
+                    var returnedProducts = await _sqlContext.Products
+                        .Include(p => p.Shelf)
+                        .Where(p => p.EntryDate >= today && p.EntryDate < tomorrow && p.BorrowStatus == "Available")
+                        .Select(p => new
+                        {
+                            p.SerialNumber,
+                            p.EntryDate,
+                            p.Shelf,
+                            p.ColumnNumber,
+                            p.LevelNumber,
+                            p.TrayNumber
+                        })
+                        .ToListAsync();
+
+                    var result = returnedProducts.Select(p =>
+                    {
+                        var lastBorrow = _sqlContext.BorrowHistories
+                            .Where(bh => bh.SerialNumber == p.SerialNumber)
+                            .OrderByDescending(bh => bh.BorrowDate)
+                            .FirstOrDefault();
+
+                        return new
+                        {
+                            serialNumber = p.SerialNumber,
+                            borrower = lastBorrow?.BorrowPerson,
+                            borrowDate = lastBorrow?.BorrowDate,
+                            returnDate = p.EntryDate,
+                            location = p.Shelf != null
+                                ? $"{p.Shelf.ShelfCode}{p.ColumnNumber}-{p.LevelNumber}-K({p.TrayNumber})"
+                                : string.Empty
+                        };
+                    }).ToList();
+
+                    return Ok(new { success = true, data = result });
+                }
+
+                return BadRequest(new { success = false, message = "Invalid type" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        // Chi tiết aging mượn
+        [HttpGet("borrowed/aging/details")]
+        public async Task<IActionResult> GetBorrowAgingDetails([FromQuery] int days)
+        {
+            try
+            {
+                var today = DateTime.Today;
+                var data = await _sqlContext.Products
+                    .Where(p => p.BorrowStatus == "Borrowed" && p.BorrowDate != null &&
+                                EF.Functions.DateDiffDay(p.BorrowDate.Value, today) == days)
+                    .Select(p => new
+                    {
+                        serialNumber = p.SerialNumber,
+                        borrower = p.BorrowPerson,
+                        borrowDate = p.BorrowDate,
+                        returnDate = (DateTime?)null,
+                        location = string.Empty
+                    })
+                    .ToListAsync();
+
+                return Ok(new { success = true, data });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
         [HttpPost("report")]
         public async Task<IActionResult> GetProductReportByTime([FromBody] TimeRangeRequest request)
         {

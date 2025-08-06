@@ -56,6 +56,15 @@ document.addEventListener("DOMContentLoaded", function () {
             console.error("Fetch Error:", error);
             document.getElementById("total-stock").textContent = "Error";
         });
+
+    fetch("http://10.220.130.119:9090/api/product/borrowed/count")
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById("borrowed-count").textContent = data.borrowedCount.toLocaleString('vi-VN');
+            }
+        })
+        .catch(err => console.error('Borrowed count error', err));
 });
 
 function removeBackdrop() {
