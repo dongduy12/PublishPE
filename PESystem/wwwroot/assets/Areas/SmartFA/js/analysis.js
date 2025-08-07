@@ -57,7 +57,8 @@ const ApiService = (function () {
         getLatestTester: (payload) => fetchAPI('/SearchFA/get-latest-tester', 'POST', payload),
         getStatusCounts: (type) => fetchAPI('/SearchFA/get-status-counts', 'POST', type),
         getLocationCounts: () => fetchAPI('/DataChart/getCountLocation', 'GET'),
-        getAgingCounts: () => fetchAPI('/DataChart/get-aging-counts', 'GET')
+        getAgingCounts: () => fetchAPI('/DataChart/get-aging-counts', 'GET'),
+        getRepairInfo: (serialNumber) => fetchAPI(`/RepairTaskDetail/data19/${serialNumber}`, 'GET')
     };
 })();
 
@@ -1715,7 +1716,7 @@ $(document).ready(function () {
     ChartManager.init();
     const exportSnTableBtn = document.getElementById('exportSnTableExcelBtn');
     if (exportSnTableBtn) {
-        exportSnTableBtn.addEventListener('click', () => {
+        exportSnTableBtn.addEventListener('click', async () => {
             showSpinner();
             const table = $('#sn-table').DataTable();
             const allData = table.rows().data().toArray();
@@ -1724,8 +1725,21 @@ $(document).ready(function () {
                 hideSpinner();
                 return;
             }
-            const headers = ['SERIAL_NUMBER', 'PRODUCT_LINE', 'MODEL_NAME', 'WIP', 'TEST_GROUP', 'TEST_CODE', 'ERROR_DESC', 'PRE_STATUS', 'STATUS', 'DATE', 'ID_NV', 'CHECK_POINT', 'HANDOVER', 'VỊ_TRÍ'];
-            const rows = allData.map(row => headers.map((_, i) => $('<div>').html(row[i]).text()));
+            const headers = ['SERIAL_NUMBER', 'PRODUCT_LINE', 'MODEL_NAME', 'WIP', 'TEST_GROUP', 'TEST_CODE', 'ERROR_DESC', 'PRE_STATUS', 'STATUS', 'DATE', 'ID_NV', 'CHECK_POINT', 'HANDOVER', 'VỊ_TRÍ', 'SỬA_CHỮA'];
+            const rowPromises = allData.map(async row => {
+                const serial = $('<div>').html(row[0]).text().trim();
+                let repairInfo = '';
+                try {
+                    const result = await ApiService.getRepairInfo(serial);
+                    repairInfo = result.data || '';
+                } catch (error) {
+                    console.error(`Lỗi lấy thông tin sửa chữa của ${serial}:`, error);
+                }
+                const baseRow = row.slice(0, 14).map(cell => $('<div>').html(cell).text());
+                baseRow.push(repairInfo);
+                return baseRow;
+            });
+            const rows = await Promise.all(rowPromises);
             const workbook = XLSX.utils.book_new();
             const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
             XLSX.utils.book_append_sheet(workbook, worksheet, 'SNTable');
