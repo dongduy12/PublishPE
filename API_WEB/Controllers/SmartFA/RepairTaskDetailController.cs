@@ -23,11 +23,13 @@ namespace API_WEB.Controllers.SmartFA
                 return BadRequest(new { success = false, message = "Serial number is required." });
             }
 
-            var data = await _oracleContext.OracleDataRepairTaskDetail
+            var dataList = await _oracleContext.OracleDataRepairTaskDetail
                 .Where(r => r.SERIAL_NUMBER == serialNumber &&
                             (r.DATA17 == "Confirm" || r.DATA17 == "Save"))
                 .Select(r => r.DATA19)
                 .ToListAsync();
+
+            var data = string.Join(",", dataList);
 
             return Ok(new { success = true, data });
         }
