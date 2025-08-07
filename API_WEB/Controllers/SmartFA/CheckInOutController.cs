@@ -23,7 +23,8 @@ namespace API_WEB.Controllers.SmartFA
             _sqlContext = sqlContext;
         }
 
-        public class TimeRangeRequest
+        // Use a distinct request model name to avoid Swagger schema clashes
+        public class CheckInOutRequest
         {
             public DateTime StartDate { get; set; }
             public DateTime EndDate { get; set; }
@@ -55,7 +56,7 @@ namespace API_WEB.Controllers.SmartFA
         }
 
         [HttpPost("GetCheckInOut")]
-        public async Task<IActionResult> GetCheckInOut([FromBody] TimeRangeRequest request)
+        public async Task<IActionResult> GetCheckInOut([FromBody] CheckInOutRequest request)
         {
             await using var connection = new OracleConnection(_oracleContext.Database.GetDbConnection().ConnectionString);
             await connection.OpenAsync();
