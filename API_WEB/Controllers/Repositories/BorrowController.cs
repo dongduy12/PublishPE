@@ -54,7 +54,6 @@ namespace API_WEB.Controllers.Repositories
                         product.BorrowStatus = "Borrowed";
                         product.BorrowDate = DateTime.Now;
                         product.BorrowPerson = request.Borrower;
-                        product.Note = request.Note;
                         // Xóa thông tin vị trí
                         product.ShelfId = null;
                         product.TrayNumber = null;
@@ -157,6 +156,5 @@ namespace API_WEB.Controllers.Repositories
     {
         public List<string> SerialNumbers { get; set; } // Danh sách Serial Numbers cần cho mượn
         public string Borrower { get; set; } // Tên người mượn
-        public string? Note { get; set; } // Ghi chú khi mượn
     }
 }

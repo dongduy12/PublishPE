@@ -250,118 +250,119 @@ namespace API_WEB.Controllers.Repositories
             await connection.OpenAsync();
 
             string query = @"
+                SELECT 
+                    c.SERIAL_NUMBER, 
+                    c.MODEL_NAME, 
+                    c.PRODUCT_LINE, 
+                    c.MO_NUMBER, 
+                    c.FAIL_STATION, 
+                    c.SYMPTOM, 
+                    c.ERROR_DESC, 
+                    c.TIME, 
+                    c.FLAG, 
+                    c.PO_NO, 
+                    c.PO_ITEM, 
+                    c.FAILURE_AGING, 
+                    c.WIP_GROUP, 
+                    c.VERSION_CODE, 
+                    c.WORK_FLAG,
+                    CASE 
+                        WHEN c.ERROR_FLAG = '0' AND c.MO_NEW IS NOT NULL THEN '0'
+                        WHEN c.ERROR_FLAG = '0' AND c.MO_NEW IS NULL THEN '2'
+                        ELSE c.ERROR_FLAG 
+                    END AS ERROR_FLAG,
+                    c.MO_NEW, 
+                    c.STATUS, 
+                    c.CHECKIN_REPAIR_TIME, 
+                    c.CHECKOUT_REPAIR_TIME,
+                    CASE 
+                        WHEN s.SERIAL_NUMBER IS NOT NULL THEN 'SCRAP' 
+                        ELSE '' 
+                    END AS SCRAP_STATUS
+                FROM (
                     SELECT 
-                        c.SERIAL_NUMBER, 
-                        c.MODEL_NAME, 
-                        c.PRODUCT_LINE, 
-                        c.MO_NUMBER, 
-                        c.FAIL_STATION, 
-                        c.SYMPTOM, 
-                        c.ERROR_DESC, 
-                        c.TIME, 
-                        c.FLAG, 
-                        c.PO_NO, 
-                        c.PO_ITEM, 
-                        c.FAILURE_AGING, 
-                        c.WIP_GROUP, 
-                        c.VERSION_CODE, 
-                        c.WORK_FLAG,
+                        a.*, 
+                        b.MO_NUMBER1, 
+                        b.DATA1, 
+                        b.ERROR_FLAG, 
+                        b.WORK_FLAG, 
+                        b.WIP_GROUP, 
+                        b.VERSION_CODE,
                         CASE 
-                            WHEN c.ERROR_FLAG = '0' AND c.MO_NEW IS NOT NULL THEN '0'
-                            WHEN c.ERROR_FLAG = '0' AND c.MO_NEW IS NULL THEN '2'
-                            ELSE c.ERROR_FLAG 
-                        END AS ERROR_FLAG,
-                        c.MO_NEW, 
-                        c.STATUS, 
-                        c.CHECKIN_REPAIR_TIME, 
-                        c.CHECKOUT_REPAIR_TIME,
-                        CASE 
-                            WHEN s.SERIAL_NUMBER IS NOT NULL THEN 'SCRAP' 
+                            WHEN a.MO_NUMBER <> b.MO_NUMBER1 THEN b.MO_NUMBER1
+                            WHEN a.MO_NUMBER = b.MO_NUMBER1 
+                                AND b.ERROR_FLAG NOT IN ('1', '7', '8') 
+                                AND b.DATA1 IS NOT NULL THEN b.DATA1
                             ELSE '' 
-                        END AS SCRAP_STATUS
+                        END AS MO_NEW,
+                        CASE 
+                            WHEN a.FAILURE_AGING <= 7 THEN 'Normal <7 DAY'
+                            WHEN a.FAILURE_AGING > 7 AND a.FAILURE_AGING < 14 THEN 'Medium >7,<14 DAY'
+                            ELSE 'High >14 DAY'
+                        END AS STATUS,
+                        r.IN_DATETIME AS CHECKIN_REPAIR_TIME,
+                        r.OUT_DATETIME AS CHECKOUT_REPAIR_TIME
                     FROM (
                         SELECT 
-                            a.*, 
-                            b.MO_NUMBER1, 
-                            b.DATA1, 
-                            b.ERROR_FLAG, 
-                            b.WORK_FLAG, 
-                            b.WIP_GROUP, 
-                            b.VERSION_CODE,
-                            CASE 
-                                WHEN a.MO_NUMBER <> b.MO_NUMBER1 THEN b.MO_NUMBER1
-                                WHEN a.MO_NUMBER = b.MO_NUMBER1 
-                                    AND b.ERROR_FLAG NOT IN ('1', '7', '8') 
-                                    AND b.DATA1 IS NOT NULL THEN b.DATA1
-                                ELSE '' 
-                            END AS MO_NEW,
-                            CASE 
-                                WHEN a.FAILURE_AGING <= 7 THEN 'Normal <7 DAY'
-                                WHEN a.FAILURE_AGING > 7 AND a.FAILURE_AGING < 14 THEN 'Medium >7,<14 DAY'
-                                ELSE 'High >14 DAY'
-                            END AS STATUS,
-                            r.IN_DATETIME AS CHECKIN_REPAIR_TIME,
-                            r.OUT_DATETIME AS CHECKOUT_REPAIR_TIME
-                        FROM (
-                            SELECT 
-                                a.SERIAL_NUMBER, 
-                                a.MODEL_NAME, 
-                                a.PRODUCT_LINE, 
-                                a.MO_NUMBER, 
-                                a.TEST_STATION AS FAIL_STATION, 
-                                a.SYMPTOM, 
-                                b.ERROR_DESC, 
-                                a.TIME, 
-                                a.FLAG, 
-                                a.PO_NO, 
-                                a.PO_ITEM, 
-                                ROUND((SYSDATE - a.TIME), 2) AS FAILURE_AGING
-                            FROM SFISM4.NVIDIA_BONPILE_SN_LOG a
-                            INNER JOIN SFIS1.C_ERROR_CODE_T b 
-                                ON a.SYMPTOM = b.ERROR_CODE
-                            WHERE a.TIME BETWEEN TO_DATE(:start_date, 'YYYY/MM/DD HH24:MI') 
-                                AND TO_DATE(:end_date, 'YYYY/MM/DD HH24:MI')
-                                AND NOT EXISTS (
-                                    SELECT 1 
-                                    FROM SFISM4.Z_KANBAN_TRACKING_T z 
-                                    WHERE z.SERIAL_NUMBER = a.SERIAL_NUMBER
-                                )
-                                AND NOT EXISTS (
-                                    SELECT 1 
-                                    FROM SFISM4.R_NV_REPAIR_BONEPILE_T r 
-                                    WHERE r.SERIAL_NUMBER = a.SERIAL_NUMBER 
-                                    AND r.DATA7 = 'SCRAP'
-                                )
-                        ) a
-                        LEFT JOIN (
-                            SELECT 
-                                a.SERIAL_NUMBER, 
-                                a.MO_NUMBER AS MO_NUMBER1, 
-                                b.DATA1, 
-                                a.ERROR_FLAG, 
-                                a.WORK_FLAG, 
-                                a.WIP_GROUP, 
-                                a.VERSION_CODE
-                            FROM SFISM4.R107 a
-                            LEFT JOIN SFISM4.R_KEYPART_BLACK_WHITE_LIST_T b 
-                                ON a.SERIAL_NUMBER = b.KEY_PART_SN 
-                                AND b.TYPE = 'LINK_MO'
-                        ) b 
-                            ON a.SERIAL_NUMBER = b.SERIAL_NUMBER
-                        LEFT JOIN SFISM4.R_REPAIR_IN_OUT_T r 
-                            ON a.SERIAL_NUMBER = r.SERIAL_NUMBER 
-                            AND a.FAIL_STATION = r.STATION_NAME 
-                            AND a.MO_NUMBER = r.MO_NUMBER
-                    ) c
+                            a.SERIAL_NUMBER, 
+                            a.MODEL_NAME, 
+                            a.PRODUCT_LINE, 
+                            a.MO_NUMBER, 
+                            a.TEST_STATION AS FAIL_STATION, 
+                            a.SYMPTOM, 
+                            b.ERROR_DESC, 
+                            a.TIME, 
+                            a.FLAG, 
+                            a.PO_NO, 
+                            a.PO_ITEM, 
+                            ROUND((SYSDATE - a.TIME), 2) AS FAILURE_AGING
+                        FROM SFISM4.NVIDIA_BONPILE_SN_LOG a
+                        INNER JOIN SFIS1.C_ERROR_CODE_T b 
+                            ON a.SYMPTOM = b.ERROR_CODE
+                        WHERE a.TIME BETWEEN TO_DATE(:start_date, 'YYYY/MM/DD HH24:MI') 
+                            AND TO_DATE(:end_date, 'YYYY/MM/DD HH24:MI')
+                            AND NOT EXISTS (
+                                SELECT 1 
+                                FROM SFISM4.Z_KANBAN_TRACKING_T z 
+                                WHERE z.SERIAL_NUMBER = a.SERIAL_NUMBER
+                            )
+                            AND NOT EXISTS (
+                                SELECT 1 
+                                FROM SFISM4.R_NV_REPAIR_BONEPILE_T r 
+                                WHERE r.SERIAL_NUMBER = a.SERIAL_NUMBER 
+                                AND r.DATA7 = 'SCRAP'
+                            )
+                            AND a.PRODUCT_LINE NOT LIKE 'SA%'
+                    ) a
                     LEFT JOIN (
-                        SELECT SERIAL_NUMBER, TEST_GROUP, TEST_CODE
-                        FROM SFISM4.R109 
-                        WHERE REASON_CODE = 'B001'
-                    ) s 
-                        ON c.SERIAL_NUMBER = s.SERIAL_NUMBER 
-                        AND c.FAIL_STATION = s.TEST_GROUP 
-                        AND c.SYMPTOM = s.TEST_CODE
-                    ORDER BY c.TIME";
+                        SELECT 
+                            a.SERIAL_NUMBER, 
+                            a.MO_NUMBER AS MO_NUMBER1, 
+                            b.DATA1, 
+                            a.ERROR_FLAG, 
+                            a.WORK_FLAG, 
+                            a.WIP_GROUP, 
+                            a.VERSION_CODE
+                        FROM SFISM4.R107 a
+                        LEFT JOIN SFISM4.R_KEYPART_BLACK_WHITE_LIST_T b 
+                            ON a.SERIAL_NUMBER = b.KEY_PART_SN 
+                            AND b.TYPE = 'LINK_MO'
+                    ) b 
+                        ON a.SERIAL_NUMBER = b.SERIAL_NUMBER
+                    LEFT JOIN SFISM4.R_REPAIR_IN_OUT_T r 
+                        ON a.SERIAL_NUMBER = r.SERIAL_NUMBER 
+                        AND a.FAIL_STATION = r.STATION_NAME 
+                        AND a.MO_NUMBER = r.MO_NUMBER
+                ) c
+                LEFT JOIN (
+                    SELECT SERIAL_NUMBER, TEST_GROUP, TEST_CODE
+                    FROM SFISM4.R109 
+                    WHERE REASON_CODE = 'B001'
+                ) s 
+                    ON c.SERIAL_NUMBER = s.SERIAL_NUMBER 
+                    AND c.FAIL_STATION = s.TEST_GROUP 
+                    AND c.SYMPTOM = s.TEST_CODE
+                ORDER BY c.TIME";
 
             using (var command = new OracleCommand(query, connection))
             {
@@ -808,8 +809,8 @@ AND NOT EXISTS (
 )
 AND a.MO_NUMBER NOT LIKE '8%'
 AND (
-    (c.MODEL_SERIAL = 'ADAPTER' AND a.MODEL_NAME NOT LIKE '900%' AND a.MODEL_NAME NOT LIKE '692%')
-    OR ((a.MODEL_NAME LIKE '900%' OR a.MODEL_NAME LIKE '692%') AND a.MO_NUMBER LIKE '400%')
+    (c.MODEL_SERIAL = 'ADAPTER' AND a.MODEL_NAME NOT LIKE '900%' AND a.MODEL_NAME NOT LIKE '692%' AND a.MODEL_NAME NOT LIKE '699%')
+    OR ((a.MODEL_NAME LIKE '900%' OR a.MODEL_NAME LIKE '692%' OR a.MODEL_NAME LIKE '699%') AND a.MO_NUMBER LIKE '400%')
 )
 AND r107.WIP_GROUP NOT LIKE '%BR2C%'
 AND a.TEST_CODE NOT IN (
@@ -862,6 +863,7 @@ AND a.MODEL_NAME IN (
 AND a.MODEL_NAME NOT LIKE '900%'
 AND a.MODEL_NAME NOT LIKE 'TB%'
 AND a.MODEL_NAME NOT LIKE '692%'
+AND a.MODEL_NAME NOT LIKE '699%'
 AND b.ERROR_FLAG = 1
 AND a.MO_NUMBER NOT LIKE '8%'
 AND NOT EXISTS (

@@ -54,7 +54,7 @@ namespace API_WEB.Controllers.Repositories
 
             try
             {
-                int maxSlots = 160;
+                int maxSlots = 260;
                 request.SerialNumbers = request.SerialNumbers.Distinct().ToList();
 
                 ////Kiem tra SerialNumber trong ScrapList
@@ -214,7 +214,7 @@ namespace API_WEB.Controllers.Repositories
 
                 //3. So luong vi tri toi da trong khay
                 //int maxSlots = shelf.Contains("XE") ? 20 : 8;
-                int maxSlots = 160;
+                int maxSlots = 260;
                 ////4. Tao danh sach serialnumber da su dung
                 //var occupiedSerialNumbers = productsInTray.Select(p => p.SerialNumber).ToList();
                 // 4. Tạo danh sách serials với vị trí
@@ -522,7 +522,6 @@ namespace API_WEB.Controllers.Repositories
                         product.borrowStatus = "Borrowed";
                         product.borrowDate = DateTime.Now;
                         product.borrowPerson = request.Borrower;
-                        product.Note = request.Note;
                         // Xóa thông tin vị trí
                         product.ShelfCode = null;
                         product.TrayNumber = null;
@@ -807,7 +806,6 @@ namespace API_WEB.Controllers.Repositories
                         product.borrowStatus = "Borrowed";
                         product.borrowDate = DateTime.Now;
                         product.borrowPerson = request.Borrower;
-                        product.Note = request.Note;
                         // Xóa thông tin vị trí
                         product.ShelfCode = null;
                         product.LevelNumber = null;

@@ -296,14 +296,12 @@ const KhoScrapManager = (function () {
 
             if (!borrower) return;
 
-            const note = prompt('Ghi chú khi mượn (không bắt buộc):') || '';
-
             try {
                 Utils.showSpinner();
                 const response = await fetch(`${API_BASE_URL}/BorrowKhoScrap`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ serialNumbers: Borrow.selectedSNs, borrower, note })
+                    body: JSON.stringify({ serialNumbers: Borrow.selectedSNs, borrower})
                 });
 
                 if (!response.ok) throw new Error('Không thể cho mượn kho phế!');
@@ -331,7 +329,7 @@ const KhoScrapManager = (function () {
         handleTrayInput: () => {
             const trayInput = document.querySelector('input[name="location"]');
             let trayData = [];
-            let maxSlots = 160;
+            let maxSlots = 260;
 
             trayInput.addEventListener("input", function () {
                 let location = trayInput.value.trim().toUpperCase();
@@ -495,8 +493,8 @@ const KhoScrapManager = (function () {
 
                 document.getElementById("duplicate-warning").style.display = hasDuplicates ? "block" : "none";
                 const totalSerials = trayData.length + serialNumbers.length;
-                document.getElementById("serial-limit-warning").style.display = totalSerials > 160 ? "block" : "none";
-                document.getElementById("serial-count").textContent = `Tổng số serial đã nhập: ${totalSerials}/160`;
+                document.getElementById("serial-limit-warning").style.display = totalSerials > 260 ? "block" : "none";
+                document.getElementById("serial-count").textContent = `Tổng số serial đã nhập: ${totalSerials}/260`;
                 await Import.updateSerialDetails(serialNumbers);
             });
         }

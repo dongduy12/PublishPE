@@ -25,7 +25,7 @@ namespace API_WEB.Controllers.SmartFA
 
             var dataList = await _oracleContext.OracleDataRepairTaskDetail
                 .Where(r => r.SERIAL_NUMBER == serialNumber &&
-                            (r.DATA17 == "Confirm" || r.DATA17 == "Save"))
+                            (r.DATA17 == "Confirm" || r.DATA17 == "Save" || r.DATA17 == "save" || r.DATA17 == "confirm"))
                 .Select(r => r.DATA19)
                 .ToListAsync();
 
