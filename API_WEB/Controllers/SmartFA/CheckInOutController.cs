@@ -83,8 +83,8 @@ namespace API_WEB.Controllers.SmartFA
                 await using (var cmd = new OracleCommand(checkInQuery, connection))
                 {
                     cmd.BindByName = true;
-                    cmd.Parameters.Add(new OracleParameter("startDate", OracleDbType.Date) { Value = request.StartDate });
-                    cmd.Parameters.Add(new OracleParameter("endDate", OracleDbType.Date) { Value = request.EndDate });
+                    cmd.Parameters.Add(new OracleParameter(":startDate", OracleDbType.Date) { Value = request.StartDate });
+                    cmd.Parameters.Add(new OracleParameter(":endDate", OracleDbType.Date) { Value = request.EndDate });
                     await using var reader = await cmd.ExecuteReaderAsync();
                     while (await reader.ReadAsync())
                     {
@@ -126,8 +126,8 @@ namespace API_WEB.Controllers.SmartFA
                 await using (var cmd = new OracleCommand(checkOutQuery, connection))
                 {
                     cmd.BindByName = true;
-                    cmd.Parameters.Add(new OracleParameter("startDate", OracleDbType.Date) { Value = request.StartDate });
-                    cmd.Parameters.Add(new OracleParameter("endDate", OracleDbType.Date) { Value = request.EndDate });
+                    cmd.Parameters.Add(new OracleParameter(":startDate", OracleDbType.Date) { Value = request.StartDate });
+                    cmd.Parameters.Add(new OracleParameter(":endDate", OracleDbType.Date) { Value = request.EndDate });
                     await using var reader = await cmd.ExecuteReaderAsync();
                     while (await reader.ReadAsync())
                     {
