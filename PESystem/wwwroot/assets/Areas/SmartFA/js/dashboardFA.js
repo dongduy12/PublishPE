@@ -323,6 +323,44 @@ async function fetchChartData() {
     }
 }
 
+// Hàm lấy dữ liệu Check In/Out và vẽ biểu đồ
+async function loadCheckInOutChart() {
+    const startInput = document.getElementById("cioStartDate");
+    const endInput = document.getElementById("cioEndDate");
+    if (!startInput || !endInput) {
+        console.error("Không tìm thấy input ngày");
+        return;
+    }
+
+    const payload = {
+        startDate: startInput.value,
+        endDate: endInput.value
+    };
+
+    try {
+        const response = await fetch("http://10.220.130.119:9090/api/CheckInOut/GetCheckInOut", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        const result = await response.json();
+
+        const checkInCount = result?.checkIn?.count || 0;
+        const checkOutCount = result?.checkOut?.count || 0;
+
+        Highcharts.chart('checkInOutChart', {
+            chart: { type: 'column', backgroundColor: '#ffffff' },
+            xAxis: { categories: ['Check In', 'Check Out'] },
+            yAxis: { title: { text: 'Số lượng' } },
+            series: [{ name: 'Số lượng', data: [checkInCount, checkOutCount], color: '#2196F3' }]
+        });
+    } catch (error) {
+        console.error("Lỗi khi lấy dữ liệu Check In/Out:", error);
+    }
+}
+
 // Hàm khởi chạy khi DOM sẵn sàng
 document.addEventListener("DOMContentLoaded", () => {
     // Khởi tạo modal
@@ -336,6 +374,17 @@ document.addEventListener("DOMContentLoaded", () => {
     // Gọi API và vẽ biểu đồ
     loadStatusChart().catch(error => console.error("Error loading status chart:", error));
     fetchChartData().catch(error => console.error("Error loading model chart:", error));
+
+    const today = new Date().toISOString().split('T')[0];
+    const startInput = document.getElementById("cioStartDate");
+    const endInput = document.getElementById("cioEndDate");
+    if (startInput && endInput) {
+        startInput.value = today;
+        endInput.value = today;
+        const loadBtn = document.getElementById("loadCioBtn");
+        if (loadBtn) loadBtn.addEventListener("click", loadCheckInOutChart);
+        loadCheckInOutChart();
+    }
 
     // Gắn sự kiện xuất Excel
     const exportExcelBtn = document.getElementById("exportExcelBtn");

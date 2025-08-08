@@ -29,6 +29,24 @@
         </div>
     </div>
 
+    <div class="row d-flex flex-wrap mt-4">
+        <div class="col-md-12">
+            <div class="card shadow-lg rounded-lg border-0">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title font-weight-bold mb-0">CHECK IN/OUT</h5>
+                        <div class="d-flex">
+                            <input type="date" id="cioStartDate" class="form-control form-control-sm me-2" />
+                            <input type="date" id="cioEndDate" class="form-control form-control-sm me-2" />
+                            <button id="loadCioBtn" class="btn btn-primary btn-sm">Tải</button>
+                        </div>
+                    </div>
+                    <div id="checkInOutChart" style="width: 100%; height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal chứa DataTable -->
     <div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-lg-custom">
