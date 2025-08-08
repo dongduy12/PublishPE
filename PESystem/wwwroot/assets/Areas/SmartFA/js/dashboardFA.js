@@ -4,6 +4,7 @@ let statusModalElement = null;
 let cioModalInstance = null;
 let cioModalElement = null;
 let allModalData = []; // Lưu toàn bộ dữ liệu từ API
+let cioModalData = []; // Lưu dữ liệu chi tiết Check In/Out
 
 // Hàm cắt bớt chuỗi
 function truncateText(text, maxLength) {
@@ -92,6 +93,8 @@ function showCioModal(data, title) {
         }
 
         tableBody.innerHTML = '';
+
+        cioModalData = Array.isArray(data) ? [...data] : [];
 
         if ($.fn.DataTable.isDataTable('#cio-modal-table')) {
             $('#cio-modal-table').DataTable().clear().destroy();
@@ -500,6 +503,33 @@ document.addEventListener("DOMContentLoaded", () => {
             XLSX.utils.book_append_sheet(workbook, worksheet, "SerialNumbers");
             XLSX.writeFile(workbook, `SerialNumbers_${new Date().toISOString().slice(0, 10)}.xlsx`);
             console.log("Excel exported successfully with all data");
+        });
+    }
+
+    const exportCioExcelBtn = document.getElementById("exportCioExcelBtn");
+    if (exportCioExcelBtn) {
+        exportCioExcelBtn.addEventListener("click", () => {
+            if (cioModalData.length === 0) {
+                console.error("Không có dữ liệu để xuất Excel!");
+                showError("Không có dữ liệu để xuất!");
+                return;
+            }
+
+            const worksheetData = cioModalData.map(item => ({
+                "Serial Number": item.serial_NUMBER || item.SERIAL_NUMBER || "",
+                "Model Name": item.model_NAME || item.MODEL_NAME || "",
+                "Product Line": item.product_LINE || item.PRODUCT_LINE || "",
+                "In Date": item.in_DATETIME || item.IN_DATETIME || "",
+                "Out Date": item.out_DATETIME || item.OUT_DATETIME || "",
+                "Error Desc": item.error_DESC || item.ERROR_DESC || "",
+                "Trạng Thái": item.checkin_STATUS || item.CHECKIN_STATUS || ""
+            }));
+
+            const workbook = XLSX.utils.book_new();
+            const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+            XLSX.utils.book_append_sheet(workbook, worksheet, "CheckInOut");
+            XLSX.writeFile(workbook, `CheckInOut_${new Date().toISOString().slice(0, 10)}.xlsx`);
+            console.log("Excel exported successfully with Check In/Out data");
         });
     }
 });
