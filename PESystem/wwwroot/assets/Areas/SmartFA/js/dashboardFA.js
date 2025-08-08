@@ -1,7 +1,10 @@
 ﻿// Biến toàn cục
 let statusModalInstance = null;
 let statusModalElement = null;
+let cioModalInstance = null;
+let cioModalElement = null;
 let allModalData = []; // Lưu toàn bộ dữ liệu từ API
+let cioModalData = []; // Lưu dữ liệu chi tiết Check In/Out
 
 // Hàm cắt bớt chuỗi
 function truncateText(text, maxLength) {
@@ -77,6 +80,53 @@ async function updateModalSNTable(data) {
     } catch (error) {
         console.error("Lỗi khi cập nhật DataTable:", error);
         return false;
+    }
+}
+
+// Hiển thị bảng chi tiết Check In/Out
+function showCioModal(data, title) {
+    try {
+        const tableBody = document.querySelector('#cio-modal-table tbody');
+        if (!tableBody) {
+            console.error('Không tìm thấy tbody của bảng CheckInOut!');
+            return;
+        }
+
+        tableBody.innerHTML = '';
+
+        cioModalData = Array.isArray(data) ? [...data] : [];
+
+        if ($.fn.DataTable.isDataTable('#cio-modal-table')) {
+            $('#cio-modal-table').DataTable().clear().destroy();
+        }
+
+        data.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.serial_NUMBER || item.SERIAL_NUMBER || ''}</td>
+                <td>${item.model_NAME || item.MODEL_NAME || ''}</td>
+                <td>${item.product_LINE || item.PRODUCT_LINE || ''}</td>
+                <td>${item.in_DATETIME || item.IN_DATETIME || ''}</td>
+                <td>${item.out_DATETIME || item.OUT_DATETIME || ''}</td>
+                <td>${item.error_DESC || item.ERROR_DESC || ''}</td>
+                <td>${item.checkin_STATUS || item.CHECKIN_STATUS || ''}</td>`;
+            tableBody.appendChild(row);
+        });
+
+        $('#cio-modal-table').DataTable({
+            paging: true,
+            searching: true,
+            ordering: false,
+            scrollX: true,
+            autoWidth: false,
+            destroy: true
+        });
+
+        const titleEl = document.getElementById('cioModalLabel');
+        if (titleEl) titleEl.textContent = title;
+        if (cioModalInstance) cioModalInstance.show();
+    } catch (error) {
+        console.error('Lỗi hiển thị bảng CheckInOut:', error);
     }
 }
 
@@ -323,6 +373,68 @@ async function fetchChartData() {
     }
 }
 
+// Hàm lấy dữ liệu Check In/Out và vẽ biểu đồ
+async function loadCheckInOutChart() {
+    const startInput = document.getElementById("cioStartDate");
+    const endInput = document.getElementById("cioEndDate");
+    if (!startInput || !endInput) {
+        console.error("Không tìm thấy input ngày");
+        return;
+    }
+
+    const payload = {
+        startDate: startInput.value,
+        endDate: endInput.value
+    };
+
+    try {
+        const response = await fetch("http://10.220.130.119:9090/api/CheckInOut/GetCheckInOut", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        const result = await response.json();
+
+        const checkInData = result?.checkIn?.data || [];
+        const checkOutTrongNgay = result?.checkOut?.trongNgay?.data || [];
+        const checkOutNgayTruoc = result?.checkOut?.ngayTruoc?.data || [];
+
+        Highcharts.chart('checkInOutChart', {
+            chart: { type: 'column', backgroundColor: '#ffffff' },
+            xAxis: { categories: ['Check In', 'Check Out (Trong ngày)', 'Check Out (Trước đó)'] },
+            yAxis: { title: { text: 'Số lượng' } },
+            plotOptions: {
+                column: {
+                    cursor: 'pointer',
+                    dataLabels: { enabled: true },
+                    point: {
+                        events: {
+                            click: function () {
+                                if (this.custom && this.custom.records) {
+                                    showCioModal(this.custom.records, this.custom.title || '');
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            series: [{
+                name: 'Số lượng',
+                data: [
+                    { y: checkInData.length, custom: { records: checkInData, title: 'Danh sách Check In' } },
+                    { y: checkOutTrongNgay.length, custom: { records: checkOutTrongNgay, title: 'Check Out (Trong ngày)' } },
+                    { y: checkOutNgayTruoc.length, custom: { records: checkOutNgayTruoc, title: 'Check Out (Trước đó)' } }
+                ],
+                color: '#2196F3'
+            }]
+        });
+    } catch (error) {
+        console.error("Lỗi khi lấy dữ liệu Check In/Out:", error);
+    }
+}
+
 // Hàm khởi chạy khi DOM sẵn sàng
 document.addEventListener("DOMContentLoaded", () => {
     // Khởi tạo modal
@@ -332,10 +444,28 @@ document.addEventListener("DOMContentLoaded", () => {
         statusModalElement.addEventListener('shown.bs.modal', () => console.log("Modal shown"));
         statusModalElement.addEventListener('hidden.bs.modal', () => console.log("Modal closed"));
     }
+    cioModalElement = document.getElementById('cioModal');
+    if (cioModalElement && !cioModalInstance) {
+        cioModalInstance = new bootstrap.Modal(cioModalElement, { backdrop: true, keyboard: true });
+    }
 
     // Gọi API và vẽ biểu đồ
     loadStatusChart().catch(error => console.error("Error loading status chart:", error));
     fetchChartData().catch(error => console.error("Error loading model chart:", error));
+
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 0);
+    const format = d => d.toISOString().slice(0,16);
+    const startInput = document.getElementById('cioStartDate');
+    const endInput = document.getElementById('cioEndDate');
+    if (startInput && endInput) {
+        startInput.value = format(startOfDay);
+        endInput.value = format(endOfDay);
+        const loadBtn = document.getElementById('loadCioBtn');
+        if (loadBtn) loadBtn.addEventListener('click', loadCheckInOutChart);
+        loadCheckInOutChart();
+    }
 
     // Gắn sự kiện xuất Excel
     const exportExcelBtn = document.getElementById("exportExcelBtn");
@@ -373,6 +503,33 @@ document.addEventListener("DOMContentLoaded", () => {
             XLSX.utils.book_append_sheet(workbook, worksheet, "SerialNumbers");
             XLSX.writeFile(workbook, `SerialNumbers_${new Date().toISOString().slice(0, 10)}.xlsx`);
             console.log("Excel exported successfully with all data");
+        });
+    }
+
+    const exportCioExcelBtn = document.getElementById("exportCioExcelBtn");
+    if (exportCioExcelBtn) {
+        exportCioExcelBtn.addEventListener("click", () => {
+            if (cioModalData.length === 0) {
+                console.error("Không có dữ liệu để xuất Excel!");
+                showError("Không có dữ liệu để xuất!");
+                return;
+            }
+
+            const worksheetData = cioModalData.map(item => ({
+                "Serial Number": item.serial_NUMBER || item.SERIAL_NUMBER || "",
+                "Model Name": item.model_NAME || item.MODEL_NAME || "",
+                "Product Line": item.product_LINE || item.PRODUCT_LINE || "",
+                "In Date": item.in_DATETIME || item.IN_DATETIME || "",
+                "Out Date": item.out_DATETIME || item.OUT_DATETIME || "",
+                "Error Desc": item.error_DESC || item.ERROR_DESC || "",
+                "Trạng Thái": item.checkin_STATUS || item.CHECKIN_STATUS || ""
+            }));
+
+            const workbook = XLSX.utils.book_new();
+            const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+            XLSX.utils.book_append_sheet(workbook, worksheet, "CheckInOut");
+            XLSX.writeFile(workbook, `CheckInOut_${new Date().toISOString().slice(0, 10)}.xlsx`);
+            console.log("Excel exported successfully with Check In/Out data");
         });
     }
 });

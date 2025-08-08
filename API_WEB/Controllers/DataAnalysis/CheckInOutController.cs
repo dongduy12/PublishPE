@@ -147,15 +147,57 @@ namespace API_WEB.Controllers.SmartFA
                     }
                 }
 
-                var exportList = await _sqlContext.Exports
+                var exportRecords = await _sqlContext.Exports
                     .Where(e => e.CheckingB36R == true && e.ExportDate >= request.StartDate && e.ExportDate <= request.EndDate)
-                    .Select(e => e.SerialNumber)
                     .ToListAsync();
+
+                var checkInSerialsToday = new HashSet<string>(
+                    checkInList
+                        .Where(ci => ci.IN_DATETIME.HasValue && ci.IN_DATETIME.Value.Date == request.StartDate.Date)
+                        .Select(ci => ci.SERIAL_NUMBER));
+
+                foreach (var export in exportRecords)
+                {
+                    if (checkOutList.Any(c => c.SERIAL_NUMBER == export.SerialNumber))
+                    {
+                        continue;
+                    }
+
+                    var status = checkInSerialsToday.Contains(export.SerialNumber)
+                        ? "CHECKIN_TRONG_NGAY"
+                        : "CHECKIN_TRUOC_DO";
+
+                    checkOutList.Add(new CheckOutRecord
+                    {
+                        SERIAL_NUMBER = export.SerialNumber,
+                        MODEL_NAME = export.ModelName ?? "N/A",
+                        PRODUCT_LINE = export.ProductLine ?? "N/A",
+                        P_SENDER = export.EntryPerson ?? "N/A",
+                        REPAIRER = export.ExportPerson ?? "N/A",
+                        IN_DATETIME = export.EntryDate,
+                        OUT_DATETIME = export.ExportDate,
+                        REMARK = "N/A",
+                        ERROR_DESC = "N/A",
+                        CHECKIN_STATUS = status
+                    });
+                }
+
+                var checkOutTrongNgay = checkOutList
+                    .Where(c => c.CHECKIN_STATUS == "CHECKIN_TRONG_NGAY")
+                    .ToList();
+                var checkOutNgayTruoc = checkOutList
+                    .Where(c => c.CHECKIN_STATUS == "CHECKIN_TRUOC_DO")
+                    .ToList();
 
                 var response = new
                 {
                     checkIn = new { count = checkInList.Count, data = checkInList },
-                    checkOut = new { count = checkOutList.Count + exportList.Count, data = checkOutList, exportCount = exportList.Count, exportSerials = exportList }
+                    checkOut = new
+                    {
+                        count = checkOutList.Count,
+                        trongNgay = new { count = checkOutTrongNgay.Count, data = checkOutTrongNgay },
+                        ngayTruoc = new { count = checkOutNgayTruoc.Count, data = checkOutNgayTruoc }
+                    }
                 };
 
                 return Ok(response);
