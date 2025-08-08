@@ -1,6 +1,8 @@
 ﻿// Biến toàn cục
 let statusModalInstance = null;
 let statusModalElement = null;
+let cioModalInstance = null;
+let cioModalElement = null;
 let allModalData = []; // Lưu toàn bộ dữ liệu từ API
 
 // Hàm cắt bớt chuỗi
@@ -77,6 +79,51 @@ async function updateModalSNTable(data) {
     } catch (error) {
         console.error("Lỗi khi cập nhật DataTable:", error);
         return false;
+    }
+}
+
+// Hiển thị bảng chi tiết Check In/Out
+function showCioModal(data, title) {
+    try {
+        const tableBody = document.querySelector('#cio-modal-table tbody');
+        if (!tableBody) {
+            console.error('Không tìm thấy tbody của bảng CheckInOut!');
+            return;
+        }
+
+        tableBody.innerHTML = '';
+
+        if ($.fn.DataTable.isDataTable('#cio-modal-table')) {
+            $('#cio-modal-table').DataTable().clear().destroy();
+        }
+
+        data.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.serial_NUMBER || item.SERIAL_NUMBER || ''}</td>
+                <td>${item.model_NAME || item.MODEL_NAME || ''}</td>
+                <td>${item.product_LINE || item.PRODUCT_LINE || ''}</td>
+                <td>${item.in_DATETIME || item.IN_DATETIME || ''}</td>
+                <td>${item.out_DATETIME || item.OUT_DATETIME || ''}</td>
+                <td>${item.error_DESC || item.ERROR_DESC || ''}</td>
+                <td>${item.checkin_STATUS || item.CHECKIN_STATUS || ''}</td>`;
+            tableBody.appendChild(row);
+        });
+
+        $('#cio-modal-table').DataTable({
+            paging: true,
+            searching: true,
+            ordering: false,
+            scrollX: true,
+            autoWidth: false,
+            destroy: true
+        });
+
+        const titleEl = document.getElementById('cioModalLabel');
+        if (titleEl) titleEl.textContent = title;
+        if (cioModalInstance) cioModalInstance.show();
+    } catch (error) {
+        console.error('Lỗi hiển thị bảng CheckInOut:', error);
     }
 }
 
@@ -347,14 +394,38 @@ async function loadCheckInOutChart() {
         if (!response.ok) throw new Error(`API Error: ${response.status} ${response.statusText}`);
         const result = await response.json();
 
-        const checkInCount = result?.checkIn?.count || 0;
-        const checkOutCount = result?.checkOut?.count || 0;
+        const checkInData = result?.checkIn?.data || [];
+        const checkOutTrongNgay = result?.checkOut?.trongNgay?.data || [];
+        const checkOutNgayTruoc = result?.checkOut?.ngayTruoc?.data || [];
 
         Highcharts.chart('checkInOutChart', {
             chart: { type: 'column', backgroundColor: '#ffffff' },
-            xAxis: { categories: ['Check In', 'Check Out'] },
+            xAxis: { categories: ['Check In', 'Check Out (Trong ngày)', 'Check Out (Trước đó)'] },
             yAxis: { title: { text: 'Số lượng' } },
-            series: [{ name: 'Số lượng', data: [checkInCount, checkOutCount], color: '#2196F3' }]
+            plotOptions: {
+                column: {
+                    cursor: 'pointer',
+                    dataLabels: { enabled: true },
+                    point: {
+                        events: {
+                            click: function () {
+                                if (this.custom && this.custom.records) {
+                                    showCioModal(this.custom.records, this.custom.title || '');
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            series: [{
+                name: 'Số lượng',
+                data: [
+                    { y: checkInData.length, custom: { records: checkInData, title: 'Danh sách Check In' } },
+                    { y: checkOutTrongNgay.length, custom: { records: checkOutTrongNgay, title: 'Check Out (Trong ngày)' } },
+                    { y: checkOutNgayTruoc.length, custom: { records: checkOutNgayTruoc, title: 'Check Out (Trước đó)' } }
+                ],
+                color: '#2196F3'
+            }]
         });
     } catch (error) {
         console.error("Lỗi khi lấy dữ liệu Check In/Out:", error);
@@ -370,19 +441,26 @@ document.addEventListener("DOMContentLoaded", () => {
         statusModalElement.addEventListener('shown.bs.modal', () => console.log("Modal shown"));
         statusModalElement.addEventListener('hidden.bs.modal', () => console.log("Modal closed"));
     }
+    cioModalElement = document.getElementById('cioModal');
+    if (cioModalElement && !cioModalInstance) {
+        cioModalInstance = new bootstrap.Modal(cioModalElement, { backdrop: true, keyboard: true });
+    }
 
     // Gọi API và vẽ biểu đồ
     loadStatusChart().catch(error => console.error("Error loading status chart:", error));
     fetchChartData().catch(error => console.error("Error loading model chart:", error));
 
-    const today = new Date().toISOString().split('T')[0];
-    const startInput = document.getElementById("cioStartDate");
-    const endInput = document.getElementById("cioEndDate");
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 0);
+    const format = d => d.toISOString().slice(0,16);
+    const startInput = document.getElementById('cioStartDate');
+    const endInput = document.getElementById('cioEndDate');
     if (startInput && endInput) {
-        startInput.value = today;
-        endInput.value = today;
-        const loadBtn = document.getElementById("loadCioBtn");
-        if (loadBtn) loadBtn.addEventListener("click", loadCheckInOutChart);
+        startInput.value = format(startOfDay);
+        endInput.value = format(endOfDay);
+        const loadBtn = document.getElementById('loadCioBtn');
+        if (loadBtn) loadBtn.addEventListener('click', loadCheckInOutChart);
         loadCheckInOutChart();
     }
 
