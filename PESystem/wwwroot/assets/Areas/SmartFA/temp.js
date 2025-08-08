@@ -99,7 +99,7 @@ const StatusManager = (function () {
         const selectedStatus = $('#select-retest-status').val();
         const selectedTestResult = $('#select-retest-result').val();
         const errorCode = $('#error-code-input').val().trim();
-        // ... (các xử lý khác)
+        // ... (các xử lý khác)git 
     }
 
     return {

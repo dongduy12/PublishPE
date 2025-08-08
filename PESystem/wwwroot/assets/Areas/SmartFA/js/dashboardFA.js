@@ -56,11 +56,6 @@ async function updateModalSNTable(data) {
                 <td title="${item.datE3 || ''}">${truncateText(item.datE3 || '', 20)}</td>
                 <td>${item.datA13 || ''}</td>
                 <td>${item.datA18 || ''}</td>
-                <td>${item.shelfCode || ''}</td>
-                <td>${item.columnNumber || ''}</td>
-                <td>${item.levelNumber || ''}</td>
-                <td>${item.trayNumber || ''}</td>
-                <td>${item.positionInTray || ''}</td>
                 <td>${item.borrowStatus || ''}</td>`;
             tableBody.appendChild(row);
         });
@@ -103,13 +98,17 @@ function showCioModal(data, title) {
         data.forEach(item => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${item.serial_NUMBER || item.SERIAL_NUMBER || ''}</td>
-                <td>${item.model_NAME || item.MODEL_NAME || ''}</td>
-                <td>${item.product_LINE || item.PRODUCT_LINE || ''}</td>
-                <td>${item.in_DATETIME || item.IN_DATETIME || ''}</td>
-                <td>${item.out_DATETIME || item.OUT_DATETIME || ''}</td>
-                <td>${item.error_DESC || item.ERROR_DESC || ''}</td>
-                <td>${item.checkin_STATUS || item.CHECKIN_STATUS || ''}</td>`;
+                <td>${item.seriaL_NUMBER || ''}</td>
+                <td>${item.modeL_NAME || ''}</td>
+                <td>${item.producT_LINE || ''}</td>
+                <td>${item.p_SENDER || ''}</td>
+                <td>${item.iN_DATETIME || ''}</td>
+                <td>${item.ouT_DATETIME || ''}</td>
+                <td>${item.repairer || ''}</td>
+                <td>${item.statioN_NAME || ''}</td>
+                <td>${item.erroR_CODE || ''}</td>
+                <td>${item.erroR_DESC || ''}</td>
+                <td>${item.checkiN_STATUS|| ''}</td>`;
             tableBody.appendChild(row);
         });
 
@@ -478,24 +477,19 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             const worksheetData = allModalData.map(item => ({
-                "Serial Number": item.seriaL_NUMBER || "",
-                "Product Line": item.productLine || "",
-                "Model Name": item.modeL_NAME || "",
-                "WIP Group": item.wiP_GROUP || "",
-                "Test Group": item.tesT_GROUP || "",
-                "Test Code": item.tesT_CODE || "",
-                "Data1": item.datA1 || "",
-                "Data11": item.datA11 || "",
-                "Tester": item.tester || "",
-                "Date3": item.datE3 || "",
-                "Data13": item.datA13 || "",
-                "Data18": item.datA18 || "",
-                "Shelf Code": item.shelfCode || "",
-                "Column Number": item.columnNumber || "",
-                "Level Number": item.levelNumber || "",
-                "Tray Number": item.trayNumber || "",
-                "Position In Tray": item.positionInTray || "",
-                "Borrow Status": item.borrowStatus || ""
+                "SERIAL_NUMBER": item.seriaL_NUMBER || "",
+                "PRODUCT_LINE": item.productLine || "",
+                "MODEL_NAME": item.modeL_NAME || "",
+                "WIP_GROUP": item.wiP_GROUP || "",
+                "TEST_GROUP": item.tesT_GROUP || "",
+                "ERROR_CODE": item.tesT_CODE || "",
+                "ERROR_DESC": item.datA1 || "",
+                "STATUS_FA": item.datA11 || "",
+                "PERSON_CONFIRM": item.tester || "",
+                "TIME_CONFIRM": item.datE3 || "",
+                "HANDLER": item.datA13 || "",
+                "LOCATION": item.datA18 || "",
+                "BORROW_STATUS": item.borrowStatus || ""
             }));
 
             const workbook = XLSX.utils.book_new();
@@ -516,13 +510,17 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             const worksheetData = cioModalData.map(item => ({
-                "Serial Number": item.serial_NUMBER || item.SERIAL_NUMBER || "",
-                "Model Name": item.model_NAME || item.MODEL_NAME || "",
-                "Product Line": item.product_LINE || item.PRODUCT_LINE || "",
-                "In Date": item.in_DATETIME || item.IN_DATETIME || "",
-                "Out Date": item.out_DATETIME || item.OUT_DATETIME || "",
-                "Error Desc": item.error_DESC || item.ERROR_DESC || "",
-                "Trạng Thái": item.checkin_STATUS || item.CHECKIN_STATUS || ""
+                "SERIAL_NUMBER": item.seriaL_NUMBER || "",
+                "MODEL_NAME": item.modeL_NAME || "",
+                "PRODUCT_LINE": item.producT_LINE || "",
+                "PERSON_IN": item.p_SENDER || "",
+                "IN_DATE": item.iN_DATETIME || "",
+                "OUT_DATE": item.ouT_DATETIME || "",
+                "REPAIRER": item.repairer || "",
+                "STATION": item.statioN_NAME || "",
+                "ERROR_CODE": item.erroR_CODE || "",
+                "ERROR_DESC": item.erroR_DESC || "",
+                "TYPE": item.checkiN_STATUS || ""
             }));
 
             const workbook = XLSX.utils.book_new();

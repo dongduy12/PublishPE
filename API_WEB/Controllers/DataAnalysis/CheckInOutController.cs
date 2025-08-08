@@ -35,6 +35,7 @@ namespace API_WEB.Controllers.SmartFA
             public string SERIAL_NUMBER { get; set; } = string.Empty;
             public string MO_NUMBER { get; set; } = string.Empty;
             public string MODEL_NAME { get; set; } = string.Empty;
+            public string P_SENDER { get; set; } = string.Empty;
             public string STATION_NAME { get; set; } = string.Empty;
             public string ERROR_CODE { get; set; } = string.Empty;
             public DateTime? IN_DATETIME { get; set; }
@@ -48,9 +49,10 @@ namespace API_WEB.Controllers.SmartFA
             public string PRODUCT_LINE { get; set; } = string.Empty;
             public string P_SENDER { get; set; } = string.Empty;
             public string REPAIRER { get; set; } = string.Empty;
+            public string STATION_NAME { get; set; } = string.Empty;
             public DateTime? IN_DATETIME { get; set; }
             public DateTime? OUT_DATETIME { get; set; }
-            public string REMARK { get; set; } = string.Empty;
+            public string ERROR_CODE { get; set; } = string.Empty;
             public string ERROR_DESC { get; set; } = string.Empty;
             public string CHECKIN_STATUS { get; set; } = string.Empty;
         }
@@ -63,22 +65,50 @@ namespace API_WEB.Controllers.SmartFA
             {
                 await connection.OpenAsync();
 
-                var checkInQuery = @"SELECT a.SERIAL_NUMBER,
-                                            a.MO_NUMBER,
-                                            a.MODEL_NAME,
-                                            a.STATION_NAME,
-                                            a.REMARK AS ERROR_CODE,
-                                            a.IN_DATETIME,
-                                            c.ERROR_DESC
-                                       FROM sfism4.r_repair_in_out_t a
-                                       INNER JOIN sfis1.c_model_desc_t b ON a.model_name = b.model_name
-                                       INNER JOIN sfis1.c_error_code_t c ON a.REMARK = c.ERROR_CODE
-                                       WHERE b.MODEL_SERIAL = 'ADAPTER'
-                                         AND a.P_SENDER IN ('V0904136','V0945375','V0928908')
-                                         AND a.STATION_NAME != 'REPAIR_B36R'
-                                         AND a.IN_DATETIME BETWEEN :startDate AND :endDate
-                                         AND ( (a.MODEL_NAME NOT LIKE '900%' AND a.MODEL_NAME NOT LIKE '692%' AND a.MODEL_NAME NOT LIKE '699%')
-                                               OR EXISTS (SELECT 1 FROM SFISM4.R109 d WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER AND d.REASON_CODE LIKE '%B36R%'))";
+                var checkInQuery = @"SELECT
+                        CASE
+                        WHEN REGEXP_LIKE(a.MODEL_NAME, '^(900|692|699)')
+                                 AND EXISTS (
+                                     SELECT 1
+                                     FROM SFISM4.R109 d
+                                     WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
+                                       AND d.REASON_CODE LIKE '%B36R%'
+                                 )
+                            THEN COALESCE(pkp.KEY_PART_SN, a.SERIAL_NUMBER)
+                            ELSE a.SERIAL_NUMBER
+                        END AS SERIAL_NUMBER,
+                        a.MO_NUMBER,
+                        a.MODEL_NAME,
+                        a.STATION_NAME,
+                        a.P_SENDER,
+                        b.PRODUCT_LINE,
+                        a.REMARK AS ERROR_CODE,
+                        a.IN_DATETIME,
+                        c.ERROR_DESC
+                    FROM SFISM4.R_REPAIR_IN_OUT_T a
+                    INNER JOIN SFIS1.C_MODEL_DESC_T b
+                        ON a.MODEL_NAME = b.MODEL_NAME
+                    INNER JOIN SFIS1.C_ERROR_CODE_T c
+                        ON a.REMARK = c.ERROR_CODE
+                    LEFT JOIN (
+                        SELECT SERIAL_NUMBER, MAX(KEY_PART_SN) AS KEY_PART_SN
+                        FROM SFISM4.P_WIP_KEYPARTS_T
+                        GROUP BY SERIAL_NUMBER
+                    ) pkp
+                        ON pkp.SERIAL_NUMBER = a.SERIAL_NUMBER
+                    WHERE b.MODEL_SERIAL = 'ADAPTER'
+                      AND a.P_SENDER IN ('V0904136', 'V0945375', 'V0928908', 'V3245384', 'V3211693')
+                      AND a.STATION_NAME <> 'REPAIR_B36R'
+                      AND a.IN_DATETIME BETWEEN :startDate AND :endDate
+                      AND (
+                            NOT REGEXP_LIKE(a.MODEL_NAME, '^(900|692|699)')
+                            OR EXISTS (
+                                SELECT 1
+                                FROM SFISM4.R109 d
+                                WHERE d.SERIAL_NUMBER = a.SERIAL_NUMBER
+                                  AND d.REASON_CODE LIKE '%B36R%'
+                            )
+                          )";
                 var checkInList = new List<CheckInRecord>();
                 await using (var cmd = new OracleCommand(checkInQuery, connection))
                 {
@@ -92,6 +122,7 @@ namespace API_WEB.Controllers.SmartFA
                         {
                             SERIAL_NUMBER = reader["SERIAL_NUMBER"].ToString() ?? string.Empty,
                             MO_NUMBER = reader["MO_NUMBER"].ToString() ?? string.Empty,
+                            P_SENDER = reader["P_SENDER"].ToString() ?? string.Empty,
                             MODEL_NAME = reader["MODEL_NAME"].ToString() ?? string.Empty,
                             STATION_NAME = reader["STATION_NAME"].ToString() ?? string.Empty,
                             ERROR_CODE = reader["ERROR_CODE"].ToString() ?? string.Empty,
@@ -108,14 +139,15 @@ namespace API_WEB.Controllers.SmartFA
                                             a.REPAIRER,
                                             a.IN_DATETIME,
                                             a.OUT_DATETIME,
-                                            a.REMARK,
+                                            a.STATION_NAME,
+                                            a.REMARK AS ERROR_CODE,
                                             c.ERROR_DESC,
                                             CASE WHEN TRUNC(a.IN_DATETIME) = TRUNC(:startDate) THEN 'CHECKIN_TRONG_NGAY' ELSE 'CHECKIN_TRUOC_DO' END AS CHECKIN_STATUS
                                        FROM sfism4.r_repair_in_out_t a
                                        INNER JOIN sfis1.c_model_desc_t b ON a.model_name = b.model_name
                                        INNER JOIN sfis1.c_error_code_t c ON a.REMARK = c.ERROR_CODE
                                        WHERE b.MODEL_SERIAL = 'ADAPTER'
-                                         AND a.P_SENDER IN ('V0904136','V0945375','V0928908')
+                                         AND a.P_SENDER IN ('V0904136', 'V0945375', 'V0928908', 'V3245384', 'V3211693')
                                          AND a.STATION_NAME != 'REPAIR_B36R'
                                          AND a.MODEL_NAME NOT LIKE '900%'
                                          AND a.MODEL_NAME NOT LIKE '692%'
@@ -138,9 +170,10 @@ namespace API_WEB.Controllers.SmartFA
                             PRODUCT_LINE = reader["PRODUCT_LINE"].ToString() ?? string.Empty,
                             P_SENDER = reader["P_SENDER"].ToString() ?? string.Empty,
                             REPAIRER = reader["REPAIRER"].ToString() ?? string.Empty,
+                            STATION_NAME = reader["STATION_NAME"].ToString() ?? string.Empty,
                             IN_DATETIME = reader["IN_DATETIME"] as DateTime?,
                             OUT_DATETIME = reader["OUT_DATETIME"] as DateTime?,
-                            REMARK = reader["REMARK"].ToString() ?? string.Empty,
+                            ERROR_CODE = reader["ERROR_CODE"].ToString() ?? string.Empty,
                             ERROR_DESC = reader["ERROR_DESC"].ToString() ?? string.Empty,
                             CHECKIN_STATUS = reader["CHECKIN_STATUS"].ToString() ?? string.Empty
                         });
@@ -174,9 +207,9 @@ namespace API_WEB.Controllers.SmartFA
                         PRODUCT_LINE = export.ProductLine ?? "N/A",
                         P_SENDER = export.EntryPerson ?? "N/A",
                         REPAIRER = export.ExportPerson ?? "N/A",
-                        IN_DATETIME = export.EntryDate,
+                        IN_DATETIME = null,
                         OUT_DATETIME = export.ExportDate,
-                        REMARK = "N/A",
+                        ERROR_CODE = "N/A",
                         ERROR_DESC = "N/A",
                         CHECKIN_STATUS = status
                     });

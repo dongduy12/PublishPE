@@ -18,19 +18,19 @@
     position: absolute;
     background-color: #333;
     color: #fff;
-    padding: 5px 10px;
-    border-radius: 3px;
-    font-size: 12px;
+    padding: 5px 5px;
+    border-radius: 2px;
+    font-size: 10px;
     z-index: 1000;
     display: none;
-    max-width: 200px;
+    max-width: 300px;
     word-wrap: break-word;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
 }
 
 .datatable-table tbody tr:hover td,
 .datatable-table tbody tr:hover th {
-    background-color: #76B900 !important;
+    background-color: #76B900;
 }
 
 .dataTables_wrapper .dataTables_filter,
@@ -46,7 +46,7 @@
 }
 
 .dataTables_wrapper {
-    overflow-x: auto;
+    overflow-x: hidden;
 }
 
 .table-responsive {
@@ -58,16 +58,15 @@
     align-items: stretch;
 }
 
-.form-control, .form-select {
+.form-control {
     height: auto;
     resize: vertical;
 }
 
-.datatable-table th, .datatable-table td {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 150px;
+.datatable-table td, .datatable-table th {
+    min-width: 120px;
+    white-space: normal;
+    word-wrap: break-word;
     padding: 5px;
 }
 

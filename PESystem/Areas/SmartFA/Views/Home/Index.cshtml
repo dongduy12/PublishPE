@@ -38,7 +38,7 @@
                         <div class="d-flex">
                             <input type="datetime-local" id="cioStartDate" class="form-control form-control-sm me-2" />
                             <input type="datetime-local" id="cioEndDate" class="form-control form-control-sm me-2" />
-                            <button id="loadCioBtn" class="btn btn-primary btn-sm">Tải</button>
+                            <button id="loadCioBtn" class="btn btn-ne btn-sm">SEARCH</button>
                         </div>
                     </div>
                     <div id="checkInOutChart" style="width: 100%; height: 400px;"></div>
@@ -59,24 +59,19 @@
                     <table id="modal-sn-table" class="table table-bordered datatable-table table-striped">
                         <thead>
                             <tr>
-                                <th>SerialNumber</th>
-                                <th>ProductLine</th>
-                                <th>ModelName</th>
-                                <th>WIP</th>
-                                <th>TestGroup</th>
-                                <th>TestCode</th>
-                                <th>Data1</th>
-                                <th>Cur_status</th>
-                                <th>ConfirmPerson</th>
-                                <th>ConfirmTime</th>
-                                <th>HandoverStatus</th>
-                                <th>Location</th>
-                                <th>Kệ</th>
-                                <th>Cột</th>
-                                <th>Tầng</th>
-                                <th>Khay</th>
-                                <th>Ô</th>
-                                <th>Mượn</th>
+                                <th>SERIAL_NUMBER</th>
+                                <th>PRODUCT_LINE</th>
+                                <th>MODEL_NAME</th>
+                                <th>WIP_GROUP</th>
+                                <th>TEST_GROUP</th>
+                                <th>ERROR_CODE</th>
+                                <th>ERROR_DESC</th>
+                                <th>STATUS_FA</th>
+                                <th>PERSON_CONFIRM</th>
+                                <th>TIME_CONFIRM</th>
+                                <th>HANDLER</th>
+                                <th>LOCATION</th>
+                                <th>BORROW_STATUS</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -106,13 +101,17 @@
                     <table id="cio-modal-table" class="table table-bordered table-striped">
                         <thead>
                             <tr>
-                                <th>Serial Number</th>
-                                <th>Model Name</th>
-                                <th>Product Line</th>
-                                <th>In Date</th>
-                                <th>Out Date</th>
-                                <th>Error Desc</th>
-                                <th>Trạng Thái</th>
+                                <th>SERIAL_NUMBER</th>
+                                <th>MODEL_NAME</th>
+                                <th>PRODUCT_LINE</th>
+                                <th>PERSON_IN</th>
+                                <th>IN_DATE</th>
+                                <th>OUT_DATE</th>
+                                <th>REPAIRER</th>
+                                <th>STATION</th>
+                                <th>ERROR_CODE</th>
+                                <th>ERROR_DESC</th>
+                                <th>TYPE</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
