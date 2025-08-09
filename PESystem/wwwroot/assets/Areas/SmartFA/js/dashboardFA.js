@@ -402,6 +402,7 @@ async function loadCheckInOutChart() {
 
         Highcharts.chart('checkInOutChart', {
             chart: { type: 'column', backgroundColor: '#ffffff' },
+            title: {text : null},
             xAxis: { categories: ['Check In', 'Check Out (Trong ngày)', 'Check Out (Trước đó)'] },
             yAxis: { title: { text: 'Số lượng' } },
             plotOptions: {
@@ -422,11 +423,10 @@ async function loadCheckInOutChart() {
             series: [{
                 name: 'Số lượng',
                 data: [
-                    { y: checkInData.length, custom: { records: checkInData, title: 'Danh sách Check In' } },
-                    { y: checkOutTrongNgay.length, custom: { records: checkOutTrongNgay, title: 'Check Out (Trong ngày)' } },
-                    { y: checkOutNgayTruoc.length, custom: { records: checkOutNgayTruoc, title: 'Check Out (Trước đó)' } }
-                ],
-                color: '#2196F3'
+                    { y: checkInData.length, color: '#00E5FF', custom: { records: checkInData, title: 'Danh sách Check In' } },
+                    { y: checkOutTrongNgay.length, color: '#FF9800', custom: { records: checkOutTrongNgay, title: 'Check Out (Trong ngày)' } },
+                    { y: checkOutNgayTruoc.length, color: '#FF9800', custom: { records: checkOutNgayTruoc, title: 'Check Out (Trước đó)' } }
+                ]
             }]
         });
     } catch (error) {
