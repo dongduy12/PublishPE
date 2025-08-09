@@ -15,6 +15,7 @@
                     <textarea id="serialNumberList" class="form-control" rows="3" placeholder="Input SERIAL NUMBER..." required></textarea>
                     <button type="submit" id="searchButton" class="btn btn-ne">SEARCH</button>
                     <button type="button" id="refreshButton" class="btn btn-ne">REFRESH</button>
+                    <button type="button" id="updateReceivingButton" class="btn btn-ne">UPDATE LOCATION</button>
                 </div>
             </form>
         </div>
@@ -534,6 +535,25 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal cập nhật vị trí cho danh sách SN -->
+    <div class="modal fade" id="updateReceivingModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Update Location</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <textarea id="updateReceivingSerials" class="form-control mb-2" rows="3" placeholder="List SERIAL_NUMBER..."></textarea>
+                    <input type="text" id="updateReceivingLocation" class="form-control" placeholder="Vị trí (Location)">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" id="confirmUpdateReceiving" class="btn btn-ne">Update</button>
                 </div>
             </div>
         </div>
