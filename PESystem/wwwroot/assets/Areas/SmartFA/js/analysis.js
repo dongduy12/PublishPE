@@ -1228,6 +1228,7 @@ const HandoverManager = (function () {
     function setupEventListeners() {
         $('#btn-handover').on('click', handleHandover);
         $('#btn-receive').on('click', handleReceive);
+        $('#updateReceivingButton').on('click', handleManualReceive);
     }
 
     async function handleHandover() {
@@ -1300,9 +1301,53 @@ const HandoverManager = (function () {
                     showError('Không thể nhận bản!');
                 }
             } catch (error) {
+            showError('Lỗi khi gọi API!');
+        }
+    });
+    }
+
+    function handleManualReceive() {
+        $('#updateReceivingSerials').val('');
+        $('#updateReceivingLocation').val('');
+        const modal = new bootstrap.Modal(document.getElementById('updateReceivingModal'));
+        $('#confirmUpdateReceiving').off('click').on('click', async function () {
+            const serialInput = $('#updateReceivingSerials').val().trim();
+            const location = $('#updateReceivingLocation').val().trim().toUpperCase();
+            if (!serialInput) {
+                showWarning('Vui lòng nhập Serial Number!');
+                return;
+            }
+            if (!location) {
+                showWarning('Vui lòng nhập vị trí!');
+                return;
+            }
+            const serialNumbers = serialInput.split(/[\n,]+/).map(sn => sn.trim()).filter(sn => sn);
+            if (serialNumbers.length === 0) {
+                showWarning('Danh sách Serial Number không hợp lệ!');
+                return;
+            }
+            const payload = {
+                serialNumbers: serialNumbers.join(','),
+                owner: $('#analysisPerson').val(),
+                location,
+                tag: 'Nhận'
+            };
+            try {
+                const result = await ApiService.receivingStatus(payload);
+                const clean = result.message.replace(/"/g, '').trim();
+                if (result.success && clean === 'OK') {
+                    const updatedData = await ApiService.searchFA({ serialNumbers });
+                    DataTableManager.updateSnTable(serialNumbers, updatedData);
+                    showSuccess('Cập nhật vị trí thành công!');
+                } else {
+                    showError('Không thể cập nhật vị trí!');
+                }
+            } catch (error) {
                 showError('Lỗi khi gọi API!');
             }
+            modal.hide();
         });
+        modal.show();
     }
 
     return {
